@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:issuetracker/kasus/kasus_database.dart';
+import 'package:issuetracker/kasus/kasus_service.dart';
+
 
 class TambahLaporan extends StatefulWidget {
   const TambahLaporan({super.key});
@@ -10,6 +12,12 @@ class TambahLaporan extends StatefulWidget {
 }
 
 class _TambahLaporanState extends State<TambahLaporan> {
+
+final kasus = Kasus();
+final judul = TextEditingController();
+final lokasi = TextEditingController();
+final deskripsi = TextEditingController();
+
   String? selectKategori;
   String? selectPrioritas;
 
@@ -43,6 +51,7 @@ class _TambahLaporanState extends State<TambahLaporan> {
             ),
             const SizedBox(height: 8),
             TextField(
+              controller: judul,
               decoration: InputDecoration(
                 hintText: 'Masukan judul masalah',
                 filled: true,
@@ -64,7 +73,8 @@ class _TambahLaporanState extends State<TambahLaporan> {
             ),
             const SizedBox(height: 8),
             TextField(
-              decoration: InputDecoration(
+              controller: lokasi,
+                decoration: InputDecoration(
                 hintText: 'Lokasi',
                 filled: true,
                 fillColor: Colors.white,
@@ -299,6 +309,7 @@ class _TambahLaporanState extends State<TambahLaporan> {
                 ),
                 const SizedBox(height: 18),
                 TextField(
+                  controller: deskripsi,
                   maxLines: null,
                   decoration: InputDecoration(
                     contentPadding: const EdgeInsets.symmetric(

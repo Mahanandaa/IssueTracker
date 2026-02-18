@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:issuetracker/Auth/auth_gate.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
 
-/// GLOBAL THEME CONTROLLER
 ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Supabase.initialize(
+    url: 'https://ivzuhuebueotbjpfunxp.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2enVodWVidWVvdGJqcGZ1bnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNTgzNTAsImV4cCI6MjA4NjkzNDM1MH0.rzB9-boI2ids70DLS2ptlRii6d_Wrp8dfZe5BSvu9BY'
+  );
+
   runApp(const MyApp());
 }
 
@@ -13,16 +21,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder(
+  return ValueListenableBuilder<ThemeMode>(
       valueListenable: themeNotifier,
-      builder: (context, ThemeMode mode, _) {
+      builder: (context, mode, _) {
         return MaterialApp(
           debugShowCheckedModeBanner: false,
           title: 'Issue Tracker',
           theme: ThemeData.light(),
           darkTheme: ThemeData.dark(),
           themeMode: mode,
-          home: const DashboardKaryawan(),
+          home: const AuthGate(),
         );
       },
     );

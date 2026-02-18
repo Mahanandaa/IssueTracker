@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/Auth/daftar.dart';
-import 'package:issuetracker/main.dart';
-import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
+import 'auth_service.dart';
+import 'daftar.dart';
+
 class Loginpage extends StatefulWidget {
   const Loginpage({super.key});
 
@@ -10,15 +10,27 @@ class Loginpage extends StatefulWidget {
 }
 
 class _LoginpageState extends State<Loginpage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final authService = AuthService();
 
-  final username = TextEditingController();
-  final password = TextEditingController();
+  void login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-  @override
-  void dispose() {
-    username.dispose();
-    password.dispose();
-    super.dispose();
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Email & password wajib diisi')),
+      );
+      return;
+    }
+
+    try {
+      await authService.masuk(email, password);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Login gagal: $e")));
+    }
   }
 
   @override
@@ -30,24 +42,18 @@ class _LoginpageState extends State<Loginpage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-
               Text(
                 'IssueTracker.',
-               
                 style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 40,
-                  color: Colors.blue[900],
-                  
-                ),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 40,
+                    color: Colors.blue[900]),
               ),
-
               SizedBox(height: 50),
-
               Container(
                 padding: EdgeInsets.all(22),
-                  width: 362,
-                  height: 440,
+                width: 362,
+                height: 440,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -59,76 +65,48 @@ class _LoginpageState extends State<Loginpage> {
                     ),
                   ],
                 ),
-
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     Center(
-                      child: Text(
-                        'Selamat Datang',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-
+                        child: Text('Selamat Datang',
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.w600))),
                     SizedBox(height: 6),
-
                     Center(
-                      child: Text(
-                        'Masuk ke akun IssueTrack sekarang !',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ),
-
+                        child: Text(
+                            'Masuk ke akun IssueTrack sekarang !',
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[600]))),
                     SizedBox(height: 28),
-
-                    Text(
-                      'Username',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-
+                    Text('email',
+                        style: TextStyle(fontWeight: FontWeight.w500)),
                     SizedBox(height: 8),
-
                     TextField(
-                      controller: username,
+                      controller: _emailController,
                       decoration: InputDecoration(
-                        hintText: 'Masukkan username',
+                        hintText: 'Masukkan email',
                         contentPadding: EdgeInsets.all(12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
-
                     SizedBox(height: 20),
-
-                    Text(
-                      'Password',
-                      style: TextStyle(fontWeight: FontWeight.w500),
-                    ),
-
-                    SizedBox(height: 8),
-
+                    Text('Password',
+                        style: TextStyle(fontWeight: FontWeight.w500)),
+                    SizedBox(height: 10),
                     TextField(
-                      controller: password,
+                      controller: _passwordController,
                       obscureText: true,
                       decoration: InputDecoration(
-                         hintText: 'Masukkan password',
+                        hintText: 'Masukkan password',
                         contentPadding: EdgeInsets.all(12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                            borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
-
                     SizedBox(height: 24),
-
                     Center(
                       child: SizedBox(
                         width: 220,
@@ -137,44 +115,33 @@ class _LoginpageState extends State<Loginpage> {
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.blue[600],
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                                borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => DashboardKaryawan()),
-                            );
-                          },
-                          child: Text(
-                            'Masuk',
+                          onPressed: login,
+                          child: Text('Masuk',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 15),
+                    GestureDetector(
+                      child: Center(
+                        child: Text('Belum punya akun? Daftar!',
                             style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                                color: Colors.blue[400],
+                                fontWeight: FontWeight.w500)),
                       ),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  Center(
-                    child: Text(
-                      'Belum memiliki akun? Daftar',
-                      style: TextStyle(
-                        color: Colors.blue[400],
-                        fontWeight: FontWeight.w500,
-                      
-                      ),
-                      
-                    ),
-                    
-                  ),
-                  
-                ],
+                      onTap: () {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => daftar()));
+                      },
+                    )
+                  ],
+                ),
               ),
-                              
-              ),
-             ],
+            ],
           ),
         ),
       ),

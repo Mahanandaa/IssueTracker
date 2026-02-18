@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:issuetracker/Auth/auth_service.dart';
 import 'package:issuetracker/karyawan/edit_profile_karyawan.dart';
 import 'package:issuetracker/main.dart';
 import 'package:issuetracker/Auth/login.dart';
@@ -14,6 +15,11 @@ class profilesettingkaryawan extends StatefulWidget {
 }
 
 class _profilesettingkaryawanState extends State<profilesettingkaryawan> {
+  final authService = AuthService();
+
+  void logout() async{
+    await authService.keluar();
+  } 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
