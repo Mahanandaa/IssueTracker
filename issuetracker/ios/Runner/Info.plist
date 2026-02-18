@@ -16,6 +16,10 @@
 	<string>issuetracker</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
+	<key>NSPhotoLibraryUsageDescription </key>
+	<string>Aplikasi butuh mengakses Gallery</string>
+	<key>NSCameraUsageDescription  </key>
+	<string>Aplikasi butuh mengakses kamera</string>
 	<key>CFBundleShortVersionString</key>
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>

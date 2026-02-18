@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/karyawan/notifikasi_karyawan.dart';
 import 'package:issuetracker/karyawan/setting_profile.dart';
 
 class NotifikasiKaryawan extends StatefulWidget {
@@ -13,6 +12,7 @@ class _NotifikasiKaryawanState extends State<NotifikasiKaryawan> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         
@@ -48,7 +48,8 @@ Container(
     crossAxisAlignment: CrossAxisAlignment.start,
 
     children: [
-      
+      Container(
+          ),
       Text(
         'Tidak ada Air',
         style: TextStyle(
