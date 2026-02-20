@@ -2,20 +2,34 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthService {
   final SupabaseClient _supabase = Supabase.instance.client;
+Future<AuthResponse> signUp(
+    String email, String password, String telepon, String nama) async {
 
-  Future<AuthResponse> daftar(
-      String email, String password, String telepon, String nama) async {
-    return await _supabase.auth.signUp(
-      email: email,
-      password: password,
-      data: {
-        'nama': nama,
-        'telepon': telepon,
-      },
-    );
+  final response = await _supabase.auth.signUp(
+    email: email,
+    password: password,
+    data: {
+      'nama': nama,
+      'telepon': telepon,
+    },
+  );
+
+  final user = response.user;
+
+  if (user != null) {
+    await _supabase.from('users').insert({
+      'id': user.id,
+      'email': email,
+      'nama': nama,
+      'telepon': telepon,
+      'role': 'karyawan',
+    });
   }
 
-  Future<AuthResponse> masuk(String email, String password) async {
+  return response;
+}
+
+  Future<AuthResponse> signInWithPassword(String email, String password) async {
     return await _supabase.auth.signInWithPassword(
       email: email,
       password: password,

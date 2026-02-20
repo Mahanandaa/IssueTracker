@@ -7,25 +7,56 @@ import 'package:issuetracker/karyawan/tambah_laporan.dart';
 import 'package:camera/camera.dart';
 import 'dart:async';
 import 'dart:io';
-
-Future <void> main() async{
-  WidgetsFlutterBinding.ensureInitialized();
-  final cameras = await availableCameras();
-  final firstCamera = cameras.first;
-}
+import 'package:issuetracker/kasus/issuesDatabase.dart';
+import 'package:issuetracker/kasus/issuesModel.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DashboardKaryawan extends StatefulWidget {
-  
-  const DashboardKaryawan({super.key});
+const DashboardKaryawan({super.key});
 
   @override
   State<DashboardKaryawan> createState() => _DashboardKaryawanState();
 }
 
 class _DashboardKaryawanState extends State<DashboardKaryawan> {
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> issues = [];
+
+@override
+void initState(){
+  super.initState();
+  fetchIssues();
+
+}
+
+Future<void> fetchIssues() async{
+  final response = await supabase.from('issues').select();
+  setState(() {
+    issues = List<Map<String, dynamic>>.from(response);
+  });
+}
+Future<void> deleteIssues(int id) async{
+  await supabase.from('issues').delete().eq('id', id);
+  fetchIssues();
+}
+
+Future<void> confirmDelete(int id) async{
+  final confirm = await showDialog<bool>(context: context,
+   builder: (context) => AlertDialog(
+    title: const Text('Hapus Laporan Masalah'),
+    content: const Text('Yakin ingin menghapus laporan masalah ini ? '),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+     TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus')),
+    ],
+   ),
+   );
+   if (confirm == true){
+    deleteIssues(id);
+   }
+}
   final search = TextEditingController();
 
-  
   DateTime? selectedDate;
 
   Future<void> _pickDate() async {
@@ -196,121 +227,136 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
 
             const SizedBox(height: 30),
 
+           
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 40),
-                children: [
+      child: issues.isEmpty ? const Center(child:
+       Text("Belum ada laporan",
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+          color: Colors.redAccent
+        ),),
+       ): ListView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          itemCount: issues.length,
+          itemBuilder: (context, index) {
+            final issue = issues[index];
 
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => DetailLaporanKaryawan(),
-                        ),
-                      );
-                    },
-
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[100],
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Color(0x19000000),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
-                          ),
-                        ],
-                      ),
-
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Tidak ada air',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 20,
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 5, horizontal: 8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(5),
-                                ),
-                                child: const Text(
-                                  'Urgent',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 8),
-                          const Text('Lokasi : Lantai 1'),
-                          const Text('02 Februari 2026'),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-
-                              IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.red, size: 20),
-                                onPressed: () {},
-                              ),
-
-                              IconButton(
-                                icon: Icon(Icons.edit_document,
-                                    color: Colors.orange[900], size: 20),
-                                onPressed: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => EditLaporan()),
-                                  );
-                                },
-                              ),
-
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                    vertical: 6, horizontal: 10),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange[100],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  'Pending',
-                                  style: TextStyle(
-                                    color: Colors.orange[900],
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
+            return GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DetailLaporanKaryawan(),
                   ),
-
-                ],
+                );
+              },
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x19000000),
+                      blurRadius: 20,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          issue['title'] ?? '',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 5, horizontal: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            issue['priority'] ?? '',
+                            style: TextStyle(
+                              color: issue['priority'] == 'Urgent'
+                                  ? Colors.red
+                                  : issue['priority'] == 'High'
+                                      ? Colors.red
+                                      : issue['priority'] == 'Medium'
+                                          ? Colors.orange
+                                          : Colors.green,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Lokasi : ${issue['location'] ?? ''}'),
+                    Text(
+                      issue['created_at'] != null
+                          ? issue['created_at'].toString().substring(0, 10)
+                          : '',
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.delete,
+                              color: Colors.red, size: 20),
+                          onPressed: () =>
+                              confirmDelete(issue['id']),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.edit_document,
+                              color: Colors.orange[900], size: 20),
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) => EditLaporan()),
+                            );
+                          },
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: issue['status'] == 'Pending'
+                                ? Colors.orange[100]
+                                : Colors.green[100],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            issue['status'] ?? '',
+                            style: TextStyle(
+                              color: issue['status'] == 'Pending'
+                                  ? Colors.orange[900]
+                                  : Colors.green[900],
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
               ),
-            ),
+            );
+          },
+        ),
+),
           ],
         ),
       ),

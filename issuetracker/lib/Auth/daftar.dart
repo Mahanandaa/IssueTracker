@@ -39,7 +39,7 @@ class _daftarState extends State<daftar> {
     }
 
     try {
-      await authService.daftar(email, password, nomor, nama);
+      await authService.signUp(email, password, nomor, nama);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {

@@ -26,7 +26,7 @@ class _LoginpageState extends State<Loginpage> {
     }
 
     try {
-      await authService.masuk(email, password);
+      await authService.signInWithPassword(email, password);
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Login gagal: $e")));
@@ -110,7 +110,7 @@ class _LoginpageState extends State<Loginpage> {
                     Center(
                       child: SizedBox(
                         width: 220,
-                        height: 45,
+                        height: 40,
                         child: TextButton(
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.blue[600],
