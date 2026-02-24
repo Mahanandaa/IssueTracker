@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/karyawan/setting_profile.dart';
+import 'package:issuetracker/kasus/issuesDatabase.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:issuetracker/Auth/auth_service.dart';
 class EditProfileKaryawan extends StatefulWidget {
   const EditProfileKaryawan({super.key});
 
@@ -8,6 +11,39 @@ class EditProfileKaryawan extends StatefulWidget {
 }
 
 class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
+final authService = AuthService();
+var nama = TextEditingController();
+var email = TextEditingController(); 
+var nomor = TextEditingController();
+var password = TextEditingController();
+
+
+// masih error euy
+/*
+@override
+void initState(){
+  super.initState();
+  nama = TextEditingController(text: widget.users['name']);
+  email = TextEditingController(text: widget.users['email']);
+  nomor = TextEditingController(text: widget.users['phone']);
+  password = TextEditingController(text: widget.users['password_hash']);
+}
+*/
+
+
+Widget _inputField(TextEditingController controller, String hint){
+return TextField(
+controller: controller,
+decoration: InputDecoration(
+    hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+),
+)
+);
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -37,14 +73,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Masukkan nama",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            _inputField(nama, "Masukan nama baru"),
 
             const SizedBox(height: 18),
 
@@ -53,14 +82,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Masukkan email",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            _inputField(email, "masukan email baru"),
 
             const SizedBox(height: 18),
 
@@ -69,14 +91,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Masukkan nomor HP",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+           _inputField(nomor, "masukan nomor baru"),
 
             const SizedBox(height: 18),
 
@@ -85,16 +100,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
               style: TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            TextField(
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: "Masukkan password baru",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-
+           _inputField(password, "masukan password baru"),
             const SizedBox(height: 28),
   SizedBox(
   width: double.infinity,

@@ -16,12 +16,23 @@ class IssueService {
   }
 
   // UPDATE
-  Future<void> updateIssueStatus(String id, IssueStatus newStatus) async {
-    await _database
-        .update({'status': newStatus.name})
-        .eq('id', id);
+  Future<void> updateIssue({
+    required String id,
+    required String title,
+    required String description,
+    required String category,
+    required String priority,
+    required String location,
+  }) async {
+    await _database.update({
+      'title': title,
+      'description': description,
+      'category': category,
+      'priority': priority,
+      'location': location,
+      'updated_at': DateTime.now().toString(),
+    }).eq('id', id);
   }
-
   // DELETE
   Future<void> deleteIssue(String id) async {
     await _database.delete().eq('id', id);

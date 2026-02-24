@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DetailLaporanKaryawan extends StatefulWidget {
   const DetailLaporanKaryawan({super.key});
@@ -10,6 +11,20 @@ class DetailLaporanKaryawan extends StatefulWidget {
 }
 
 class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
+
+  final supabase = Supabase.instance.client;
+  List<Map<String, dynamic>> issues = [];
+  @override
+  void initState() {
+    super.initState();
+  }
+  Future <void> fetchIssues() async {
+    final response = await supabase.from('issues').select();
+    setState(() {
+      issues = List<Map<String, dynamic>>.from(response);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
 
@@ -27,7 +42,6 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-
             const Text(
               'WiFi tidak ada Internet',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 24),
@@ -53,7 +67,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
-                        Text('Kategori',
+                      Text('Kategori',
                             style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
