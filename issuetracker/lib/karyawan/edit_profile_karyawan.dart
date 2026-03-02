@@ -1,49 +1,72 @@
-import 'package:flutter/material.dart';
+import  'package:flutter/material.dart';
 import 'package:issuetracker/karyawan/setting_profile.dart';
-import 'package:issuetracker/kasus/issuesDatabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:issuetracker/Auth/auth_service.dart';
+
 class EditProfileKaryawan extends StatefulWidget {
-  const EditProfileKaryawan({super.key});
+  final Map users;
+
+  const EditProfileKaryawan({super.key, required this.users});
 
   @override
   State<EditProfileKaryawan> createState() => _EditProfileKaryawanState();
 }
 
 class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
-final authService = AuthService();
-var nama = TextEditingController();
-var email = TextEditingController(); 
-var nomor = TextEditingController();
-var password = TextEditingController();
 
+  final supabase = Supabase.instance.client;
 
-// masih error euy
-/*
-@override
-void initState(){
-  super.initState();
-  nama = TextEditingController(text: widget.users['name']);
-  email = TextEditingController(text: widget.users['email']);
-  nomor = TextEditingController(text: widget.users['phone']);
-  password = TextEditingController(text: widget.users['password_hash']);
-}
-*/
+  late TextEditingController nama;
+  late TextEditingController email;
+  late TextEditingController nomor;
+  late TextEditingController password;
 
+  @override
+  void initState(){
+    super.initState();
+    nama = TextEditingController(text: widget.users['name']);
+    email = TextEditingController(text: widget.users['email']);
+    nomor = TextEditingController(text: widget.users['phone']);
+    password = TextEditingController();
+  }
 
-Widget _inputField(TextEditingController controller, String hint){
-return TextField(
-controller: controller,
-decoration: InputDecoration(
-    hintText: hint,
+  Future<void> updateProfile() async {
+    final user = supabase.auth.currentUser;
+    if(user == null) return;
+
+    await supabase.auth.updateUser(
+      UserAttributes(
+        email: email.text,
+        password: password.text.isEmpty ? null : password.text,
+        data: {
+          'name': nama.text,
+          'phone': nomor.text,
+        }
+      )
+    );
+
+    await supabase.from('users').update({
+          'name': nama.text,
+          'email': email.text,
+          'phone': nomor.text,
+        }).eq('id', user.id);
+
+   
+  }
+
+  Widget _inputField(TextEditingController controller, String hint){
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        hintText: hint,
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-),
-)
-);
-}
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -68,73 +91,52 @@ decoration: InputDecoration(
 
             const SizedBox(height: 24),
 
-            const Text(
-              "Nama",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text("Nama", style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(nama, "Masukan nama baru"),
 
             const SizedBox(height: 18),
 
-            const Text(
-              "Email",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text("Email", style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            _inputField(email, "masukan email baru"),
+            _inputField(email, "Masukan email baru"),
 
             const SizedBox(height: 18),
 
-            const Text(
-              "No HP",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text("No HP", style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-           _inputField(nomor, "masukan nomor baru"),
+            _inputField(nomor, "Masukan nomor baru"),
 
             const SizedBox(height: 18),
 
-            const Text(
-              "Password Baru",
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+            const Text("Password Baru", style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-           _inputField(password, "masukan password baru"),
+            _inputField(password, "Kosongkan jika tidak ganti password"),
+
             const SizedBox(height: 28),
-  SizedBox(
-  width: double.infinity,
-  child: TextButton(
-    style: TextButton.styleFrom(
-      backgroundColor: Colors.blue,
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      elevation: 3,
-      shadowColor: Colors.black26,
-    ),
-    onPressed: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => profilesettingkaryawan(),
-        ),
-      );
-    },
-    child: const Text(
-      "Submit",
-      style: TextStyle(
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  ),
-),
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onPressed: updateProfile,
+                child: const Text(
+                  "Submit",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
 
             const SizedBox(height: 40),
-
           ],
         ),
       ),

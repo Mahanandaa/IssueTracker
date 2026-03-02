@@ -38,91 +38,90 @@ class _profilesettingkaryawanState extends State<profilesettingkaryawan> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-
-          FutureBuilder(
-            future: supabase.from('users') .select().eq('id', user!.id).single(),
-            builder: (context, snapshot) {
-              
-              final data = snapshot.data as Map<String, dynamic>;
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const CircleAvatar(
-                    radius: 26,
-                    child: Icon(Icons.person),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Text(
-                           data['name']?? 'Not Found' ,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            data['role']?? 'Not Found',
-                            style: const TextStyle(
-                              color: Color.fromARGB(255, 20, 121, 236),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(data['email'] ?? 'Not Found'),
-                      Text(data['phone'] ?? 'Not Found'),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-
-
-
-          const SizedBox(height: 28),
-
-          const Text(
-            'Pengaturan',
-            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-          ),
-
           const SizedBox(height: 16),
 
-          GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (_) => const EditProfileKaryawan()),
-              );
-            },
-            child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color.fromARGB(255, 153, 160, 167),
-                    blurRadius: 5,
-                  )
-                ],
+        FutureBuilder(
+          
+  future: supabase.from('users').select().eq('id', user!.id).single(),
+  builder: (context, snapshot) {
+
+    final data = snapshot.data as Map<String, dynamic>;
+
+    return Column(
+      children: [
+
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const CircleAvatar(
+              radius: 26,
+              child: Icon(Icons.person),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      data['name'] ?? 'Not Found',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      data['role'] ?? 'Not Found',
+                      style: const TextStyle(
+                        color: Color.fromARGB(255, 20, 121, 236),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(data['email'] ?? 'Not Found'),
+                Text(data['phone'] ?? 'Not Found'),
+              ],
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 28),
+
+GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => EditProfileKaryawan(users: data),
               ),
-              child: const Text(
-                'Edit Profile Akun',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+            );
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 23),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color.fromARGB(255, 153, 160, 167),
+                  blurRadius: 5,
+                )
+              ],
+            ),
+            child: const Text(
+              'Edit Profile Akun',
+              style: TextStyle(fontWeight: FontWeight.w600),
             ),
           ),
-
+        ),        
+      ],
+    );
+  },
+  
+),
           const SizedBox(height: 14),
 
           Container(

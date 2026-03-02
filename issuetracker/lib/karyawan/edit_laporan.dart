@@ -17,10 +17,8 @@ class _EditLaporanState extends State<EditLaporan> {
   var judul = TextEditingController();
   var lokasi = TextEditingController();
   var deskripsi = TextEditingController();
-
   String? selectKategori;
   String? selectPrioritas;
-
  @override
  void initState(){
   super.initState();
@@ -121,9 +119,9 @@ File? _imageFile;
         backgroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          "Update Issue",
+        "Update Issue",
           style: TextStyle(
-            fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w600,
             color: Colors.black,
           ),
         ),
@@ -135,12 +133,12 @@ File? _imageFile;
           children: [
             const Text("Judul Masalah",
               
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(judul, "Masukan judul masalah"),
             const SizedBox(height: 20),
             const Text("Lokasi",
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(lokasi, "Lokasi"),
             const SizedBox(height: 25),
@@ -175,7 +173,7 @@ File? _imageFile;
             ),
             const SizedBox(height: 25),
             const Text("Deskripsi",
-                style: TextStyle(fontWeight: FontWeight.w700)),
+             style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             TextField(
               controller: deskripsi,
@@ -201,8 +199,7 @@ File? _imageFile;
               ),
               child: Column(
                 children: [
-                  _imageFile != null
-                      ? ClipRRect(
+                  _imageFile != null ? ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: Image.file(_imageFile!, height: 150),
                         ) : const Text("Belum ada gambar"),
@@ -249,10 +246,9 @@ File? _imageFile;
                       priority: selectPrioritas!,
                       location: lokasi.text.trim(),
                     );
-
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
+                      MaterialPageRoute( 
                         builder: (_) => const DashboardKaryawan(),
                       ),
                     );
@@ -265,7 +261,7 @@ File? _imageFile;
                 child: const Text(
                   "Update",
                   style: TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                   fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ),

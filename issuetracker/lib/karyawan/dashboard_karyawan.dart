@@ -63,6 +63,30 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
+  Future<void> filterByDate(DateTime date) async {
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    final start = DateTime(date.year, date.month, date.day);
+    final end = start.add(const Duration(days: 1));
+
+    final response = await supabase.from('issues').select().gte('created_at', start.toIso8601String()).lt('created_at', end.toIso8601String());
+
+    setState(() {
+      issues = List<Map<String, dynamic>>.from(response);
+    });
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text("Error: $e")));
+  } finally {
+    setState(() {
+      _isLoading = false;
+    });
+  }
+}
+
   final SearchBar = TextEditingController();
   DateTime? selectedDate;
   bool _isLoading = false;
@@ -72,20 +96,12 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     setState(() {
       _isLoading = true;
     });
-
     try {
-      var query = supabase.from('issues').select();
-
+   var query = supabase.from('issues').select();
    if (searchTerm != null && searchTerm.isNotEmpty) {
-  query = supabase
-      .from('issues')
-      .select()
-      .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
+  query = supabase.from('issues').select().or('title.ilike.%$searchTerm%, location.ilike.%$searchTerm%');
 }
-
-
       final data = await query;
-
       setState(() {
         issues = List<Map<String, dynamic>>.from(data);
       });
@@ -103,29 +119,22 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   }
 
   Future<void> _pickDate() async {
-    
-     DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2023),
-      lastDate: DateTime(2100),
-      
-    );
+  DateTime? picked = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime(2023),
+    lastDate: DateTime(2100),
+  );
 
-    if (picked != null) {
-      setState(() {
-        selectedDate = picked;
-      });
-   
-      try{
-        final response = await supabase.from('issues').select('').eq('created_at' , '');
-        print(response);
-      }catch (a){
-        print ('error $a');
-      }
-    }
-    
+  if (picked != null) {
+    setState(() {
+      selectedDate = picked;
+    });
+
+    await filterByDate(picked); 
   }
+}
+  
 
   @override
   Widget build(BuildContext context) {
@@ -220,22 +229,31 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                 ),
               ],
             ),
-
-            if (selectedDate != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  "Tanggal: ${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+          if (selectedDate != null)
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "Tanggal: ${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                      style:
+                          const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setState(() => selectedDate = null);
+                        fetchIssues();
+                      },
+                      child: const Text("Reset Filter"),
+                    )
+                  ],
                 ),
               ),
-
-            const SizedBox(height: 20),
+ const SizedBox(height: 20),
 Padding(
   padding: const EdgeInsets.symmetric(horizontal: 12),
   child: Row(
     children: [
-
       Expanded(
         child: GestureDetector(
           onTap: () async {
@@ -271,11 +289,7 @@ Padding(
         child: GestureDetector(
           onTap: () async {
             setState(() => selectedStatus = 'Pending');
-            final response = await supabase
-                .from('issues')
-                .select()
-                .eq('status', 'Pending');
-
+            final response = await supabase.from('issues').select().eq('status', 'Pending');
             setState(() {
               issues = List<Map<String, dynamic>>.from(response);
             });
@@ -283,18 +297,14 @@ Padding(
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: selectedStatus == 'Pending'
-                  ? Colors.blue[700]
-                  : Colors.grey[200],
+              color: selectedStatus == 'Pending' ? Colors.blue[700] : Colors.grey[200],
               borderRadius: BorderRadius.circular(6),
             ),
             child: Center(
               child: Text(
                 'Pending',
                 style: TextStyle(
-                  color: selectedStatus == 'Pending'
-                      ? Colors.white
-                      : Colors.black,
+                  color: selectedStatus == 'Pending'  ? Colors.white : Colors.black,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -309,10 +319,7 @@ Padding(
         child: GestureDetector(
           onTap: () async {
             setState(() => selectedStatus = 'Progress');
-            final response = await supabase
-                .from('issues')
-                .select()
-                .eq('status', 'In Progress');
+            final response = await supabase.from('issues').select().eq('status', 'In Progress');
 
             setState(() {
               issues = List<Map<String, dynamic>>.from(response);
@@ -321,9 +328,7 @@ Padding(
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 10),
             decoration: BoxDecoration(
-              color: selectedStatus == 'Progress'
-                  ? Colors.blue[700]
-                  : Colors.grey[200],
+              color: selectedStatus == 'Progress'  ? Colors.blue[700] : Colors.grey[200],
               borderRadius: BorderRadius.circular(6),
             ),
             child: Center(
@@ -368,6 +373,7 @@ Padding(
               child: Text(
                 'Resolved',
                 style: TextStyle(
+                  fontSize: 13,
                   color: selectedStatus == 'Resolved'
                       ? Colors.white
                       : Colors.black,
@@ -383,10 +389,7 @@ Padding(
         child: GestureDetector(
           onTap: () async {
             setState(() => selectedStatus = 'Rejected');
-            final response = await supabase
-                .from('issues')
-                .select()
-                .eq('status', 'Rejected');
+            final response = await supabase.from('issues').select().eq('status', 'Rejected');
 
             setState(() {
               issues = List<Map<String, dynamic>>.from(response);
@@ -419,10 +422,7 @@ Padding(
         child: GestureDetector(
           onTap: () async {
             setState(() => selectedStatus = 'Escalated');
-            final response = await supabase
-                .from('issues')
-                .select()
-                .eq('status', 'Escalated');
+            final response = await supabase.from('issues').select().eq('status', 'Escalated');
 
             setState(() {
               issues = List<Map<String, dynamic>>.from(response);
@@ -441,6 +441,7 @@ Padding(
               child: Text(
                 'Escalated',
                 style: TextStyle(
+                  fontSize: 12,
                   color: selectedStatus == 'Escalated'
                       ? Colors.white
                       : Colors.black,
@@ -481,7 +482,7 @@ const SizedBox(height: 30),
                               context,
                               MaterialPageRoute(
                                 builder: (_) =>
-                                    DetailLaporanKaryawan(),
+                                    DetailLaporanKaryawan(issueId: issue['id'].toString()),
                               ),
                             );
                           },
@@ -519,10 +520,7 @@ const SizedBox(height: 30),
                                     ),
                                     Container(
                                       padding:
-                                          const EdgeInsets
-                                              .symmetric(
-                                              vertical: 5,
-                                              horizontal: 8),
+                                          const EdgeInsets.symmetric(vertical: 5,horizontal: 8),
                                       decoration:
                                           BoxDecoration(
                                         color: Colors.white,
@@ -531,23 +529,10 @@ const SizedBox(height: 30),
                                                 .circular(5),
                                       ),
                                       child: Text(
-                                        issue['priority'] ??
-                                            '',
+                                        issue['priority'] ?? '',
                                         style: TextStyle(
-                                          color: issue[
-                                                      'priority'] ==
-                                                  'Urgent'
-                                              ? Colors.red
-                                              : issue['priority'] ==
-                                                      'High'
-                                                  ? Colors.red
-                                                  : issue[
-                                                              'priority'] ==
-                                                          'Medium'
-                                                      ? Colors
-                                                          .orange
-                                                      : Colors
-                                                          .green,
+                                          color: issue['priority'] =='Urgent' ? Colors.red : issue['priority'] == 'High'? Colors.red :
+                                           issue['priority'] == 'Medium' ? Colors.orange: Colors.green,
                                           fontWeight:
                                               FontWeight.w600,
                                         ),
@@ -573,8 +558,7 @@ const SizedBox(height: 30),
                                           color: Colors.red,
                                           size: 20),
                                       onPressed: () =>
-                                          confirmDelete(
-                                              issue['id']),
+                                          confirmDelete(issue['id']),
                                     ),
                                     const SizedBox(width: 10),
                                     ElevatedButton(
@@ -588,9 +572,7 @@ const SizedBox(height: 30),
                                           context,
                                           MaterialPageRoute(
                                               builder: (_) =>
-                                                  EditLaporan(
-                                                      issue:
-                                                          issue)),
+                                                  EditLaporan(issue: issue)),
                                         );
                                       },
                                     ),
@@ -604,12 +586,8 @@ const SizedBox(height: 30),
                                                   10),
                                       decoration:
                                           BoxDecoration(
-                                        color: issue[ 'status'] == 'Pending'
-                                            ? Colors
-                                                .orange[100]
-                                            : Colors
-                                                .green[100],
-                                        borderRadius:
+                                        color: issue['status'] == 'Pending' ? Colors.orange[100] : Colors.green[100],
+                                        borderRadius: 
                                             BorderRadius
                                                 .circular(4),
                                       ),
@@ -617,13 +595,7 @@ const SizedBox(height: 30),
                                         issue['status'] ??
                                             '',
                                         style: TextStyle(
-                                          color: issue[
-                                                      'status'] ==
-                                                  'Pending'
-                                              ? Colors
-                                                  .orange[900]
-                                              : Colors
-                                                  .green[900],
+                                          color: issue['status'] =='Pending'? Colors.orange[900]: Colors.green[900],
                                           fontWeight:
                                               FontWeight.w600,
                                           fontSize: 12,
