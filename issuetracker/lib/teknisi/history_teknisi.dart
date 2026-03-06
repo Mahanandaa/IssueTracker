@@ -21,39 +21,62 @@ class _HistoryTeknisiState extends State<HistoryTeknisi> {
    return Scaffold(
   
       backgroundColor: const Color.fromARGB(255, 243, 243, 243),
-              bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.grey[200],
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _currentIndex,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'statistic'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
+         bottomNavigationBar: BottomNavigationBar(
+  type: BottomNavigationBarType.fixed,
+  backgroundColor: Colors.grey[200],
+  selectedItemColor: Colors.blue,
+  unselectedItemColor: Colors.grey,
+  currentIndex: _currentIndex,
+  items: const [
+    BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.history), label: 'History'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.bar_chart), label: 'Statistic'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.settings), label: 'Settings'),
+  ],
 
-        onTap: (index) {
-  if (index == 1) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>  HistoryTeknisi(),
-      ),
-    );
-  } else if (index == 2){
-    Navigator.push(context, MaterialPageRoute(builder: 
-    (context) => Statistic()));
-  } if (index == 3) {
-    Navigator.push(context, MaterialPageRoute(builder: (context)=>  SettingProfileTeknisi()));
-  } else if (index == 4) {
-    Navigator.push(context, MaterialPageRoute(builder: (contex) => DashboardTeknisi()));
-  };
+  onTap: (index) {
 
- 
-},
-      ),
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DashboardTeknisi(),
+        ),
+      );
+    }
+
+    else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HistoryTeknisi(),
+        ),
+      );
+    }
+
+    else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Statistic(),
+        ),
+      );
+    }
+
+    else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SettingProfileTeknisi(),
+        ),
+      );
+    }
+  },
+),
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         title: const Text("History"),

@@ -37,64 +37,83 @@ class _SettingProfileTeknisiState
     int _currentIndex = 0;
     return Scaffold(
       backgroundColor: Colors.grey[100],
-          bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _currentIndex,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'statistic'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-        ],
+       bottomNavigationBar: BottomNavigationBar(
+  type: BottomNavigationBarType.fixed,
+  backgroundColor: Colors.grey[200],
+  selectedItemColor: Colors.blue,
+  unselectedItemColor: Colors.grey,
+  currentIndex: _currentIndex,
+  items: const [
+    BottomNavigationBarItem(
+        icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.history), label: 'History'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.bar_chart), label: 'Statistic'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.settings), label: 'Settings'),
+  ],
 
-        onTap: (index) {
-  if (index == 0) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>  HistoryTeknisi(),
-      ),
-    );
-  } else if (index == 1){
-    Navigator.push(context, MaterialPageRoute(builder: 
-    (context) => Statistic()));
-  } if (index == 2) {
-    Navigator.push(context, MaterialPageRoute(builder: (context)=>  SettingProfileTeknisi()));
-  } else if (index == 3) {
-    Navigator.push(context, MaterialPageRoute(builder: (contex) => DashboardTeknisi()));
-  };
+  onTap: (index) {
 
- 
-},
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DashboardTeknisi(),
+        ),
+      );
+    }
 
-   
-          ),
+    else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HistoryTeknisi(),
+        ),
+      );
+    }
+
+    else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Statistic(),
+        ),
+      );
+    }
+
+    else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SettingProfileTeknisi(),
+        ),
+      );
+    }
+  },
+),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
 
           FutureBuilder(
-            future: supabase
-                .from('users')
-                .select()
-                .eq('id', user!.id)
-                .single(),
-            builder: (context, snapshot) {
+           future: user == null ? null: supabase.from('users').select().eq('id', user!.id).single(),
+           builder: (context, snapshot) {
 
-              if (snapshot.connectionState ==
-                  ConnectionState.waiting) {
-                return const Center(
-                    child: CircularProgressIndicator());
-              }
+              if (user == null) {
+      return const Text("User tidak ditemukan");
+    }
 
-              if (!snapshot.hasData) {
-                return const Text("Data tidak ditemukan");
-              }
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-              final data =
-                  snapshot.data as Map<String, dynamic>;
+    if (!snapshot.hasData) {
+      return const Text("Data tidak ditemukan");
+    }
+
+    final data = snapshot.data as Map<String, dynamic>;
 
               return Container(
                 padding: const EdgeInsets.all(18),
@@ -111,74 +130,19 @@ class _SettingProfileTeknisiState
                 child: Column(
                   children: [
 
-                    Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                      children: [
-                        const CircleAvatar(
-                          radius: 32,
-                          backgroundColor:
-                              Color.fromARGB(255, 220, 230, 250),
-                          child: Icon(Icons.person,
-                              size: 30),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    data['name'] ??
-                                        'Not Found',
-                                    style:
-                                        const TextStyle(
-                                      fontSize: 17,
-                                      fontWeight:
-                                          FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding:
-                                        const EdgeInsets
-                                            .symmetric(
-                                      horizontal: 8,
-                                      vertical: 3,
-                                    ),
-                                    decoration:
-                                        BoxDecoration(
-                                      color: const Color.fromARGB( 255,20,121,236),
-                                      borderRadius:
-                                          BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      data['role'] ??
-                                          'Role',
-                                      style:
-                                          const TextStyle(
-                                        color:
-                                            Colors.white,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  )
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Text(data['email'] ??
-                                  'Not Found'),
-                              Text(data['phone'] ??
-                                  'Not Found'),
-                            ],
-                          ),
-                        )
-                      ],
-                    ),
+                   
 
                     const SizedBox(height: 20),
+
+                   
+
+                    const SizedBox(height: 20),
+                    
+                  ],
+                ),
+              );
+            },
+          ),
 
                     Row(
                       children: [
@@ -242,11 +206,9 @@ class _SettingProfileTeknisiState
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 20),
-
-                    /// Edit Profile
-                    GestureDetector(
+          const SizedBox(height: 20),
+            GestureDetector(
+        
                       onTap: () {
                         Navigator.push(
                           context,
@@ -257,12 +219,22 @@ class _SettingProfileTeknisiState
                         );
                       },
                       child: Container(
+                        
                         width: double.infinity,
                         padding:
                             const EdgeInsets.symmetric(
                                 vertical: 16),
                         decoration: BoxDecoration(
-                          color: Colors.blue,
+                          
+                          boxShadow: [
+                            
+                                            BoxShadow(
+                                              color: Color(0x19000000),
+                                              blurRadius: 24,
+                                              offset: Offset(0, 11),
+                                            ),
+                                          ],
+                          color: const Color.fromARGB(255, 255, 255, 255),
                           borderRadius:
                               BorderRadius.circular(12),
                         ),
@@ -272,20 +244,13 @@ class _SettingProfileTeknisiState
                             style: TextStyle(
                               fontWeight:
                                   FontWeight.w600,
-                              color: Colors.white,
+                              color: Color.fromARGB(255, 0, 0, 0),
                             ),
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 20),
-
+                    SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: 20, vertical: 18),
@@ -351,8 +316,7 @@ class _SettingProfileTeknisiState
               mainAxisAlignment:
                   MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Keluar',
+                const Text('Keluar',
                   style: TextStyle(
                       fontWeight: FontWeight.w600),
                 ),

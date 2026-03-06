@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/teknisi/detail_laporan_teknisi.dart';
 import 'package:issuetracker/teknisi/history_teknisi.dart';
+import 'package:issuetracker/teknisi/setting_profile_teknisi.dart';
 import 'package:issuetracker/teknisi/statistic_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'setting_profile_teknisi.dart';
-import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 class DashboardTeknisi extends StatefulWidget {
   const DashboardTeknisi({super.key});
 
@@ -20,7 +19,64 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
-        
+      bottomNavigationBar: BottomNavigationBar(
+  type: BottomNavigationBarType.fixed,
+  backgroundColor: Colors.grey[200],
+  selectedItemColor: Colors.blue,
+  unselectedItemColor: Colors.grey,
+  currentIndex: _currentIndex,
+  items: const [
+  
+    BottomNavigationBarItem( 
+        icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.history), label: 'History'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.bar_chart), label: 'Statistic'),
+    BottomNavigationBarItem(
+        icon: Icon(Icons.settings), label: 'Settings'),
+  ],
+
+  onTap: (index) {
+
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => DashboardTeknisi(),
+        ),
+      );
+    }
+
+    else if (index == 1) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HistoryTeknisi(),
+        ),
+      );
+    }
+
+    else if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Statistic(),
+        ),
+      );
+    }
+
+  
+    else if (index == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SettingProfileTeknisi(),
+        ),
+      );
+    }
+  },
+),
 
       body: SafeArea(
         child: Padding(
