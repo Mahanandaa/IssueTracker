@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:issuetracker/teknisi/detail_laporan_teknisi.dart';
 import 'package:issuetracker/teknisi/history_teknisi.dart';
-import 'package:path/path.dart';
+import 'package:issuetracker/teknisi/statistic_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'setting_profile_teknisi.dart';
+import 'package:persistent_bottom_nav_bar_v2/persistent_bottom_nav_bar_v2.dart';
 class DashboardTeknisi extends StatefulWidget {
   const DashboardTeknisi({super.key});
 
@@ -13,25 +15,13 @@ class DashboardTeknisi extends StatefulWidget {
 class _DashboardTeknisiState extends State<DashboardTeknisi> {
   String selectedFilter = "All";
   int _currentIndex = 0;
-List <Widget> _pages = [DashboardTeknisi(), HistoryTeknisi()];
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
-        bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        currentIndex: _currentIndex,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'DashboardTeknisi'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'HistoryTeknisi'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'chart'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'settings'),
-        ],
+        
 
-        onTap: (index) => setState(() => _currentIndex = index),
-      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -210,7 +200,7 @@ List <Widget> _pages = [DashboardTeknisi(), HistoryTeknisi()];
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xffebebeb),
+                          color: const Color.fromARGB(220, 245, 243, 243),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.red),
                         ),
@@ -240,7 +230,7 @@ List <Widget> _pages = [DashboardTeknisi(), HistoryTeknisi()];
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xffebebeb),
+                          color: const Color.fromARGB(220, 245, 243, 243),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: Colors.blue),
                         ),
@@ -267,12 +257,13 @@ List <Widget> _pages = [DashboardTeknisi(), HistoryTeknisi()];
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         decoration: BoxDecoration(
-                          color: const Color(0xffebebeb),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.green),
+                        color: const Color.fromARGB(220, 245, 243, 243),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green),
                         ),
                         child: const Column(
                           children: [
@@ -316,10 +307,10 @@ List <Widget> _pages = [DashboardTeknisi(), HistoryTeknisi()];
                     color: const Color(0xfff25c5c),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
@@ -338,49 +329,46 @@ List <Widget> _pages = [DashboardTeknisi(), HistoryTeknisi()];
                           ),
                         ],
                       ),
-                      SizedBox(height: 6),
-                      Text(
+                      const SizedBox(height: 6),
+                      const Text(
                         "Lokasi : Lantai 1",
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.white,
                         ),
                       ),
-                     Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween, 
+                   Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
   children: [
-    Text(
+    const Text(
       "2 Februari 2026",
       style: TextStyle(
         fontSize: 11,
         color: Colors.white,
       ),
     ),
-
-    //error euy
-   /* GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DetailLaporanTeknisi(issueId: issue['id'].toString()),
-          ),
-        );
-      },
-      child: Text(
-        "Lihat Detail",
-        style: TextStyle(
-          color: Colors.blue, 
-          fontSize: 11,
-          fontWeight: FontWeight.bold, 
-        ),
+    GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            const DetailLaporanTeknisi(issueId: "1"),
       ),
+    );
+  },
+  child: const Text(
+    "Lihat Detail",
+    style: TextStyle(
+      color: Colors.white,
+      fontSize: 11,
+      fontWeight: FontWeight.bold,
     ),
-    */
+  ),
+),
   ],
-)
-
-                     
+),
+                  
                     ],
                   ),
                 ),

@@ -30,11 +30,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
 
   Future<void> fetchIssueDetail() async {
     try {
-      final response = await supabase
-          .from('issues')
-          .select()
-          .eq('id', widget.issueId)
-          .maybeSingle();
+      final response = await supabase.from('issues').select().eq('id', widget.issueId).maybeSingle();
 
       if (mounted) {
         setState(() {
