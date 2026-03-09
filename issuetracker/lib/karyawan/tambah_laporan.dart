@@ -258,7 +258,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
                       reportedBy:
                           Supabase.instance.client.auth.currentUser?.id ??
                               'karyawan',
-                      createdAt: DateTime.now(),
                     );
 
                     await issueService.createIssue(newIssue);

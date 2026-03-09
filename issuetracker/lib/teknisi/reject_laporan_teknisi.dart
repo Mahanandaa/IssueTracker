@@ -1,34 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard_teknisi.dart';
 
 class RejectLaporanTeknisi extends StatefulWidget {
-  const RejectLaporanTeknisi({super.key});
+
+  final String issueId;
+
+  const RejectLaporanTeknisi({
+    super.key,
+    required this.issueId,
+  });
 
   @override
   State<RejectLaporanTeknisi> createState() =>
       _RejectLaporanTeknisiState();
 }
 
-class _RejectLaporanTeknisiState
-    extends State<RejectLaporanTeknisi> {
+class _RejectLaporanTeknisiState extends State<RejectLaporanTeknisi> {
 
-  final TextEditingController alasanController =
-      TextEditingController();
+  final TextEditingController alasanController = TextEditingController();
+
+  final supabase = Supabase.instance.client;
+
+  Future<void> rejectIssue() async {
+  await Supabase.instance.client
+      .from('issues')
+      .update({
+        'status': 'Rejected',
+        'reject_reason': alasanController.text.trim(),
+      })
+      .eq('id', widget.issueId);
+}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
+
       appBar: AppBar(
         title: const Text("Tolak Laporan"),
         backgroundColor: Colors.grey[300],
       ),
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(18),
+
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
               const Text(
@@ -45,20 +64,19 @@ class _RejectLaporanTeknisiState
                 controller: alasanController,
                 maxLines: 4,
                 decoration: InputDecoration(
-                  hintText:
-                      'Masukkan alasan penolakan...',
-                  contentPadding : const EdgeInsets.all(14),
+                  hintText: 'Masukkan alasan penolakan...',
+                  contentPadding: const EdgeInsets.all(14),
+
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  focusedBorder:
-                      OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(12),
+
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
-                        color: Colors.blue.shade700,
-                        width: 2),
+                      color: Colors.blue.shade700,
+                      width: 2,
+                    ),
                   ),
                 ),
               ),
@@ -68,46 +86,65 @@ class _RejectLaporanTeknisiState
               SizedBox(
                 width: double.infinity,
                 height: 50,
+
                 child: ElevatedButton(
+
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        Colors.blue[700],
+                    backgroundColor: Colors.red[600],
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
+onPressed: () async {
 
-                    if (alasanController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              "Alasan tidak boleh kosong"),
-                        ),
-                      );
-                      return;
-                    }
+  if (alasanController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Alasan tidak boleh kosong"),
+      ),
+    );
+    return;
+  }
 
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) =>
-                            const DashboardTeknisi(),
-                      ),
-                    );
-                  },
+  try {
+
+    await rejectIssue();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Laporan berhasil ditolak"),
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const DashboardTeknisi(),
+      ),
+    );
+
+  } catch (e) {
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $e")),
+    );
+
+  }
+
+},
+
                   child: const Text(
                     'Kirim Alasan',
                     style: TextStyle(
-                      fontWeight:
-                          FontWeight.w600,
+                      fontWeight: FontWeight.w600,
                       fontSize: 16,
                       color: Colors.white,
                     ),
                   ),
+
                 ),
               ),
+
             ],
           ),
         ),

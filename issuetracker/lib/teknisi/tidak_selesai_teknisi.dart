@@ -37,10 +37,7 @@ class TidakSelesaiTeknisi extends StatefulWidget {
     if (_imageFile == null) return;
     final fileName = DateTime.now().microsecondsSinceEpoch.toString();
     final path = 'uploads/$fileName';
-    await Supabase.instance.client.storage
-        .from('images')
-        .upload(path, _imageFile!)
-        .then((value) => ScaffoldMessenger.of(context as BuildContext)
+    await Supabase.instance.client.storage.from('images').upload(path, _imageFile!).then((value) => ScaffoldMessenger.of(context as BuildContext)
             .showSnackBar(const SnackBar(content: Text("Upload foto berhasil"))));
   }
 class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
@@ -54,15 +51,14 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(10.0),
-        child: SafeArea(
-          
-           child: Padding(padding: EdgeInsetsGeometry.all(12),
+            child: SafeArea(
+            child: Padding(padding: EdgeInsetsGeometry.all(12),
             child: Column(
             children: [
-              Text('Alasan', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),),
-              TextField(
-                decoration: InputDecoration(
-                  contentPadding: EdgeInsets.all(12),
+            Text('Alasan', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),),
+            TextField(
+            decoration: InputDecoration(
+            contentPadding: EdgeInsets.all(12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8)
                   )

@@ -37,4 +37,12 @@ class IssueService {
   Future<void> deleteIssue(String id) async {
     await _database.delete().eq('id', id);
   }
+
+  //CREATE REASON
+  Future<void> createReason (IssueModel newReason) async{
+  await _database.insert(newReason.toMap());
+  }
+
 }
+
+

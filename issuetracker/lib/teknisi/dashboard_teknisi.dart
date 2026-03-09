@@ -12,87 +12,114 @@ class DashboardTeknisi extends StatefulWidget {
 }
 
 class _DashboardTeknisiState extends State<DashboardTeknisi> {
-  String selectedFilter = "All";
   int _currentIndex = 0;
-  
+
+  final supabase = Supabase.instance.client;
+  final SearchBar = TextEditingController();
+  String? selectedStatus = "All";
+
+  List<Map<String, dynamic>> issues = [];
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchIssues();
+  }
+
+  Future<void> fetchIssues() async {
+    final response = await supabase.from('issues').select();
+
+    setState(() {
+      issues = List<Map<String, dynamic>>.from(response);
+    });
+  }
+
+  Future<void> fenchData([String? searchTerm]) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      var query = supabase.from('issues').select();
+
+      if (searchTerm != null && searchTerm.isNotEmpty) {
+        query = supabase.from('issues').select().or('title.ilike.%$searchTerm%, location.ilike.%$searchTerm%');
+      }
+
+      final data = await query;
+
+      setState(() {
+        issues = List<Map<String, dynamic>>.from(data);
+      });
+    } on PostgrestException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error : ${error.message}')),
+        );
+      }
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+
+    List<Map<String, dynamic>> filteredIssues =
+        selectedStatus == null || selectedStatus == 'All'? issues: issues.where((e) => e['priority'] == selectedStatus).toList();
+
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
+
       bottomNavigationBar: BottomNavigationBar(
-  type: BottomNavigationBarType.fixed,
-  backgroundColor: Colors.grey[200],
-  selectedItemColor: Colors.blue,
-  unselectedItemColor: Colors.grey,
-  currentIndex: _currentIndex,
-  items: const [
-  
-    BottomNavigationBarItem( 
-        icon: Icon(Icons.home_outlined), label: 'Dashboard'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.history), label: 'History'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.bar_chart), label: 'Statistic'),
-    BottomNavigationBarItem(
-        icon: Icon(Icons.settings), label: 'Settings'),
-  ],
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.grey[200],
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _currentIndex,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Statistic'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+        ],
+        onTap: (index) {
 
-  onTap: (index) {
+          if (index == 0) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const DashboardTeknisi()));
+          } 
+          else if (index == 1) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const HistoryTeknisi()));
+          } 
+          else if (index == 2) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const Statistic()));
+          } 
+          else if (index == 3) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingProfileTeknisi()));
+          }
 
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DashboardTeknisi(),
-        ),
-      );
-    }
-
-    else if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => HistoryTeknisi(),
-        ),
-      );
-    }
-
-    else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => Statistic(),
-        ),
-      );
-    }
-
-  
-    else if (index == 3) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SettingProfileTeknisi(),
-        ),
-      );
-    }
-  },
-),
+        },
+      ),
 
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
+
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+
                 const Text(
                   "Selamat Datang.",
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
+
                 const SizedBox(height: 14),
+
                 Container(
                   height: 45,
                   decoration: BoxDecoration(
@@ -100,334 +127,261 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                     borderRadius: BorderRadius.circular(25),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: const TextField(
-                    decoration: InputDecoration(
+
+                  child: TextField(
+                    controller: SearchBar,
+                    decoration: const InputDecoration(
                       border: InputBorder.none,
                       hintText: "Cari Tugas...",
+                      prefixIcon: Icon(Icons.search),
                     ),
+                    onChanged: (value) {
+                      if (value.isEmpty) {
+                        fetchIssues();
+                      } else {
+                        fenchData(value);
+                      }
+                    },
                   ),
-                ),
-                const SizedBox(height: 18),
-
-                Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedFilter = "All";
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedFilter == "All"
-                              ? Colors.blue
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Text(
-                          "All",
-                          style: TextStyle(
-                            color: selectedFilter == "All"
-                                ? Colors.white
-                                : Colors.black,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedFilter = "Low";
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedFilter == "Low"
-                              ? Colors.blue
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Text(
-                          "Low",
-                          style: TextStyle(
-                            color: selectedFilter == "Low"
-                                ? Colors.white
-                                : Colors.black,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedFilter = "Medium";
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedFilter == "Medium"
-                              ? Colors.blue
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Text(
-                          "Medium",
-                          style: TextStyle(
-                            color: selectedFilter == "Medium"
-                                ? Colors.white
-                                : Colors.black,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedFilter = "Hard";
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedFilter == "Hard"
-                              ? Colors.blue
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Text(
-                          "Medium",
-                          style: TextStyle(
-                            color: selectedFilter == "Hard"
-                                ? Colors.white
-                                : Colors.black,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedFilter = "Urgent";
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: selectedFilter == "Urgent"
-                              ? Colors.blue
-                              : Colors.transparent,
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.grey.shade400),
-                        ),
-                        child: Text(
-                          "Urgent",
-                          style: TextStyle(
-                            color: selectedFilter == "Urgent"
-                                ? Colors.white
-                                : Colors.black,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
 
                 const SizedBox(height: 18),
 
                 Row(
                   children: [
+
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(220, 245, 243, 243),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red),
-                        ),
-                        child: const Column(
-                          children: [
-                            Text(
-                              "Task",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.red,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "12",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                              ),
-                            ),
-                          ],
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedStatus = 'All';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedStatus == 'All'
+                                ? Colors.blue
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(child: Text("All")),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+
+                    const SizedBox(width: 8),
+
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: const Color.fromARGB(220, 245, 243, 243),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.blue),
-                        ),
-                        child: const Column(
-                          children: [
-                            Text(
-                              "In_progress",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.blue,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "12",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue,
-                              ),
-                            ),
-                          ],
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedStatus = 'Low';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedStatus == 'Low'? Colors.green:Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(child: Text("Rendah")),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+
+                    const SizedBox(width: 8),
+
                     Expanded(
-                      
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                        color: const Color.fromARGB(220, 245, 243, 243),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.green),
-                        ),
-                        child: const Column(
-                          children: [
-                            Text(
-                              "Resolved",
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              "12",
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedStatus = 'Medium';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedStatus == 'Medium'
+                                ? Colors.orange
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(child: Text("Menengah")),
                         ),
                       ),
                     ),
+
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedStatus = 'Hard';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedStatus == 'Hard'
+                                ? Colors.deepOrange
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(child: Text("Sulit")),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            selectedStatus = 'Urgent';
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: selectedStatus == 'Urgent'
+                                ? Colors.red
+                                : Colors.grey[200],
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Center(child: Text("Darurat")),
+                        ),
+                      ),
+                    ),
+
                   ],
-                ),
-
-                const SizedBox(height: 20),
-
-                const Text(
-                  "Tugas Terbaru",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
                 ),
 
                 const SizedBox(height: 12),
 
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xfff25c5c),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            "Tidak ada air",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          Text(
-                            "urgent",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        "Lokasi : Lantai 1",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                   Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    const Text(
-      "2 Februari 2026",
-      style: TextStyle(
-        fontSize: 11,
-        color: Colors.white,
-      ),
-    ),
-    GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const DetailLaporanTeknisi(issueId: "1"),
-      ),
-    );
-  },
-  child: const Text(
-    "Lihat Detail",
-    style: TextStyle(
-      color: Colors.white,
-      fontSize: 11,
-      fontWeight: FontWeight.bold,
-    ),
-  ),
-),
-  ],
-),
-                  
-                    ],
-                  ),
+                const Text(
+                  "Tugas Terbaru",
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
+
+                const SizedBox(height: 12),
+
+                filteredIssues.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Tidak Ada Laporan',
+                          style: TextStyle(
+                            fontStyle: FontStyle.italic,
+                            fontSize: 20,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: filteredIssues.length,
+                        itemBuilder: (context, index) {
+                          final issue = filteredIssues[index];
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => DetailLaporanTeknisi(
+                                    issueId: issue['id'].toString(),
+                                  ),
+                                ),
+                              );
+                            },
+
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(14),
+
+                              decoration: BoxDecoration(
+                                color: issue['priority'] == 'Urgent'
+                                    ? const Color.fromARGB(255, 243, 77, 65)
+                                    : Colors.grey[700],
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+
+                                      Text(
+                                        issue['title'] ?? '',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+
+                                      Text(
+                                        issue['priority'] ?? '',
+                                      style: TextStyle(
+                                          color: issue['priority'] == 'Urgent'
+                                              ? Colors.white
+                                              : issue['priority'] == 'Medium'
+                                                  ? Colors.orange
+                                                  : Colors.green,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  Text(
+                                    "Lokasi : ${issue['location'] ?? ''}",
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 6),
+
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+
+                                      Text(
+                                        issue['created_at'] != null
+                                            ? issue['created_at'].toString().substring(0, 10)
+                                            : '',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+
+                                      const Text(
+                                        "Lihat Detail",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
               ],
             ),
           ),

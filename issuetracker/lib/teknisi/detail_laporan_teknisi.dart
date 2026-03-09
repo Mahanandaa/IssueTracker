@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/teknisi/reject_laporan_teknisi.dart';
+import 'package:path/path.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:issuetracker/teknisi/progress_teknisi.dart';
 class DetailLaporanTeknisi extends StatefulWidget {
@@ -54,7 +55,7 @@ Widget infoBox(String title, String value) {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color:
-            const Color.fromARGB(255, 245, 242, 242),
+            const Color.fromARGB(246, 235, 242, 248),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -72,13 +73,14 @@ Widget infoBox(String title, String value) {
             title,
             style: const TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: 14,
+                fontSize: 15,
                 color: Colors.grey),
           ),
           const SizedBox(height: 6),
           Text(
             value,
-            style: const TextStyle(fontSize: 16),
+            style:  TextStyle(fontSize: 20, color: Colors.blue[700], fontWeight: FontWeight.w600),
+            
           ),
         ],
       ),
@@ -113,10 +115,12 @@ Widget infoBox(String title, String value) {
                       children: [
                         Expanded(
                           child: infoBox(
-                              'Kategori',
+                              'Kategori', 
                               issue?['category'] ?.toString() ??
                                   'Urgent'),
+                                  
                         ),
+                        
                         const SizedBox(width: 12),
                         Expanded(
                           child: infoBox(
@@ -132,10 +136,11 @@ Widget infoBox(String title, String value) {
                       children: [
                         Expanded(
                           child: infoBox(
-                              'Tanggal',
-                              issue?['created_at']
-                                      ?.toString() ??
-                                  '20 - 2 - 2026'),
+                              'Tanggal ',
+                               issue?['created_at']
+                               ?.toString().substring(0, 10) ??
+                              'Testing', ),
+                                
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -154,7 +159,7 @@ Widget infoBox(String title, String value) {
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
-              height: 150,
+              height: 100,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -166,7 +171,26 @@ Widget infoBox(String title, String value) {
                 style: const TextStyle(fontSize: 16),
               ),
             ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 10),
+          const Text('Foto',
+          style: TextStyle(
+            fontWeight: FontWeight.w600, fontSize: 22
+          ),),
+          SizedBox(height: 10),
+          Container(
+width: double.infinity,
+              height: 100,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey, width: 0.5),
+              ),
+              child: Text(
+                issue?['photo_url']?.toString() ?? 'Foto Tidak Ditemukan..',
+                style: const TextStyle(fontSize: 16),
+              ),
+          ),
 const SizedBox(height: 30),
 
 Row(
@@ -200,35 +224,38 @@ Row(
       ),
     ),
     const SizedBox(width: 12),
-    Expanded(
-      child: SizedBox(
-        height: 48,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.red[700],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+   Expanded(
+  child: SizedBox(
+    height: 48,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red[700],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      onPressed: () {
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RejectLaporanTeknisi(
+              issueId: issue!['id'].toString(),
             ),
           ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    const RejectLaporanTeknisi(),
-              ),
-            );
-          },
-          child: const Text(
-            'Tolak',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white
-            ),
-          ),
+        );
+
+      },
+      child: const Text(
+        'Tolak',
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          color: Colors.white
         ),
       ),
     ),
+  ),
+)
   ],
 ),
                   ],

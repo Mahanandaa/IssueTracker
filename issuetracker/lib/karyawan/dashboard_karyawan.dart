@@ -458,8 +458,7 @@ Padding(
 
 const SizedBox(height: 30),
             Expanded(
-              child: issues.isEmpty
-                  ? const Center(
+              child: issues.isEmpty   ? const Center(
                       child: Text(
                         "Tidak ada laporan",
                         style: TextStyle(
@@ -524,9 +523,7 @@ const SizedBox(height: 30),
                                       decoration:
                                           BoxDecoration(
                                         color: Colors.white,
-                                        borderRadius:
-                                            BorderRadius
-                                                .circular(5),
+                                        borderRadius: BorderRadius.circular(5),
                                       ),
                                       child: Text(
                                         issue['priority'] ?? '',

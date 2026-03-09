@@ -18,15 +18,17 @@ class IssueModel {
   DateTime? assignedAt;
   DateTime? startedAt;
   DateTime? resolvedAt;
+String? reject_reason;
 
   IssueModel({
     this.id,
-    required this.title,
+     required this.title,
     required this.description,
     required this.category,
     required this.status,
     required this.priority,
     required this.location,
+     this.reject_reason,
     this.photoUrl,
     required this.reportedBy,
     this.assignedTo,
@@ -43,6 +45,7 @@ class IssueModel {
 factory IssueModel.fromMap(Map<String, dynamic> map) {
   return IssueModel(
     id: map['id']?.toString(),
+    reject_reason: map['reject_reason']?.toString(),
     title: map['title'] ?? '',
     description: map['description'] ?? '',
     category: IssueCategory.values.firstWhere(

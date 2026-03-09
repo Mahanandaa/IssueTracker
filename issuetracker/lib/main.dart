@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:issuetracker/teknisi/history_teknisi.dart';
 import 'package:issuetracker/teknisi/statistic_teknisi.dart';
@@ -32,5 +33,5 @@ class MyApp extends StatelessWidget {
         );
       },
     );
-  }
+    }
 }
