@@ -1,17 +1,23 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:issuetracker/teknisi/tidak_selesai_teknisi.dart';
 import 'selesai_teknis.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:issuetracker/kasus/issuesDatabase.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 class ProgressTeknisi extends StatefulWidget {
-  const ProgressTeknisi({super.key});
+
+  final String issueId;
+
+  const ProgressTeknisi({
+    super.key,
+    required this.issueId,
+  });
 
   @override
   State<ProgressTeknisi> createState() => _ProgressTeknisiState();
 }
-
 class _ProgressTeknisiState extends State<ProgressTeknisi> {
 
   Duration duration = const Duration();
@@ -19,6 +25,8 @@ class _ProgressTeknisiState extends State<ProgressTeknisi> {
   bool isRunning = false;
   Duration? savedTime;
   File? _imageFile;
+  final supabase = Supabase.instance.client;
+  Map<String, dynamic>? issue;
 
   @override
   void initState() {
@@ -284,7 +292,7 @@ Container(
             ),
           ),
                     const SizedBox(height: 30),
- const Text(
+          const Text(
             "Notes",
             style: TextStyle(
                 fontWeight: FontWeight.w600,
@@ -324,9 +332,8 @@ Container(
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              SelesaiTeknis(),
-                        ),
+                          builder: (_) =>SelesaiTeknis(issueId: widget.issueId)
+                                                   ),
                       );
                     },
 
@@ -342,40 +349,36 @@ Container(
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: SizedBox(
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      
-                      backgroundColor:
-                          Colors.red[700],
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(
-                                12),
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              SelesaiTeknis(),
-                        ),
-                      );
-                    },
-                    child: const Text(
-                      "Tidak Selesai",
-                      style: TextStyle(
-                        color: Colors.white,
-                          fontWeight:
-                              FontWeight.w500),
-                    ),
-                  ),
-                ),
-              ),
+     Expanded(
+  child: SizedBox(
+    height: 48,
+    child: ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red[700],
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TidakSelesaiTeknisi(
+              issueId: widget.issueId,
+            ),
+          ),
+        );
+      },
+      child: const Text(
+        "Tidak Selesai",
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ),
+  ),
+)
             ],
           )
         ],

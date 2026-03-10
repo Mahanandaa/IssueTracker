@@ -1,126 +1,249 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
-import 'package:path/path.dart' show context;
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:issuetracker/kasus/issuesModel.dart';
-import '../kasus/issuesDatabase.dart';
-
 
 class TidakSelesaiTeknisi extends StatefulWidget {
-  const TidakSelesaiTeknisi({super.key});
-
+  
+  final String issueId;
+  const TidakSelesaiTeknisi({
+    super.key,
+    required this.issueId,
+  });
   @override
   State<TidakSelesaiTeknisi> createState() => _TidakSelesaiTeknisiState();
-  
 }
+
+class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
+
   File? _imageFile;
-    final issueService = IssueService();
   final ImagePicker picker = ImagePicker();
+  final TextEditingController reject = TextEditingController();
+  final supabase = Supabase.instance.client;
+
+  Future<void> tidakSelesai() async{
+    await Supabase.instance.client.from('issues').update({
+      'status' : 'Pending',
+      'not_completed_reason' : reject.text.trim(),
+    })
+        .eq('id', widget.issueId);
+  }
+
+
 
   Future<void> pickImage(ImageSource source) async {
     final image = await picker.pickImage(source: source);
+
     if (image != null) {
       setState(() {
         _imageFile = File(image.path);
       });
     }
   }
-  
-  void setState(Null Function() param0) {
-  }
-  
 
   Future uploadImage() async {
+
     if (_imageFile == null) return;
+
     final fileName = DateTime.now().microsecondsSinceEpoch.toString();
     final path = 'uploads/$fileName';
-    await Supabase.instance.client.storage.from('images').upload(path, _imageFile!).then((value) => ScaffoldMessenger.of(context as BuildContext)
-            .showSnackBar(const SnackBar(content: Text("Upload foto berhasil"))));
+
+    await Supabase.instance.client.storage
+        .from('images')
+        .upload(path, _imageFile!);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Upload foto berhasil")),
+    );
   }
-class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+
+      backgroundColor: const Color.fromARGB(255, 250, 246, 246),
+
       appBar: AppBar(
         title: const Text("Tidak Selesai"),
-        
+        backgroundColor: Colors.grey[200],
       ),
+
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(10.0),
-            child: SafeArea(
-            child: Padding(padding: EdgeInsetsGeometry.all(12),
-            child: Column(
-            children: [
-            Text('Alasan', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),),
-            TextField(
-            decoration: InputDecoration(
-            contentPadding: EdgeInsets.all(12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8)
-                  )
-                ),
+        padding: const EdgeInsets.all(16),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            const Text(
+              "Alasan",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
               ),
-              Text('Upload Foto Terkini', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),),
-              SizedBox(height: 12),
-              
-              _imageFile != null
+            ),
+
+            const SizedBox(height: 8),
+
+           TextField(
+               controller: reject,
+                maxLines: 3,
+                
+          decoration: InputDecoration(
+                  hintText: "Masukkan alasan pekerjaan tidak selesai...",
+                    contentPadding: EdgeInsets.all(14),
+                     filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+                  
+            ),
+            
+           ),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              "Upload Foto Terkini",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 6,
+                  )
+                ],
+              ),
+
+              child: Column(
+                children: [
+
+                  _imageFile != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(10),
-                          child: Image.file(_imageFile!, height: 150),
+                          child: Image.file(
+                            _imageFile!,
+                            height: 180,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
                         )
-                      : const Text("Belum ada gambar"),
-                  const SizedBox(height: 10),
+                      : const Text(
+                          "Belum ada gambar",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+
+                  const SizedBox(height: 16),
+
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      ElevatedButton(
-                          onPressed: () =>
-                              pickImage(ImageSource.camera),
-                          child: const Text("Camera")),
+
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[300],
+                          ),
+                          onPressed: () => pickImage(ImageSource.camera),
+                          icon: const Icon(Icons.camera_alt, color: Colors.black),
+                          label: const Text(
+                            "Camera",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
+
                       const SizedBox(width: 10),
-                      ElevatedButton(
-                          onPressed: () =>
-                              pickImage(ImageSource.gallery),
-                          child: const Text("Gallery")),
+
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.grey[300],
+                          ),
+                          onPressed: () => pickImage(ImageSource.gallery),
+                          icon: const Icon(Icons.photo, color: Colors.black),
+                          label: const Text(
+                            "Gallery",
+                            style: TextStyle(color: Colors.black),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  ElevatedButton(
-                      onPressed: uploadImage,
-                      child: const Text("Upload Foto")),
-              
-              ElevatedButton(
-                
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange
-                ),
-                onPressed: () {
-                  
-                   Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              DashboardTeknisi(),
-                        ),
-                      );
-                },
-                child: Text(
-                  'Re-assign', style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w500
-                  ),
-                  
-                ),
-                
-              )
 
-            ],
+                  const SizedBox(height: 10),
+
+                  SizedBox(
+                    
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: uploadImage,
+                      child: const Text("Upload Foto", style: TextStyle(color: Colors.black),),
+                    ),
+                  )
+                ],
+              ),
             ),
-           ),
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+
+               onPressed: () async{
+                 if(reject.text.isEmpty){
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text(
+                    'Alasan Tidak Boleh Kosong'
+                  )));
+                  return;
+                 }
+                try{
+                  await tidakSelesai();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Laporan Berhasil'),
+                  )
+                  );
+
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_)=> const DashboardTeknisi(),),
+                  );
+                }catch (a) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: 
+                  Text('ERROR $a')));
+                }
+               },
+                
+                child: const Text(
+                  "Re-assign",
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ),
+
+          ],
         ),
       ),
     );

@@ -13,6 +13,7 @@ class DetailLaporanTeknisi extends StatefulWidget {
       _DetailLaporanTeknisiState();
 }
 
+
 class _DetailLaporanTeknisiState
     extends State<DetailLaporanTeknisi> {
   final supabase = Supabase.instance.client;
@@ -24,6 +25,14 @@ class _DetailLaporanTeknisiState
     super.initState();
     fetchDetail();
   }
+
+
+Future<void> acceptTask() async{
+   await Supabase.instance.client.from('issues').update({
+    'status' : 'in_progress',
+  });
+}
+
 Future<void> fetchDetail() async {
   try {
     final data = await supabase
@@ -209,7 +218,7 @@ Row(
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => const ProgressTeknisi(),
+                builder: (_) => ProgressTeknisi(issueId: issue!['id'].toString()),
               ),
             );
           },
@@ -244,7 +253,7 @@ Row(
             ),
           ),
         );
-
+        acceptTask();
       },
       child: const Text(
         'Tolak',

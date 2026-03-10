@@ -1,250 +1,322 @@
-import 'dart:io';
-import 'progress_teknisi.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:issuetracker/teknisi/tidak_selesai_teknisi.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:issuetracker/kasus/issuesDatabase.dart';
+import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 class SelesaiTeknis extends StatefulWidget {
-  const SelesaiTeknis({super.key});
+
+  final String issueId;
+
+  const SelesaiTeknis({
+    super.key,
+    required this.issueId,
+  });
 
   @override
   State<SelesaiTeknis> createState() => _SelesaiTeknisState();
 }
 
-  File? _imageFile;
+class _SelesaiTeknisState extends State<SelesaiTeknis> {
+
+Future<void>selesai() async{
+  await Supabase.instance.client.from('issues').update({
+    'status' : 'Resolved',
+  })
+  .eq('id', widget.issueId);
+}
+
+  XFile? imageBefore;
+  XFile? imageAfter;
+
   final ImagePicker picker = ImagePicker();
 
-  Future<void> pickImage(ImageSource source) async {
+  final solusiController = TextEditingController();
+  final sparepartController = TextEditingController();
+
+  Future<void> pickImage(ImageSource source, bool before) async {
+
     final image = await picker.pickImage(source: source);
+
     if (image != null) {
       setState(() {
-        _imageFile = File(image.path);
+        if (before) {
+          imageBefore = image;
+        } else {
+          imageAfter = image;
+        }
       });
     }
   }
 
-  Future uploadImage() async {
-    if (_imageFile == null) return;
+  Future<void> uploadImage(XFile? file) async {
+
+    if (file == null) return;
+
+    Uint8List bytes = await file.readAsBytes();
+
     final fileName = DateTime.now().microsecondsSinceEpoch.toString();
-    final path = 'uploads/$fileName';
+    final path = 'uploads/$fileName.jpg';
+
     await Supabase.instance.client.storage
         .from('images')
-        .upload(path, _imageFile!);
-       
+        .uploadBinary(path, bytes);
   }
-class _SelesaiTeknisState extends State<SelesaiTeknis> {
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
+
+      backgroundColor: Colors.grey[100],
+
       appBar: AppBar(
-        backgroundColor: Colors.grey[200],
-        title: const Text("Selesai"),
-      
+        title: const Text("Selesai Pekerjaan"),
+        backgroundColor: Colors.green,
       ),
-      body: SafeArea(
-        
-        child: Padding(
-          padding: EdgeInsetsGeometry.all(12),
-          child: Row(
-            
-            children: [
- Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                )
-              ],
-            ),
-            child: Column(
+
+      body: SingleChildScrollView(
+
+        padding: const EdgeInsets.all(16),
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            Row(
               children: [
-                _imageFile != null ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file( _imageFile!,
-                          height: 180,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : const Text(
-                        "Belum ada gambar",
-                        style: TextStyle(
-                            color: Colors.grey),
-                      ),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300]
-                        ),
-                        onPressed: () =>
-                            pickImage(ImageSource.camera),
-                        child: const Text("Camera", style: TextStyle(color: Colors.black),),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300]
-                        ),
-                        onPressed: () =>
-                            pickImage(ImageSource.gallery),
-                        child: const Text("Gallery", style: TextStyle(color: Colors.black),),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                     style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300]
-                        ),
-                    onPressed: uploadImage,
 
-                    child: const Text("Upload Foto", style: TextStyle(color: Colors.black)),
+                Expanded(
+                  child: Container(
+
+                    padding: const EdgeInsets.all(14),
+
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 6)
+                      ],
+                    ),
+
+                    child: Column(
+                      children: [
+
+                        const Text(
+                          "Sebelum",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        imageBefore != null
+                            ? Image.network(
+                                imageBefore!.path,
+                                height: 140,
+                                fit: BoxFit.cover,
+                              )
+                            : const Text("Belum ada gambar"),
+
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    pickImage(ImageSource.camera, true),
+                                child: const Text("Camera"),
+                              ),
+                            ),
+
+                            const SizedBox(width: 6),
+
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    pickImage(ImageSource.gallery, true),
+                                child: const Text("Gallery"),
+                              ),
+                            ),
+                          ],
+                        )
+
+                      ],
+                    ),
                   ),
-                )
-              ],
-            ),
-          ),
-
-
-          SizedBox(width: 10),
-           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius:
-                  BorderRadius.circular(16),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black12,
-                  blurRadius: 6,
-                )
-              ],
-            ),
-            child: Column(
-              children: [
-                _imageFile != null
-                    ? ClipRRect(
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        child: Image.file(
-                          _imageFile!,
-                          height: 180,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : const Text(
-                        "Belum ada gambar",
-                        style: TextStyle(
-                            color: Colors.grey),
-                      ),
-                const SizedBox(height: 15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300]
-                        ),
-                        onPressed: () =>
-                            pickImage(ImageSource.camera),
-                        child: const Text("Camera", style: TextStyle(color: Colors.black),),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300]
-                        ),
-                        onPressed: () =>
-                            pickImage(ImageSource.gallery),
-                        child: const Text("Gallery", style: TextStyle(color: Colors.black),),
-                      ),
-                    ),
-                  ],
                 ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                     style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey[300]
-                        ),
-                    onPressed: uploadImage,
 
-                    child: const Text("Upload Foto", style: TextStyle(color: Colors.black)),
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Container(
+
+                    padding: const EdgeInsets.all(14),
+
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 6)
+                      ],
+                    ),
+
+                    child: Column(
+                      children: [
+
+                        const Text(
+                          "Sesudah",
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        imageAfter != null
+                            ? Image.network(
+                                imageAfter!.path,
+                                height: 140,
+                                fit: BoxFit.cover,
+                              )
+                            : const Text("Belum ada gambar"),
+
+                        const SizedBox(height: 10),
+
+                        Row(
+                          children: [
+
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    pickImage(ImageSource.camera, false),
+                                child: const Text("Camera"),
+                              ),
+                            ),
+
+                            const SizedBox(width: 6),
+
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    pickImage(ImageSource.gallery, false),
+                                child: const Text("Gallery"),
+                              ),
+                            ),
+                          ],
+                        )
+
+                      ],
+                    ),
                   ),
-                )
+                ),
+
               ],
             ),
-          ),
-          Row(
-            mainAxisAlignment: .spaceBetween,
-            children: [
-              Text('Sebelum', style: TextStyle(color: Colors.grey),
-              ),
-               Text('Sesudah', style: TextStyle(color: Colors.grey),
-              ),
-            ],
-          ),
-        
-          SizedBox(height: 12),
-          Text('Ringkasan Solusi', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),),
-            TextField(
-               maxLines: 4,
-            decoration: InputDecoration(
-              
-              hintText: "Ringkasan Solusi",
-              border: OutlineInputBorder(
-                
-                borderRadius:
-                    BorderRadius.circular(14),
+
+            const SizedBox(height: 25),
+
+            const Text(
+              "Ringkasan Solusi",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
               ),
             ),
-          ),
-            SizedBox(height: 8),
-            Text('Waktu Bekerja' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),),
-            SizedBox(height: 8),
-            Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.orange[600],
-              ),
-              child: Text('03: 21 : 32', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),),
-            ),
-            SizedBox(height: 8),
-            Text('Spear Parts', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),),
+
+            const SizedBox(height: 8),
+
             TextField(
+              controller: solusiController,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: "Spear Parts yang digunakan..",
+                hintText: "Jelaskan solusi yang dilakukan...",
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                )
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            const Text(
+              "Spare Parts",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
+
+            const SizedBox(height: 8),
+
+            TextField(
+              controller: sparepartController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                hintText: "Spare parts yang digunakan...",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 30),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+
+              child: ElevatedButton(
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+
+              onPressed: () async {
+
+  try {
+
+    await selesai(); 
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Pekerjaan berhasil diselesaikan"),
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DashboardTeknisi(),
+      ),
+    );
+
+  } catch (e) {
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error: $e"),
+      ),
+    );
+
+  }
+
+},
+
+                child: const Text(
+                  "Selesaikan Pekerjaan",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+
               ),
             )
-            ],
-            
-          ), 
-          
+
+          ],
         ),
-      
       ),
     );
   }

@@ -21,17 +21,31 @@ class _RejectLaporanTeknisiState extends State<RejectLaporanTeknisi> {
   final TextEditingController alasanController = TextEditingController();
 
   final supabase = Supabase.instance.client;
+Future<void> rejectIssue() async {
+  try {
 
-  Future<void> rejectIssue() async {
-  await Supabase.instance.client
-      .from('issues')
-      .update({
-        'status': 'Rejected',
-        'reject_reason': alasanController.text.trim(),
-      })
-      .eq('id', widget.issueId);
+    print("ISSUE ID = ${widget.issueId}");
+
+    final response = await supabase
+        .from('issues')
+        .update({
+          'status': 'Rejected',
+          'reject_reason': alasanController.text.trim(),
+        })
+        .eq('id', widget.issueId)
+        .select();
+
+    print("SUCCESS UPDATE:");
+    print(response);
+
+  } catch (e) {
+
+    print("SUPABASE ERROR:");
+    print(e);
+    rethrow;
+
+  }
 }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,7 +122,17 @@ onPressed: () async {
 
   try {
 
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     await rejectIssue();
+
+    Navigator.pop(context);
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -116,14 +140,17 @@ onPressed: () async {
       ),
     );
 
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (_) => const DashboardTeknisi(),
       ),
+      (route) => false,
     );
 
   } catch (e) {
+
+    Navigator.pop(context);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Error: $e")),
@@ -132,7 +159,6 @@ onPressed: () async {
   }
 
 },
-
                   child: const Text(
                     'Kirim Alasan',
                     style: TextStyle(
