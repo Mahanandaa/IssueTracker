@@ -235,7 +235,9 @@ class ChartWeek extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BarChart(
+      
       BarChartData(
+        
         titlesData: FlTitlesData(
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
