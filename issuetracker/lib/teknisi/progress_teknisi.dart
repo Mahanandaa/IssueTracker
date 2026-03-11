@@ -31,17 +31,16 @@ class _ProgressTeknisiState extends State<ProgressTeknisi> {
 
   final supabase = Supabase.instance.client;
 
-Future<void> noteRes() async{
-  await Supabase.instance.client.from('issues').insert({
-    'resolution_notes' : note_result.text.trim()
-  });
+Future<void> noteRes() async {
+  await supabase.from('issues').update({
+        'resolution_notes': note_result.text.trim(),
+      })
+      .eq('id', widget.issueId);
 }
-
-Future<void> sparePart() async{
-  await Supabase.instance.client.from('spare_parts').insert({
-  'part_name' : note_parts.text.trim(),
+Future<void> sparePart() async {await supabase.from('spare_parts').insert({
+    'issue_id': widget.issueId,
+    'part_name': note_parts.text.trim(),
   });
-  
 }
 
   @override
@@ -339,46 +338,48 @@ Future<void> sparePart() async{
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () async {
+                     onPressed: () async {
 
-                        stopTimer();
-                        sparePart();
-                        noteRes();
-                        final hours = twoDigits(duration.inHours);
-                        final minutes = twoDigits(duration.inMinutes.remainder(60));
-                        final seconds = twoDigits(duration.inSeconds.remainder(60));
+  stopTimer();
 
-                        final actualTime = "$hours:$minutes:$seconds";
+  final hours = twoDigits(duration.inHours);
+  final minutes = twoDigits(duration.inMinutes.remainder(60));
+  final seconds = twoDigits(duration.inSeconds.remainder(60));
 
-                        try {
+  final actualTime = "$hours:$minutes:$seconds";
 
-                          await supabase.from('issues').update({
-                                'actual_time': actualTime
-                              })
-                              .eq('id', widget.issueId);
+  try {
+    await supabase
+        .from('issues')
+        .update({
+          'actual_time': actualTime,
+        })
+        .eq('id', widget.issueId);
+    await noteRes();
+    await sparePart();
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Waktu berhasil disimpan")),
-                          );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Data berhasil disimpan")),
+    );
 
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => SelesaiTeknis(
-                                issueId: widget.issueId,
-                              ),
-                            ),
-                          );
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SelesaiTeknis(
+          issueId: widget.issueId,
+        ),
+      ),
+    );
 
-                        } catch (e) {
+  } catch (e) {
 
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Gagal menyimpan waktu: $e")),
-                          );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Gagal menyimpan data: $e")),
+    );
 
-                        }
+  }
 
-                      },
+},
                       child: const Text(
                         "Selesai",
                         style: TextStyle(

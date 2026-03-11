@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard_teknisi.dart';
-
 class RejectLaporanTeknisi extends StatefulWidget {
-
-  final String issueId;
-
-  const RejectLaporanTeknisi({
-    super.key,
-    required this.issueId,
-  });
+final String issueId;
+const RejectLaporanTeknisi({
+super.key,
+required this.issueId,
+ });
 
   @override
   State<RejectLaporanTeknisi> createState() =>
@@ -21,54 +18,34 @@ class _RejectLaporanTeknisiState extends State<RejectLaporanTeknisi> {
   final TextEditingController alasanController = TextEditingController();
 
   final supabase = Supabase.instance.client;
-Future<void> rejectIssue() async {
-  try {
-
-    print("ISSUE ID = ${widget.issueId}");
-
-    final response = await supabase
-        .from('issues')
-        .update({
+Future<void>rejectIssue() async{
+    await Supabase.instance.client.from('issues').update({
           'status': 'Rejected',
           'reject_reason': alasanController.text.trim(),
         })
         .eq('id', widget.issueId)
         .select();
-
-    print("SUCCESS UPDATE:");
-    print(response);
-
-  } catch (e) {
-
-    print("SUPABASE ERROR:");
-    print(e);
-    rethrow;
-
-  }
 }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-
-      appBar: AppBar(
-        title: const Text("Tolak Laporan"),
-        backgroundColor: Colors.grey[300],
+    backgroundColor: Colors.grey[100],
+    appBar: AppBar(
+    title: const Text("Tolak Laporan"),
+    backgroundColor: Colors.grey[300],
       ),
-
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(18),
-
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-
-              const Text(
-                'Alasan Tolak Kasus',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
+    body: SafeArea(
+    child: Padding(
+    padding: const EdgeInsets.all(18),
+    child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+    const Text(
+    'Alasan Tolak Kasus',
+          style: TextStyle(
+          fontWeight: FontWeight.w600,
+           fontSize: 18,
                 ),
               ),
 

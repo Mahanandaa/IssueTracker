@@ -35,11 +35,7 @@ Future<void> acceptTask() async{
 
 Future<void> fetchDetail() async {
   try {
-    final data = await supabase
-        .from('issues')
-        .select()
-        .eq('id', widget.issueId)
-        .maybeSingle(); 
+    final data = await supabase.from('issues').select().eq('id', widget.issueId).maybeSingle(); 
 
     if (data != null) {
       setState(() {

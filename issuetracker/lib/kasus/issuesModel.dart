@@ -9,7 +9,7 @@ class IssueModel {
   String? photoUrl;
   String reportedBy;
   String? assignedTo;
-  int? estimatedTime;
+  String? estimatedTime;
   int? actualTime;
   String? resolutionNotes;
   String? completionPhotoUrl;

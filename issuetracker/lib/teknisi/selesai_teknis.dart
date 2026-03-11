@@ -49,14 +49,10 @@ Future<void>selesai() async{
   }
 
   Future<void> uploadImage(XFile? file) async {
-
     if (file == null) return;
-
     Uint8List bytes = await file.readAsBytes();
-
     final fileName = DateTime.now().microsecondsSinceEpoch.toString();
     final path = 'uploads/$fileName.jpg';
-
     await Supabase.instance.client.storage
         .from('images')
         .uploadBinary(path, bytes);

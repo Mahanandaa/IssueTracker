@@ -18,10 +18,26 @@ class DetailLaporanKaryawan extends StatefulWidget {
 
 class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
   final supabase = Supabase.instance.client;
-
+  final feedback = TextEditingController(); 
+  final rate = TextEditingController();
+  final comment = TextEditingController();
   Map<String, dynamic>? issue;
   bool isLoading = true;
 
+Future<void> ulasan() async{
+  await supabase.from('ratings').insert({
+    'rating' : rate.text.trim(),
+    'feedback' : feedback.text.trim(),
+    'issue_id' : widget.issueId,
+  });
+}
+
+Future<void> komentar() async{
+  await supabase.from('comments').insert({
+    'comment' : comment.text.trim(),
+    'issue_id' : widget.issueId,
+  });
+}
   @override
   void initState() {
     super.initState();
@@ -331,6 +347,7 @@ const Text(
 ),
 const SizedBox(height: 10),
 TextField(
+  controller: feedback,
   maxLength: 250,
   maxLines: null,
   decoration: InputDecoration(
@@ -362,6 +379,7 @@ TextField(
   inputFormatters: [
     FilteringTextInputFormatter.digitsOnly,
   ],
+  controller: rate,
   maxLength: 2,
   decoration: InputDecoration(
     prefixIcon: const Icon(Icons.send, color: Colors.blue),
@@ -380,8 +398,10 @@ TextField(
 const SizedBox(height: 25),
 
 TextField(
+  controller: comment,
   decoration: InputDecoration(
     hintText: 'Masukan komentar',
+    
     prefixIcon: const Icon(Icons.send, color: Colors.blue),
     filled: true,
     fillColor: Colors.white,
@@ -397,10 +417,31 @@ TextField(
 
 const SizedBox(height: 40),
 
-SizedBox(
-  height: 50,
-  child: TextButton(
-    onPressed: () {
+Row(
+children: [
+    Expanded(child: SizedBox(
+    height: 50,
+    child: ElevatedButton(
+    onPressed: () async{
+
+      if(rate.text.isEmpty || feedback.text.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Rating dan Feedback wajib diisi'),)
+        );
+        return;
+      }
+        try{
+          await ulasan();
+          await komentar();
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: 
+          Text('Berhasil Terkirim!')));
+        } catch (a) {
+          Navigator.pop(context);
+ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Error: $a")),
+    );  
+     }
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -424,8 +465,10 @@ SizedBox(
     ),
   ),
 ),
-          ],
-        ),
+  )
+          ])
+        ],
+    ),
       ),
     );
   }
