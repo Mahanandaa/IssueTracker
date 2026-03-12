@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'setting_profile_teknisi.dart';
+
 class EditProfileTeknisi extends StatefulWidget {
-  const EditProfileTeknisi({super.key});
+  final Map<String, dynamic> users;
+
+  const EditProfileTeknisi({
+    super.key,
+    required this.users,
+  });
 
   @override
   State<EditProfileTeknisi> createState() => _EditProfileTeknisiState();
 }
 
 class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
-  @override
-  
+
   final supabase = Supabase.instance.client;
 
   late TextEditingController nama;
@@ -19,41 +24,62 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
   late TextEditingController password;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
+
     nama = TextEditingController(text: widget.users['name']);
     email = TextEditingController(text: widget.users['email']);
     nomor = TextEditingController(text: widget.users['phone']);
     password = TextEditingController();
   }
 
-  Future<void> updateProfile() async {
-    final user = supabase.auth.currentUser;
-    if(user == null) return;
-
-    await supabase.auth.updateUser(
-      UserAttributes(
-        email: email.text,
-        password: password.text.isEmpty ? null : password.text,
-        data: {
-          'name': nama.text,
-          'phone': nomor.text,
-        }
-      )
-    );
-
-    await supabase.from('users').update({
-          'name': nama.text,
-          'email': email.text,
-          'phone': nomor.text,
-        }).eq('id', user.id);
-
-   
+  @override
+  void dispose() {
+    nama.dispose();
+    email.dispose();
+    nomor.dispose();
+    password.dispose();
+    super.dispose();
   }
 
-  Widget _inputField(TextEditingController controller, String hint){
+  Future<void> updateProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+    try {
+      await supabase.auth.updateUser(
+        UserAttributes(
+          email: email.text,
+          password: password.text.isEmpty ? null : password.text,
+          data: {
+            'name': nama.text,
+            'phone': nomor.text,
+          },
+        ),
+      );
+      await supabase.from('users').update({
+        'name': nama.text,
+        'email': email.text,
+        'phone': nomor.text,
+      }).eq('id', user.id);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Profile berhasil diperbarui")),
+      );
+
+      Navigator.pop(context);
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+  }
+
+  Widget _inputField(TextEditingController controller, String hint,
+      {bool isPassword = false}) {
     return TextField(
       controller: controller,
+      obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -89,29 +115,35 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
 
             const SizedBox(height: 24),
 
-            const Text("Nama", style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text("Nama",
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(nama, "Masukan nama baru"),
 
             const SizedBox(height: 18),
 
-            const Text("Email", style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text("Email",
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(email, "Masukan email baru"),
 
             const SizedBox(height: 18),
 
-            const Text("No HP", style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text("No HP",
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(nomor, "Masukan nomor baru"),
 
             const SizedBox(height: 18),
 
-            const Text("Password Baru", style: TextStyle(fontWeight: FontWeight.w600)),
+            const Text("Password Baru",
+                style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            _inputField(password, "Kosongkan jika tidak ganti password"),
+            _inputField(password, "Kosongkan jika tidak ganti password",
+                isPassword: true),
 
             const SizedBox(height: 28),
+
             SizedBox(
               width: double.infinity,
               child: TextButton(
@@ -140,8 +172,4 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
       ),
     );
   }
-}
-
-extension on EditProfileTeknisi {
-  get users => null;
 }

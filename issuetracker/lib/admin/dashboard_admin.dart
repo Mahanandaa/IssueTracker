@@ -1,17 +1,17 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:issuetracker/teknisi/tidak_selesai_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 
 class DashboardAdmin extends StatefulWidget {
   const DashboardAdmin({super.key});
-
+  
   @override
   State<DashboardAdmin> createState() => _DashboardAdminState();
 }
 
 class _DashboardAdminState extends State<DashboardAdmin> {
+  
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> issues = [];
@@ -70,7 +70,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color.fromARGB(255, 230, 230, 230),
 
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
@@ -235,7 +235,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                       child: const Column(
                         children: [
                           Text("Pending",
-                              style: TextStyle(fontSize: 12, color: Colors.orange)),
+                              style: TextStyle(fontSize: 15, color: Colors.orange, fontWeight: FontWeight.w600)),
                           SizedBox(height: 4),
                           Text("12",
                               style: TextStyle(
@@ -261,7 +261,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                       child: const Column(
                         children: [
                           Text("Ditolak",
-                              style: TextStyle(fontSize: 12, color: Colors.red)),
+                              style: TextStyle(fontSize: 15, color: Colors.red, fontWeight: FontWeight.w600)),
                           SizedBox(height: 4),
                           Text("12",
                               style: TextStyle(
@@ -273,7 +273,74 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                   ),
                 ],
               ),
+              SizedBox(height: 8),
+              Row(
 
+                children: [
+                  Expanded(child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                    color: const Color.fromARGB(220, 245, 243, 243),
+                     borderRadius: BorderRadius.circular(12),
+                     border: Border.all(color: Colors.green)
+                    ),
+                    child: Column(
+                      children: [
+                        Text('Selesai',
+                        style: TextStyle(fontSize: 15, color: Colors.green.shade800, fontWeight: FontWeight.w600),
+                        ),
+                        SizedBox(height: 4),
+                        Text('5' , style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),)
+                      ],
+                    ),
+                  )),
+                  Expanded(child: Container(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(
+                     color: const Color.fromARGB(220, 245, 243, 243),
+                     borderRadius: BorderRadius.circular(12),
+                     border: Border.all(color: Colors.blue),
+                    ),
+                    child: Column(
+                      children: [
+                        Text('Progress', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w600, fontSize: 15),),
+                        Text('12', style: TextStyle(color: Colors.blue[600], fontWeight: FontWeight.w600),)
+                      ],
+                    ),
+                  ))
+                ],
+                
+              ),
+              Row(children: [
+                Padding(padding: EdgeInsetsGeometry.all(12)),
+                Expanded(child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[700]
+                  ),
+                  child: Column(
+                    children: [
+                      Text('peforma teknisi' , style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[400]),),
+                      Text('9/10' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
+                      Text('23 tugas' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),)
+                    ],
+
+                  ),
+                )),
+                 Expanded(child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[700]
+                  ),
+                  child: Column(
+                    children: [
+                      Text('Rata Rata Pengerjaan' , style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[400]),),
+                      Text('71 Ment' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
+                   ],
+
+                  ),
+                ))
+              ],),
               const SizedBox(height: 12),
 
               const Text(
@@ -296,6 +363,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
               ),
             ],
           ),
+
+          
         ),
       ),
     );
@@ -317,13 +386,13 @@ class ChartType extends StatelessWidget {
               getTitlesWidget: (value, meta) {
 
                 const weeks = [
-                  'IT',
-                  'Fasilitas',
-                  'Kebersihan',
-                  'Keamanan',
-                  'Pipa',
-                  'Electronic',
-                  'Lainnya'
+                  '1',
+                  '2',
+                  '3',
+                  '4',
+                  '5',
+                  '6',
+                  '7'
                 ];
 
                 if (value.toInt() >= 0 && value.toInt() < weeks.length) {
