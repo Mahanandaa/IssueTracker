@@ -62,20 +62,7 @@ Future<void> komentar() async{
       }
     }
   }
-Widget _inputfield(TextEditingController controller, String hint){
-  return TextField(
-controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      )
 
-  );
-}
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -156,7 +143,6 @@ controller: controller,
                         BoxShadow(
                           color: Colors.black.withOpacity(0.15),
                           blurRadius: 4,
-                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
@@ -192,7 +178,6 @@ controller: controller,
                         BoxShadow(
                           color: Colors.black.withOpacity(0.15),
                           blurRadius: 4,
-                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),

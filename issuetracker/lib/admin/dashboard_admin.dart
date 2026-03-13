@@ -1,23 +1,24 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:issuetracker/admin/kasus_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:async';
 
 class DashboardAdmin extends StatefulWidget {
   const DashboardAdmin({super.key});
-  
+
   @override
   State<DashboardAdmin> createState() => _DashboardAdminState();
 }
 
 class _DashboardAdminState extends State<DashboardAdmin> {
-  
+
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> issues = [];
 
-  final SearchBar = TextEditingController();
-  DateTime? selectedDate;
+  int _currentIndex = 0;
+  final searchBar = TextEditingController();
+
   bool _isLoading = false;
   String? selectedStatus;
 
@@ -29,24 +30,27 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   Future<void> fetchIssues() async {
     final response = await supabase.from('issues').select();
+
     setState(() {
       issues = List<Map<String, dynamic>>.from(response);
     });
   }
 
   Future<void> fenchData([String? searchTerm]) async {
+
     setState(() {
       _isLoading = true;
     });
 
     try {
+
       var query = supabase.from('issues').select();
 
       if (searchTerm != null && searchTerm.isNotEmpty) {
         query = supabase
             .from('issues')
             .select()
-            .or('title.ilike.%$searchTerm%, location.ilike.%$searchTerm%');
+            .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
       }
 
       final data = await query;
@@ -54,27 +58,69 @@ class _DashboardAdminState extends State<DashboardAdmin> {
       setState(() {
         issues = List<Map<String, dynamic>>.from(data);
       });
+
     } on PostgrestException catch (error) {
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error : ${error.message}')),
         );
       }
+
     } finally {
+
       setState(() {
         _isLoading = false;
       });
+
     }
   }
 
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 230, 230, 230),
+      backgroundColor: const Color(0xfff4f4f4),
 
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         title: const Text("Dashboard"),
+      ),
+
+      bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.grey[200],
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _currentIndex,
+
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.work), label: 'Kasus'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.storage_rounded), label: 'Data'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Pengaturan'),
+        ],
+
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+
+          if (index == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DashboardAdmin(),
+              ),
+            );
+          } else if (index == 1 ){
+            Navigator.push(context, MaterialPageRoute(builder: (context) => KasusAdmin()));
+          }
+        },
       ),
 
       body: SafeArea(
@@ -84,6 +130,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
           child: Column(
             children: [
 
+              /// SEARCH BAR
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -99,7 +146,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                     ),
 
                     child: TextField(
-                      controller: SearchBar,
+                      controller: searchBar,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         hintText: 'Cari kasus...',
@@ -119,17 +166,12 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                   const SizedBox(width: 8),
 
                   IconButton(
-                    icon: Icon(Icons.date_range_outlined,
-                        color: Colors.blue[400], size: 28),
-
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const DashboardAdmin(),
-                        ),
-                      );
-                    },
+                    icon: Icon(
+                      Icons.date_range_outlined,
+                      color: Colors.blue[400],
+                      size: 28,
+                    ),
+                    onPressed: () {},
                   ),
                 ],
               ),
@@ -141,10 +183,10 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
                   Expanded(
                     child: GestureDetector(
-                      onTap: () async {
-                     setState(() {
-                     selectedStatus = 'Hari Ini';
-                                  });
+                      onTap: () {
+                        setState(() {
+                          selectedStatus = 'Hari Ini';
+                        });
                         fetchIssues();
                       },
 
@@ -155,19 +197,16 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                           color: selectedStatus == 'Hari Ini'
                               ? Colors.blue[700]
                               : Colors.grey[200],
-
                           borderRadius: BorderRadius.circular(6),
                         ),
 
                         child: Center(
                           child: Text(
                             'Hari Ini',
-
                             style: TextStyle(
                               color: selectedStatus == 'Hari Ini'
                                   ? Colors.white
                                   : Colors.black,
-
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -180,10 +219,10 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
                   Expanded(
                     child: GestureDetector(
-                      onTap: () async {
-                            setState(() {
-                       selectedStatus = 'Minggu Ini';
-                            });          
+                      onTap: () {
+                        setState(() {
+                          selectedStatus = 'Minggu Ini';
+                        });
                         fetchIssues();
                       },
 
@@ -194,19 +233,16 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                           color: selectedStatus == 'Minggu Ini'
                               ? Colors.blue[700]
                               : Colors.grey[200],
-
                           borderRadius: BorderRadius.circular(6),
                         ),
 
                         child: Center(
                           child: Text(
                             'Minggu Ini',
-
                             style: TextStyle(
                               color: selectedStatus == 'Minggu Ini'
                                   ? Colors.white
                                   : Colors.black,
-
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -223,133 +259,45 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                 children: [
 
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(220, 245, 243, 243),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.orange),
-                      ),
-
-                      child: const Column(
-                        children: [
-                          Text("Pending",
-                              style: TextStyle(fontSize: 15, color: Colors.orange, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 4),
-                          Text("12",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange)),
-                        ],
-                      ),
-                    ),
+                    child: statusBox("Pending", "12", Colors.orange),
                   ),
 
                   const SizedBox(width: 10),
 
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-
-                      decoration: BoxDecoration(
-                        color: const Color.fromARGB(220, 245, 243, 243),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red),
-                      ),
-
-                      child: const Column(
-                        children: [
-                          Text("Ditolak",
-                              style: TextStyle(fontSize: 15, color: Colors.red, fontWeight: FontWeight.w600)),
-                          SizedBox(height: 4),
-                          Text("12",
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.red)),
-                        ],
-                      ),
-                    ),
+                    child: statusBox("Ditolak", "12", Colors.red),
                   ),
                 ],
-              ),
-              SizedBox(height: 8),
-              Row(
-
-                children: [
-                  Expanded(child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                    color: const Color.fromARGB(220, 245, 243, 243),
-                     borderRadius: BorderRadius.circular(12),
-                     border: Border.all(color: Colors.green)
-                    ),
-                    child: Column(
-                      children: [
-                        Text('Selesai',
-                        style: TextStyle(fontSize: 15, color: Colors.green.shade800, fontWeight: FontWeight.w600),
-                        ),
-                        SizedBox(height: 4),
-                        Text('5' , style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),)
-                      ],
-                    ),
-                  )),
-                  Expanded(child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 10),
-                    decoration: BoxDecoration(
-                     color: const Color.fromARGB(220, 245, 243, 243),
-                     borderRadius: BorderRadius.circular(12),
-                     border: Border.all(color: Colors.blue),
-                    ),
-                    child: Column(
-                      children: [
-                        Text('Progress', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.w600, fontSize: 15),),
-                        Text('12', style: TextStyle(color: Colors.blue[600], fontWeight: FontWeight.w600),)
-                      ],
-                    ),
-                  ))
-                ],
-                
-              ),
-              Row(children: [
-                Padding(padding: EdgeInsetsGeometry.all(12)),
-                Expanded(child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber[700]
-                  ),
-                  child: Column(
-                    children: [
-                      Text('peforma teknisi' , style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[400]),),
-                      Text('9/10' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
-                      Text('23 tugas' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),)
-                    ],
-
-                  ),
-                )),
-                 Expanded(child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.amber[700]
-                  ),
-                  child: Column(
-                    children: [
-                      Text('Rata Rata Pengerjaan' , style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[400]),),
-                      Text('71 Ment' , style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),),
-                   ],
-
-                  ),
-                ))
-              ],),
-              const SizedBox(height: 12),
-
-              const Text(
-                'Analisis',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
               ),
 
               const SizedBox(height: 10),
 
+              Row(
+                children: [
+
+                  Expanded(
+                    child: statusBox("Selesai", "5", Colors.green),
+                  ),
+
+                  const SizedBox(width: 10),
+
+                  Expanded(
+                    child: statusBox("Progress", "12", Colors.blue),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+
+              const Text(
+                'Analisis',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+
+              const SizedBox(height: 10),
               Container(
                 height: 320,
                 padding: const EdgeInsets.all(12),
@@ -361,11 +309,61 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
                 child: const ChartType(),
               ),
+
+              const SizedBox(height: 12),
+
+              /// PIE CHART
+              Container(
+                height: 320,
+                padding: const EdgeInsets.all(12),
+
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+
+                child: const ChartStatus(),
+              ),
             ],
           ),
-
-          
         ),
+      ),
+    );
+  }
+
+  Widget statusBox(String title, String value, Color color) {
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(220, 245, 243, 243),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color),
+      ),
+
+      child: Column(
+        children: [
+
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 15,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }
