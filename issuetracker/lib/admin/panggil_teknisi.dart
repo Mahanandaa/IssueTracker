@@ -24,8 +24,6 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-
-              /// FILTER BUTTON
               Row(
                 children: [
                   Expanded(
