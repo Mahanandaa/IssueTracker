@@ -73,7 +73,6 @@ class _DataAdminState extends State<DataAdmin> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Laporan Kasus'),
-
                   Icon(Icons.send, color: Colors.blue,)
                 ],
               

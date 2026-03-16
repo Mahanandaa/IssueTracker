@@ -130,7 +130,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
           child: Column(
             children: [
 
-              /// SEARCH BAR
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -312,7 +311,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
               const SizedBox(height: 12),
 
-              /// PIE CHART
               Container(
                 height: 320,
                 padding: const EdgeInsets.all(12),
