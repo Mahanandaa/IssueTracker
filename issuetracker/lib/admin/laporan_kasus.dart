@@ -16,6 +16,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
   List<Map<String, dynamic>> issues = [];
 
   bool _isLoading = false;
+  
    Future<void> fetchIssues() async {
     final response = await supabase.from('issues').select();
 
@@ -53,16 +54,21 @@ class _LaporanKasusState extends State<LaporanKasus> {
    body: SafeArea(
     child: Padding(padding: EdgeInsetsGeometry.all(12),
     
-      child: Column(
-        children: [
-          TextField(
-            
-           decoration: InputDecoration(
-
-
-           ),
-          )
-        ],
+      child: Container(
+        padding: EdgeInsets.all(10),
+        child: Column(
+          children: [
+            Text('Kasus : WiFi Error'),
+            Text('Tanggal : 02 Februari 2026'),
+            Text('Lokasi : Lantai 1'),
+            Text('Kategori : Facilities'),
+            Text('Prioritas  : Medium'),
+            Text('Pelapor ananda'),
+            Text('waktu 02:23:44'),
+            Text('Status : Selesai'),
+            Text('spear parts : KABEL LAN')
+          ],
+        ),
       ),
     
     ),

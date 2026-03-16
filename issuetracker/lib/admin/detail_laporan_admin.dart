@@ -114,9 +114,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                           blurRadius: 4,
                           
                         ),
-                      ],
-
-                  
+                      ],       
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
