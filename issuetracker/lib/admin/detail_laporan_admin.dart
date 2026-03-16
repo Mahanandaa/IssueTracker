@@ -93,8 +93,10 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     Text('Kategori', 
                     style: TextStyle(fontWeight: FontWeight.w600,
                     fontSize: 14,
-                    color: Colors.grey),),
-                    Text(issue? ['category']?.toString() ?? '', style: TextStyle(fontSize: 16)
+                    color: Colors.grey
+                    ),
+                    ),
+                    Text(issue? ['category']?.toString() ?? 'Not Found', style: TextStyle(fontSize: 16)
                     ),
                   ],
                 ),
@@ -114,7 +116,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                         ),
                       ],
 
-
+                  
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
