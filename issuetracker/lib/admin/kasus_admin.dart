@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:issuetracker/admin/dashboard_admin.dart';
+import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/detail_laporan_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -12,6 +14,7 @@ class KasusAdmin extends StatefulWidget {
 class _KasusAdminState extends State<KasusAdmin> {
 
   final supabase = Supabase.instance.client;
+  int _currentIndex = 0;
   List<Map<String, dynamic>> issues = [];
   final search = TextEditingController();
   bool _isloading = false;
@@ -70,6 +73,46 @@ class _KasusAdminState extends State<KasusAdmin> {
     }).toList();
 
     return Scaffold(
+       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.grey[200],
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _currentIndex,
+
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.work), label: 'Kasus'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.storage_rounded), label: 'Data'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Pengaturan'),
+        ],
+
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+
+          if (index == 0) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DashboardAdmin(),
+              ),
+            );
+          } else if (index == 1 ){
+            Navigator.push(context, MaterialPageRoute(builder: (context) => KasusAdmin()));
+          } else if (index == 2){
+            Navigator.push(context, MaterialPageRoute(builder: (context) => DataAdmin()));
+          } else if (index == 3) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardAdmin()));
+          }
+        },
+      ),
+
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.grey[200],

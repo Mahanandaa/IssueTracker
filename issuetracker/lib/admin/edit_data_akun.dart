@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 class EditDataAkun extends StatefulWidget {
-  const EditDataAkun({super.key});
+  final Map users;
+  const EditDataAkun({super.key, required this.users});
 
   @override
   State<EditDataAkun> createState() => _EditDataAkunState();
@@ -12,17 +13,42 @@ class _EditDataAkunState extends State<EditDataAkun> {
   List<Map<String, dynamic>> issues = [];
   Map<String, dynamic>? issue;
   
+  late TextEditingController nama;
+  late TextEditingController email;
+  late TextEditingController password;
+  late TextEditingController nomor;
+
+
   @override
   void initState(){
     super.initState();
-    fetchIssuedata();
-  }
-  Future<void> fetchIssuedata() async{
-  final response = await supabase.from('issues').select();
-  setState(() {
-    issues = List<Map<String, dynamic>>.from(response);
-  });
-  }
+
+     nama = TextEditingController(text: widget.users['name']);
+     email = TextEditingController(text: widget.users['email']);
+    nomor  = TextEditingController(text: widget.users['phone']);
+    password = TextEditingController();
+       }
+
+Future<void> updateProfile() async{
+  final user = supabase.auth.currentUser;
+  if(user == null) return;
+
+  await supabase.auth.updateUser(UserAttributes(
+    email :  email.text,
+    password: password.text.isEmpty ? null : password.text,
+    data: {
+      'name' : nama.text,
+      'phone' : nomor.text
+    }
+  ));
+    await supabase.from('users').update({
+      'name' : nama.text,
+      'email' : email.text,
+    }).eq('id', user.id);
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -52,6 +78,7 @@ class _EditDataAkunState extends State<EditDataAkun> {
             ),
           ),
           TextField(
+            controller: nama,
            decoration: InputDecoration(
             hintText: 'Masukan Nama',
             contentPadding: EdgeInsets.all(12),
@@ -70,6 +97,7 @@ class _EditDataAkunState extends State<EditDataAkun> {
             ),
           ),
           TextField(
+            controller: email,
             decoration: InputDecoration(
               hintText: 'Masukan Email',
               contentPadding: EdgeInsets.all(12),
@@ -87,6 +115,7 @@ class _EditDataAkunState extends State<EditDataAkun> {
             ),
           ),
           TextField(
+            controller: nomor,
             decoration: InputDecoration(
               hintText: 'Nomor Telepon',
               contentPadding: EdgeInsets.all(12),
@@ -104,7 +133,8 @@ class _EditDataAkunState extends State<EditDataAkun> {
             ),
           ),
           TextField(
-            decoration: InputDecoration(
+              controller: password,
+              decoration: InputDecoration(
               hintText: 'Password',
               contentPadding: EdgeInsets.all(12),
               border: OutlineInputBorder(
@@ -112,24 +142,23 @@ class _EditDataAkunState extends State<EditDataAkun> {
               )
             ),
           ),
+        const SizedBox(height: 28),
+        SizedBox(                
+                child: TextButton(onPressed: updateProfile,style: TextButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: EdgeInsets.all(12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadiusGeometry.circular(12),
+                  )
 
-           SizedBox(height: 22),
-                  SizedBox(
-                    width: 211,
-                    height: 45,
-                    child: TextButton(
-                      onPressed: () => (context),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.blue[600],
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                      child: Text('Edit',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600)),
-                    ),
+                ), child: Text(
+                  'submit', style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600
                   ),
+                ))
+              ),
         ],
       ),
       ),

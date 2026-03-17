@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -119,6 +120,10 @@ class _DashboardAdminState extends State<DashboardAdmin> {
             );
           } else if (index == 1 ){
             Navigator.push(context, MaterialPageRoute(builder: (context) => KasusAdmin()));
+          } else if (index == 2){
+            Navigator.push(context, MaterialPageRoute(builder: (context) => DataAdmin()));
+          } else if (index == 3) {
+            Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardAdmin()));
           }
         },
       ),
