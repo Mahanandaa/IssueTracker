@@ -12,28 +12,38 @@ class DataAdmin extends StatefulWidget {
 class _DataAdminState extends State<DataAdmin> {
   int _currentIndex = 0;
 
-
   @override
   Widget build(BuildContext context) {
-  return Scaffold( 
-     bottomNavigationBar: BottomNavigationBar(
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text("Dashboard"),
+        backgroundColor: Colors.grey[200],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
-
         items: const [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+            icon: Icon(Icons.home_outlined),
+            label: 'Dashboard',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.work), label: 'Kasus'),
+            icon: Icon(Icons.work),
+            label: 'Kasus',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.storage_rounded), label: 'Data'),
+            icon: Icon(Icons.storage_rounded),
+            label: 'Data',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Pengaturan'),
+            icon: Icon(Icons.settings),
+            label: 'Pengaturan',
+          ),
         ],
-
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -46,87 +56,128 @@ class _DataAdminState extends State<DataAdmin> {
                 builder: (context) => const DashboardAdmin(),
               ),
             );
-          } else if (index == 1 ){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => KasusAdmin()));
-          } else if (index == 2){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DataAdmin()));
+          } else if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => KasusAdmin(),
+              ),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DataAdmin(),
+              ),
+            );
           } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardAdmin()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const DashboardAdmin(),
+              ),
+            );
           }
         },
       ),
-
-    backgroundColor: Colors.white,
-      appBar: AppBar(
-      title: const Text("Dashboard"),
-      backgroundColor: Colors.grey[200],
-          ),
       body: SafeArea(
         child: SingleChildScrollView(
-        padding: EdgeInsets.all(12),
-        child: Column(
-        children: [
-        Expanded(child:  Container(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[300]
-              ),
-                  child: Row( 
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100],
+                   boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x19000000),
+                                      blurRadius: 3,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                ),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                  Text('Data Akun'),
-                  Icon(Icons.send, color: Colors.blue,)
-                ],
-              
+                  children: const [
+                    Text('Data Akun'),
+                    Icon(Icons.send, color: Colors.blue),
+                  ],
+                ),
               ),
-            )), Expanded(child:  Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[300]
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                 children: [
-                  Text('Tidak Selesai'),
-
-                  Icon(Icons.send, color: Colors.blue,)
-                ],
-              
-              ),
-            )),
-             Expanded(child:  Container(
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[300]
-              ),
-              child: Row(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100], boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x19000000),
+                                      blurRadius: 3,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                ),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                  Text('Tolak Kasus'),
-                  Icon(Icons.send, color: Colors.blue,)
-                ],
-              
+                  children: const [
+                    Text('Tidak Selesai'),
+                    Icon(Icons.send, color: Colors.blue),
+                  ],
+                ),
               ),
-            )),
-             Expanded(child:  Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                color: Colors.grey[300]
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100],
+                   boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x19000000),
+                                      blurRadius: 3,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text('Tolak Kasus'),
+                    Icon(Icons.send, color: Colors.blue),
+                  ],
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Laporan Kasus'),
-                  Icon(Icons.send, color: Colors.blue,)
-                ],
-              
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100],
+                boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x19000000),
+                                      blurRadius: 3,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text('Laporan Kasus'),
+                    Icon(Icons.send, color: Colors.blue),
+                  ],
+                ),
               ),
-            ))
-           
-          ],
+            ],
+          ),
         ),
-       ),
-      )
+      ),
     );
   }
 }

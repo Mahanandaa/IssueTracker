@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
+import 'package:issuetracker/splash_screen.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
           theme: ThemeData.light(),
           darkTheme: ThemeData.dark(),
           themeMode: mode,
-          home: const DashboardAdmin(),
+          home: const SplashScreen(),
         );
       },
     );

@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
+import 'package:issuetracker/admin/profile_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DashboardAdmin extends StatefulWidget {
@@ -12,7 +13,6 @@ class DashboardAdmin extends StatefulWidget {
 }
 
 class _DashboardAdminState extends State<DashboardAdmin> {
-
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> issues = [];
@@ -38,13 +38,11 @@ class _DashboardAdminState extends State<DashboardAdmin> {
   }
 
   Future<void> fenchData([String? searchTerm]) async {
-
     setState(() {
       _isLoading = true;
     });
 
     try {
-
       var query = supabase.from('issues').select();
 
       if (searchTerm != null && searchTerm.isNotEmpty) {
@@ -59,53 +57,52 @@ class _DashboardAdminState extends State<DashboardAdmin> {
       setState(() {
         issues = List<Map<String, dynamic>>.from(data);
       });
-
     } on PostgrestException catch (error) {
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error : ${error.message}')),
         );
       }
-
     } finally {
-
       setState(() {
         _isLoading = false;
       });
-
     }
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
-
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         title: const Text("Dashboard"),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
-
         items: const [
+          
           BottomNavigationBarItem(
-              icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+            icon: Icon(Icons.home_outlined),
+            label: 'Dashboard',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.work), label: 'Kasus'),
+            icon: Icon(Icons.work),
+            label: 'Kasus',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.storage_rounded), label: 'Data'),
+            icon: Icon(Icons.storage_rounded),
+            label: 'Data',
+          ),
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Pengaturan'),
+            icon: Icon(Icons.settings),
+            label: 'Pengaturan',
+          ),
         ],
-
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -118,37 +115,46 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                 builder: (context) => const DashboardAdmin(),
               ),
             );
-          } else if (index == 1 ){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => KasusAdmin()));
-          } else if (index == 2){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DataAdmin()));
+          } else if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => KasusAdmin(),
+              ),
+            );
+          } else if (index == 2) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => DataAdmin(),
+              ),
+            );
           } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardAdmin()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileAdmin(),
+              ),
+            );
           }
         },
       ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(12),
-
           child: Column(
             children: [
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-
                   Container(
                     width: MediaQuery.of(context).size.width * 0.65,
                     height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-
                     decoration: BoxDecoration(
                       color: Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(14),
                     ),
-
                     child: TextField(
                       controller: searchBar,
                       decoration: const InputDecoration(
@@ -156,7 +162,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                         hintText: 'Cari kasus...',
                         prefixIcon: Icon(Icons.search),
                       ),
-
                       onChanged: (value) {
                         if (value.isEmpty) {
                           fetchIssues();
@@ -166,9 +171,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                       },
                     ),
                   ),
-
                   const SizedBox(width: 8),
-
                   IconButton(
                     icon: Icon(
                       Icons.date_range_outlined,
@@ -179,12 +182,9 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
               Row(
                 children: [
-
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -193,17 +193,14 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                         });
                         fetchIssues();
                       },
-
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-
                         decoration: BoxDecoration(
                           color: selectedStatus == 'Hari Ini'
                               ? Colors.blue[700]
                               : Colors.grey[200],
                           borderRadius: BorderRadius.circular(6),
                         ),
-
                         child: Center(
                           child: Text(
                             'Hari Ini',
@@ -218,9 +215,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 10),
-
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
@@ -229,17 +224,14 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                         });
                         fetchIssues();
                       },
-
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-
                         decoration: BoxDecoration(
                           color: selectedStatus == 'Minggu Ini'
                               ? Colors.blue[700]
                               : Colors.grey[200],
                           borderRadius: BorderRadius.circular(6),
                         ),
-
                         child: Center(
                           child: Text(
                             'Minggu Ini',
@@ -256,43 +248,31 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
               Row(
                 children: [
-
                   Expanded(
                     child: statusBox("Pending", "12", Colors.orange),
                   ),
-
                   const SizedBox(width: 10),
-
                   Expanded(
                     child: statusBox("Ditolak", "12", Colors.red),
                   ),
                 ],
               ),
-
               const SizedBox(height: 10),
-
               Row(
                 children: [
-
                   Expanded(
                     child: statusBox("Selesai", "5", Colors.green),
                   ),
-
                   const SizedBox(width: 10),
-
                   Expanded(
                     child: statusBox("Progress", "12", Colors.blue),
                   ),
                 ],
               ),
-
               const SizedBox(height: 12),
-
               const Text(
                 'Analisis',
                 style: TextStyle(
@@ -300,31 +280,24 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                   fontSize: 15,
                 ),
               ),
-
               const SizedBox(height: 10),
               Container(
                 height: 320,
                 padding: const EdgeInsets.all(12),
-
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(10),
                 ),
-
                 child: const ChartType(),
               ),
-
               const SizedBox(height: 12),
-
               Container(
                 height: 320,
                 padding: const EdgeInsets.all(12),
-
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(10),
                 ),
-
                 child: const ChartStatus(),
               ),
             ],
@@ -335,19 +308,15 @@ class _DashboardAdminState extends State<DashboardAdmin> {
   }
 
   Widget statusBox(String title, String value, Color color) {
-
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10),
-
       decoration: BoxDecoration(
         color: const Color.fromARGB(220, 245, 243, 243),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),
-
       child: Column(
         children: [
-
           Text(
             title,
             style: TextStyle(
@@ -356,9 +325,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
               fontWeight: FontWeight.w600,
             ),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             value,
             style: TextStyle(
@@ -383,20 +350,11 @@ class ChartType extends StatelessWidget {
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
-
               getTitlesWidget: (value, meta) {
+                const weeks = ['1', '2', '3', '4', '5', '6', '7'];
 
-                const weeks = [
-                  '1',
-                  '2',
-                  '3',
-                  '4',
-                  '5',
-                  '6',
-                  '7'
-                ];
-
-                if (value.toInt() >= 0 && value.toInt() < weeks.length) {
+                if (value.toInt() >= 0 &&
+                    value.toInt() < weeks.length) {
                   return Text(weeks[value.toInt()]);
                 }
 
@@ -405,7 +363,6 @@ class ChartType extends StatelessWidget {
             ),
           ),
         ),
-
         barGroups: List.generate(7, (i) {
           return BarChartGroupData(
             x: i,
@@ -427,7 +384,6 @@ class ChartStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return PieChart(
       PieChartData(
         borderData: FlBorderData(show: false),
@@ -440,16 +396,15 @@ class ChartStatus extends StatelessWidget {
 }
 
 List<PieChartSectionData> showingSections() {
-
   return List.generate(4, (i) {
-
     const fontSize = 16.0;
     const radius = 50.0;
 
-    const shadows = [Shadow(color: Colors.black, blurRadius: 2)];
+    const shadows = [
+      Shadow(color: Colors.black, blurRadius: 2)
+    ];
 
     switch (i) {
-
       case 0:
         return PieChartSectionData(
           color: Colors.blue,

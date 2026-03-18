@@ -55,7 +55,7 @@ class _KasusDitolakState extends State<KasusDitolak> {
               ),
               ),
             Text(
-           issue?['priority'] ?? '',
+           issue?['priority'] ?? 'Not Found',
            style: TextStyle(
             color: issue?['priority'] == 'Urgent' ? Colors.white : issue ?['priority'] == 'Medium' ? Colors.orange : Colors.green,
             fontWeight: FontWeight.w600,
