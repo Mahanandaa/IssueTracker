@@ -46,6 +46,7 @@ class _KasusDitolakState extends State<KasusDitolak> {
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            
             children: [
               Text(
                 issue?['title']?.toString() ?? 'not found',

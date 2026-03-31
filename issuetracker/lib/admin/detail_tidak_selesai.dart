@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DetailTidakSelesai extends StatefulWidget {
-  const DetailTidakSelesai({super.key});
+  final String issueId; // ✅ simpan id
+
+  const DetailTidakSelesai({
+    super.key,
+    required this.issueId,
+  });
 
   @override
   State<DetailTidakSelesai> createState() =>
@@ -15,22 +21,34 @@ class _DetailTidakSelesaiState
   final supabase = Supabase.instance.client;
 
   Map<String, dynamic>? issue;
-  List<Map<String, dynamic>> issues = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchIssues();
+    fetchIssue();
   }
 
-  Future<void> fetchIssues() async {
-    final response =
-        await supabase.from('issues').select();
+  Future<void> fetchIssue() async {
+    try {
+      final response = await supabase
+          .from('issues')
+          .select()
+          .eq('id', widget.issueId)
+          .maybeSingle(); 
+      setState(() {
+        issue = response;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
 
-    setState(() {
-      issues =
-          List<Map<String, dynamic>>.from(response);
-    });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
@@ -44,134 +62,138 @@ class _DetailTidakSelesaiState
       ),
 
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              const Text(
-                'Listrik Konslet',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : issue == null
+                ? const Center(child: Text("Data tidak ditemukan"))
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: [
+                    Text(
+                          issue?['title'] ?? 'No Title',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 20,
+                          ),
+                        ),
 
-              const SizedBox(height: 10),
+                        const SizedBox(height: 16),
 
-              const Text(
-                'Alasan',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
+                        const Text(
+                          'Alasan',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
 
-              Container(
-                width: double.infinity,
-                height: 100,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.grey,
-                    width: 0.5,
-                  ),
-                ),
-                child: Text(
-                  issue?['not_completed_reason']
-                          ?.toString() ??
-                      'Not Found',
-                ),
-              ),
+                        _box(
+                          issue?['not_completed_reason']
+                                  ?.toString() ??
+                              'Tidak ada alasan',
+                        ),
 
-              const SizedBox(height: 10),
+                        const SizedBox(height: 16),
 
-              const Text(
-                'Lokasi',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
+                        const Text(
+                          'Lokasi',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
 
-              Container(
-                width: double.infinity,
-                height: 100,
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.grey,
-                    width: 0.5,
-                  ),
-                ),
-                child: Text(
-                  issue?['location']
-                          ?.toString() ??
-                      ' not found',
-                ),
-              ),
+                        _box(
+                          issue?['location']
+                                  ?.toString() ??
+                              '-',
+                        ),
 
-              const SizedBox(height: 10),
+                        const SizedBox(height: 16),
 
-              const Text(
-                'Foto Terakhir',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 18,
-                ),
-              ),
+                        const Text(
+                          'Foto Terakhir',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
 
-              Container(
-                width: double.infinity,
-                height: 100,
-                child: Text(
-                  issue?['photo_url']
-                          ?.toString() ??
-                      ' not found',
-                ),
-              ),
+                        Container(
+                          width: double.infinity,
+                          height: 150,
+                          decoration: BoxDecoration(
+                            borderRadius:
+                                BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey,
+                            ),
+                          ),
+                          child: issue?['photo_url'] != null
+                              ? Image.network(
+                                  issue!['photo_url'],
+                                  fit: BoxFit.cover,
+                                )
+                              : const Center(
+                                  child: Text(
+                                      'Tidak ada foto'),
+                                ),
+                        ),
 
-              const SizedBox(height: 12),
+                        const SizedBox(height: 20),
 
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          DashboardTeknisi(),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: double.infinity,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade600,
-                    borderRadius:
-                        BorderRadius.circular(12),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'Kembali ke dashboard',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight:
-                            FontWeight.w600,
-                      ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) =>
+                                    DashboardAdmin(),
+                              ),
+                            );
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding:
+                                const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.blue,
+                              borderRadius:
+                                  BorderRadius.circular(
+                                      12),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                'Kembali ke Dashboard',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight:
+                                      FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
+    );
+  }
+
+  Widget _box(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey),
+      ),
+      child: Text(text),
     );
   }
 }

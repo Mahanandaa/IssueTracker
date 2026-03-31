@@ -63,8 +63,7 @@ class _KasusAdminState extends State<KasusAdmin> {
       });
     }
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
 
     List<Map<String, dynamic>> filteredIssues = issues.where((issue) {
@@ -259,9 +258,8 @@ class _KasusAdminState extends State<KasusAdmin> {
 
                 ],
               ),
-
+              SizedBox(height: 10),
               const SizedBox(height: 12),
-
               filteredIssues.isEmpty
                   ? const Center(
                       child: Text(

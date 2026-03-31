@@ -17,11 +17,17 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   List<Map<String, dynamic>> issues = [];
 
-  int _currentIndex = 0;
-  final searchBar = TextEditingController();
+  int pendingCount = 0;
+  int rejectedCount = 0;
+  int resolvedCount = 0;
+  int progressCount = 0;
 
-  bool _isLoading = false;
-  String? selectedStatus;
+  double avgRating = 0;
+  double avgTime = 0;
+
+  Map<String, int> categoryCount = {};
+
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -32,276 +38,310 @@ class _DashboardAdminState extends State<DashboardAdmin> {
   Future<void> fetchIssues() async {
     final response = await supabase.from('issues').select();
 
+    final data = List<Map<String, dynamic>>.from(response);
+
+    calculateData(data);
+
     setState(() {
-      issues = List<Map<String, dynamic>>.from(response);
+      issues = data;
     });
   }
 
-  Future<void> fenchData([String? searchTerm]) async {
-    setState(() {
-      _isLoading = true;
-    });
+  void calculateData(List<Map<String, dynamic>> data) {
+    pendingCount = 0;
+    rejectedCount = 0;
+    resolvedCount = 0;
+    progressCount = 0;
 
-    try {
-      var query = supabase.from('issues').select();
+    double totalRating = 0;
+    double totalTime = 0;
+    int ratingCount = 0;
+    int timeCount = 0;
 
-      if (searchTerm != null && searchTerm.isNotEmpty) {
-        query = supabase
-            .from('issues')
-            .select()
-            .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
+    categoryCount.clear();
+
+    for (var item in data) {
+      final status = item['status'];
+      final category = item['category'];
+
+      if (status == 'Pending') pendingCount++;
+      if (status == 'Rejected') rejectedCount++;
+      if (status == 'Resolved') resolvedCount++;
+      if (status == 'In Progress') progressCount++;
+
+      if (item['rating'] != null) {
+        totalRating += (item['rating'] as num).toDouble();
+        ratingCount++;
       }
 
-      final data = await query;
+     if (item['actual_time'] != null) {
+  final timeStr = item['actual_time'].toString(); 
+  final parts = timeStr.split(":");
 
-      setState(() {
-        issues = List<Map<String, dynamic>>.from(data);
-      });
-    } on PostgrestException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error : ${error.message}')),
-        );
+  if (parts.length == 3) {
+    final hours = int.tryParse(parts[0]) ?? 0;
+    final minutes = int.tryParse(parts[1]) ?? 0;
+    final seconds = int.tryParse(parts[2]) ?? 0;
+
+    final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+
+    totalTime += totalSeconds;
+    timeCount++;
+  }
+}
+
+      if (category != null) {
+        categoryCount[category] = (categoryCount[category] ?? 0) + 1;
       }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
+
+    avgRating = ratingCount == 0 ? 0 : totalRating / ratingCount;
+avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
+
+  List<BarChartGroupData> buildBarGroups() {
+    final categories = categoryCount.keys.toList();
+
+    return List.generate(categories.length, (i) {
+      final value = categoryCount[categories[i]] ?? 0;
+
+      return BarChartGroupData(
+        x: i,
+        barRods: [
+          BarChartRodData(
+            toY: value.toDouble(),
+            color: Colors.blue,
+          ),
+        ],
+      );
+    });
+  }
+
+  List<String> getCategoryLabels() {
+    return categoryCount.keys.toList();
+  }
+
+  List<PieChartSectionData> buildPieSections() {
+    final total =
+        pendingCount + rejectedCount + resolvedCount + progressCount;
+
+    if (total == 0) return [];
+
+    return [
+      PieChartSectionData(
+        color: Colors.orange,
+        value: pendingCount.toDouble(),
+        title: '${((pendingCount / total) * 100).toStringAsFixed(0)}%',
+      ),
+      PieChartSectionData(
+        color: Colors.red,
+        value: rejectedCount.toDouble(),
+        title: '${((rejectedCount / total) * 100).toStringAsFixed(0)}%',
+      ),
+      PieChartSectionData(
+        color: Colors.green,
+        value: resolvedCount.toDouble(),
+        title: '${((resolvedCount / total) * 100).toStringAsFixed(0)}%',
+      ),
+      PieChartSectionData(
+        color: Colors.blue,
+        value: progressCount.toDouble(),
+        title: '${((progressCount / total) * 100).toStringAsFixed(0)}%',
+      ),
+    ];
   }
 
   @override
   Widget build(BuildContext context) {
+    final categories = getCategoryLabels();
+
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
+
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         title: const Text("Dashboard"),
       ),
+
       bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
+          type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
-        items: const [
-          
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Dashboard',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.work),
-            label: 'Kasus',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.storage_rounded),
-            label: 'Data',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Pengaturan',
-          ),
-        ],
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          setState(() => _currentIndex = index);
 
-          if (index == 0) {
-            Navigator.push(
+          if (index == 1) {
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => const DashboardAdmin(),
-              ),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => KasusAdmin(),
-              ),
+              MaterialPageRoute(builder: (_) => KasusAdmin()),
             );
           } else if (index == 2) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => DataAdmin(),
-              ),
+              MaterialPageRoute(builder: (_) => DataAdmin()),
             );
           } else if (index == 3) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => const ProfileAdmin(),
-              ),
+              MaterialPageRoute(builder: (_) => const ProfileAdmin()),
             );
           }
         },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Kasus'),
+          BottomNavigationBarItem(icon: Icon(Icons.storage), label: 'Data'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
+        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: MediaQuery.of(context).size.width * 0.65,
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: TextField(
-                      controller: searchBar,
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        hintText: 'Cari kasus...',
-                        prefixIcon: Icon(Icons.search),
-                      ),
-                      onChanged: (value) {
-                        if (value.isEmpty) {
-                          fetchIssues();
-                        } else {
-                          fenchData(value);
-                        }
-                      },
-                    ),
+
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+
+            Row(
+              children: [
+                Expanded(child: statusBox("Pending", pendingCount.toString(), Colors.orange)),
+                const SizedBox(width: 10),
+                Expanded(child: statusBox("Ditolak", rejectedCount.toString(), Colors.red)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(child: statusBox("Selesai", resolvedCount.toString(), Colors.green)),
+                const SizedBox(width: 10),
+                Expanded(child: statusBox("Progress", progressCount.toString(), Colors.blue)),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            Row(
+              children: [
+                Expanded(
+                  child: statusBox(
+                    "Rata-rata Rating",
+                    avgRating.toStringAsFixed(1),
+                    Colors.orange
                   ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: Icon(
-                      Icons.date_range_outlined,
-                      color: Colors.blue[400],
-                      size: 28,
-                    ),
-                    onPressed: () {},
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: statusBox(
+                    "Rata-rata Waktu",
+                    "${avgTime.toStringAsFixed(0)} menit",
+                    Colors.blue,
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedStatus = 'Hari Ini';
-                        });
-                        fetchIssues();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'Hari Ini'
-                              ? Colors.blue[700]
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Hari Ini',
-                            style: TextStyle(
-                              color: selectedStatus == 'Hari Ini'
-                                  ? Colors.white
-                                  : Colors.black,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedStatus = 'Minggu Ini';
-                        });
-                        fetchIssues();
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'Minggu Ini'
-                              ? Colors.blue[700]
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Minggu Ini',
-                            style: TextStyle(
-                              color: selectedStatus == 'Minggu Ini'
-                                  ? Colors.white
-                                  : Colors.black,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: statusBox("Pending", "12", Colors.orange),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: statusBox("Ditolak", "12", Colors.red),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: statusBox("Selesai", "5", Colors.green),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: statusBox("Progress", "12", Colors.blue),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Analisis',
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+ Text(
+                'Data Kasus Kategori', 
                 style: TextStyle(
+                  
                   fontWeight: FontWeight.w600,
-                  fontSize: 15,
+                  fontSize: 15
                 ),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                height: 320,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const ChartType(),
               ),
               const SizedBox(height: 12),
-              Container(
-                height: 320,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(10),
+            Container(
+              height: 300,
+              padding: const EdgeInsets.all(12),
+              child: BarChart(
+                BarChartData(
+                  barGroups: buildBarGroups(),
                 ),
-                child: const ChartStatus(),
               ),
+            ),
+
+            const SizedBox(height: 12),
+              Text(
+                'Data Kasus Prioritas', 
+                style: TextStyle(
+                  
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15
+                ),
+              ),
+              SizedBox(height: 12),
+             Row(
+  children: [
+
+    Expanded(
+      flex: 2,
+      child: Container(
+        height: 300,
+        padding: const EdgeInsets.all(12),
+        child: PieChart(
+          PieChartData(
+            sections: buildPieSections().isEmpty
+                ? [
+                    PieChartSectionData(
+                      value: 1,
+                      color: Colors.grey,
+                      title: "0%",
+                    )
+                  ]
+                : buildPieSections(),
+          ),
+        ),
+      ),
+    ),
+
+    Expanded(
+      flex: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+
+          Row(
+            children: [
+              Container(width: 12, height: 12, color: Colors.green),
+              const SizedBox(width: 6),
+              const Text("Selesai"),
             ],
           ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Container(width: 12, height: 12, color: Colors.orange),
+              const SizedBox(width: 6),
+              const Text("Pending"),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Container(width: 12, height: 12, color: Colors.red),
+              const SizedBox(width: 6),
+              const Text("Ditolak"),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Container(width: 12, height: 12, color: Colors.blue),
+              const SizedBox(width: 6),
+              const Text("Progress"),
+            ],
+          ),
+
+        ],
+      ),
+    ),
+
+  ],
+)
+           
+          ],
         ),
       ),
     );
@@ -309,157 +349,19 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   Widget statusBox(String title, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+    
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color.fromARGB(220, 245, 243, 243),
+        
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),
       child: Column(
         children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 15,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
+          Text(title, style: TextStyle(color: color)),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
   }
-}
-
-class ChartType extends StatelessWidget {
-  const ChartType({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BarChart(
-      BarChartData(
-        titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(
-            sideTitles: SideTitles(
-              showTitles: true,
-              getTitlesWidget: (value, meta) {
-                const weeks = ['1', '2', '3', '4', '5', '6', '7'];
-
-                if (value.toInt() >= 0 &&
-                    value.toInt() < weeks.length) {
-                  return Text(weeks[value.toInt()]);
-                }
-
-                return const Text('');
-              },
-            ),
-          ),
-        ),
-        barGroups: List.generate(7, (i) {
-          return BarChartGroupData(
-            x: i,
-            barRods: [
-              BarChartRodData(
-                toY: (i + i) * 0.2,
-                color: Colors.blue,
-              ),
-            ],
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class ChartStatus extends StatelessWidget {
-  const ChartStatus({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return PieChart(
-      PieChartData(
-        borderData: FlBorderData(show: false),
-        sectionsSpace: 0,
-        centerSpaceRadius: 40,
-        sections: showingSections(),
-      ),
-    );
-  }
-}
-
-List<PieChartSectionData> showingSections() {
-  return List.generate(4, (i) {
-    const fontSize = 16.0;
-    const radius = 50.0;
-
-    const shadows = [
-      Shadow(color: Colors.black, blurRadius: 2)
-    ];
-
-    switch (i) {
-      case 0:
-        return PieChartSectionData(
-          color: Colors.blue,
-          value: 40,
-          title: '40%',
-          radius: radius,
-          titleStyle: const TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: shadows,
-          ),
-        );
-
-      case 1:
-        return PieChartSectionData(
-          color: Colors.yellow,
-          value: 30,
-          title: '30%',
-          radius: radius,
-          titleStyle: const TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: shadows,
-          ),
-        );
-
-      case 2:
-        return PieChartSectionData(
-          color: Colors.purple,
-          value: 15,
-          title: '15%',
-          radius: radius,
-          titleStyle: const TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: shadows,
-          ),
-        );
-
-      default:
-        return PieChartSectionData(
-          color: Colors.green,
-          value: 15,
-          title: '15%',
-          radius: radius,
-          titleStyle: const TextStyle(
-            fontSize: fontSize,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            shadows: shadows,
-          ),
-        );
-    }
-  });
 }

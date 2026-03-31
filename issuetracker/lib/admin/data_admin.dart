@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
+import 'package:issuetracker/admin/data_akun.dart';
+import 'package:issuetracker/admin/detail_laporan_admin.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
+import 'package:issuetracker/admin/kasus_ditolak.dart';
+import 'package:issuetracker/admin/laporan_kasus.dart';
+import 'package:issuetracker/admin/tidak_selesai.dart';
+import 'package:issuetracker/teknisi/history_teknisi.dart';
 
 class DataAdmin extends StatefulWidget {
   const DataAdmin({super.key});
@@ -86,29 +92,43 @@ class _DataAdminState extends State<DataAdmin> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[100],
-                   boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x19000000),
-                                      blurRadius: 3,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('Data Akun'),
-                    Icon(Icons.send, color: Colors.blue),
-                  ],
-                ),
-              ),
-              Container(
+   GestureDetector(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DataAkun()),
+    );
+  },
+  child: Container(
+    margin: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      color: Colors.grey[100],
+      boxShadow: [
+        BoxShadow(
+          color: Color(0x19000000),
+          blurRadius: 3,
+          offset: Offset(0, 3),
+        ),
+      ],
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: const [
+        Text('Data Akun'),
+        Icon(Icons.send, color: Colors.blue),
+      ],
+    ),
+  ),
+),
+              GestureDetector(
+                onTap: () {
+                  
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => TidakSelesai()));
+                },
+  child: Container(
+                
                 margin: const EdgeInsets.only(bottom: 12),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -126,54 +146,71 @@ class _DataAdminState extends State<DataAdmin> {
                   children: const [
                     Text('Tidak Selesai'),
                     Icon(Icons.send, color: Colors.blue),
+                    
                   ],
                 ),
               ),
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[100],
-                   boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x19000000),
-                                      blurRadius: 3,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('Tolak Kasus'),
-                    Icon(Icons.send, color: Colors.blue),
-                  ],
-                ),
               ),
-              Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[100],
-                boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x19000000),
-                                      blurRadius: 3,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
+            
+            GestureDetector(
+                onTap: () {
+                  
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => KasusDitolak()));
+                },
+  child: Container(
                 
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100], boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x19000000),
+                                      blurRadius: 3,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: const [
-                    Text('Laporan Kasus'),
+                    Text('Kasus Ditolak'),
                     Icon(Icons.send, color: Colors.blue),
+                    
                   ],
                 ),
               ),
+              ),
+            
+             GestureDetector(
+                onTap: () {
+                  
+                  Navigator.push(context, MaterialPageRoute(builder: (context) => LaporanKasus()));
+                },
+                child: Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey[100], boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0x19000000),
+                                      blurRadius: 3,
+                                      offset: Offset(0, 3),
+                                    ),
+                                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: const [
+                    Text('Detail Laporan'),
+                    Icon(Icons.send, color: Colors.blue),
+                    
+                  ],
+                ),
+              ),
+              ),
+            
             ],
           ),
         ),

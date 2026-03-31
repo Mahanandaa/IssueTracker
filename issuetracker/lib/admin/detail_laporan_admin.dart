@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/admin/panggil_teknisi.dart';
-import 'package:issuetracker/teknisi/history_teknisi.dart';
-import 'package:path/path.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/services.dart';
 
@@ -34,7 +31,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   }
 
   @override
-  void iniState() {
+  void initState() {
     super.initState();
     fetchIssueDetail();
   }
@@ -326,9 +323,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                         '',
                   ),
                 ),
-
-                const SizedBox(height: 16),
-
                 const SizedBox(height: 10),
 
                 const Text(

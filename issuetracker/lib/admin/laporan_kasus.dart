@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/teknisi/history_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LaporanKasus extends StatefulWidget {
@@ -10,86 +9,146 @@ class LaporanKasus extends StatefulWidget {
 }
 
 class _LaporanKasusState extends State<LaporanKasus> {
-  
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> issues = [];
+  bool isLoading = true;
 
-  bool _isLoading = false;
-  
-   Future<void> fetchIssues() async {
-    final response = await supabase.from('issues').select();
+  final TextEditingController searchController = TextEditingController();
 
-    setState(() {
-      issues = List<Map<String, dynamic>>.from(response);
-    });
+  @override
+  void initState() {
+    super.initState();
+    fetchIssues();
   }
 
-  Future<void> fenchData([String? searchTerm]) async {
+  Future<void> fetchIssues() async {
+    try {
+      final response = await supabase.from('issues').select();
 
+      setState(() {
+        issues = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  Future<void> searchIssues(String searchTerm) async {
     setState(() {
-      _isLoading = true;
+      isLoading = true;
     });
 
- 
+    try {
+      final response = await supabase
+          .from('issues')
+          .select()
+          .or(
+              'title.ilike.%$searchTerm%, location.ilike.%$searchTerm%,priority.ilike.%$searchTerm%');
 
-      var query = supabase.from('issues').select();
+      setState(() {
+        issues = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
-      if (searchTerm != null && searchTerm.isNotEmpty) {
-        query = supabase
-            .from('issues')
-            .select()
-            .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%,priority.ilike.%$searchTerm%');
-      }
+  Widget buildCard(Map<String, dynamic> item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 245, 242, 242),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 4,
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Kasus: ${item['title'] ?? '-'}'),
+          Text('Tanggal: ${item['created_at'].toString().substring(0, 10)}'),
+          Text('Lokasi: ${item['location'] ?? '-'}'),
+          Text('Kategori: ${item['category'] ?? '-'}'),
+          Text('Prioritas: ${item['priority'] ?? '-'}'),
+          Text('Pelapor: ${item['reporter'] ?? '-'}'),
+          Text('Status: ${item['status'] ?? '-'}'),
+          Text('Sparepart: ${item['sparepart'] ?? '-'}'),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+
       appBar: AppBar(
         title: const Text("Laporan"),
         backgroundColor: Colors.grey[200],
-
       ),
-   body: SafeArea(
-    child: Padding(padding: EdgeInsetsGeometry.all(12),
-    
-      child: Container(
-        padding: EdgeInsets.all(10),
-        child: Column(
-          children: [
-              SizedBox(height: 5),
-              Text('Kasus : WiFi Error'),
-              SizedBox(height: 5),
-              Text('Tanggal : 02 Februari 2026'),
-              SizedBox(height: 5),
-              Text('Lokasi : Lantai 1'),
-              SizedBox(height: 5),
-              Text('Kategori : Facilities'),
-              SizedBox(height: 5),
-              Text('Prioritas  : Medium'),
-              SizedBox(height: 5),
-              Text('Pelapor ananda'),
-              SizedBox(height: 5),
-              Text('waktu 02:23:44'),
-              SizedBox(height: 5),
-              Text('Status : Selesai'),
-              SizedBox(height: 5),
-              Text('spear parts : KABEL LAN'),
-              SizedBox(height: 5),
 
-          ],
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+
+          child: Column(
+            children: [
+              TextField(
+                controller: searchController,
+                onChanged: (value) {
+                  if (value.isEmpty) {
+                    fetchIssues();
+                  } else {
+                    searchIssues(value);
+                  }
+                },
+                decoration: InputDecoration(
+                  hintText: 'Cari laporan...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Expanded(
+                child: isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator())
+                    : issues.isEmpty
+                        ? const Center(
+                            child: Text('Tidak ada data'))
+                        : ListView.builder(
+                            itemCount: issues.length,
+                            itemBuilder: (context, index) {
+                              final item = issues[index];
+                              return buildCard(item);
+                            },
+                          ),
+              ),
+            ],
+          ),
         ),
       ),
-    
-    ),
-   ),
     );
   }
-  }
-  
-  @override
-  Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
-  }}
+}

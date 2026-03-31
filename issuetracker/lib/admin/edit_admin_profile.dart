@@ -23,8 +23,8 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
     nama = TextEditingController(text: widget.users['name']);
     email = TextEditingController(text: widget.users['email']);
     password = TextEditingController();
-
   }
+  
   Future<void> updateProfile() async{
     final user = supabase.auth.currentUser;
     if (user == null) return;
@@ -44,6 +44,8 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
       'email' : email.text,
     }).eq('id', user.id);
   }
+
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
