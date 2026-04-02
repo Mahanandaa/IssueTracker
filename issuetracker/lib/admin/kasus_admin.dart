@@ -13,6 +13,21 @@ class KasusAdmin extends StatefulWidget {
 
 class _KasusAdminState extends State<KasusAdmin> {
 
+  int getPriorityOrder(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'urgent':
+        return 1;
+      case 'high':
+        return 2;
+      case 'medium':
+        return 3;
+      case 'low':
+        return 4;
+      default:
+        return 5;
+    }
+  }
+
   final supabase = Supabase.instance.client;
   int _currentIndex = 0;
   List<Map<String, dynamic>> issues = [];
@@ -63,7 +78,8 @@ class _KasusAdminState extends State<KasusAdmin> {
       });
     }
   }
-@override
+
+  @override
   Widget build(BuildContext context) {
 
     List<Map<String, dynamic>> filteredIssues = issues.where((issue) {
@@ -71,14 +87,18 @@ class _KasusAdminState extends State<KasusAdmin> {
       return issue['priority'] == selectedStatus;
     }).toList();
 
+    filteredIssues.sort((a, b) {
+      return getPriorityOrder(a['priority'] ?? '')
+          .compareTo(getPriorityOrder(b['priority'] ?? ''));
+    });
+
     return Scaffold(
-       bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
-
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined), label: 'Dashboard'),
@@ -89,7 +109,6 @@ class _KasusAdminState extends State<KasusAdmin> {
           BottomNavigationBarItem(
               icon: Icon(Icons.settings), label: 'Pengaturan'),
         ],
-
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -103,11 +122,11 @@ class _KasusAdminState extends State<KasusAdmin> {
               ),
             );
           } else if (index == 1 ){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => KasusAdmin()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const KasusAdmin()));
           } else if (index == 2){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DataAdmin()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const DataAdmin()));
           } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => DashboardAdmin()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const DashboardAdmin()));
           }
         },
       ),
@@ -116,6 +135,8 @@ class _KasusAdminState extends State<KasusAdmin> {
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         title: const Text("Kasus"),
+      
+
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -258,8 +279,9 @@ class _KasusAdminState extends State<KasusAdmin> {
 
                 ],
               ),
-              SizedBox(height: 10),
+
               const SizedBox(height: 12),
+
               filteredIssues.isEmpty
                   ? const Center(
                       child: Text(
@@ -284,19 +306,28 @@ class _KasusAdminState extends State<KasusAdmin> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const DetailLaporanAdmin(issueId:''),
+                                builder: (_) => DetailLaporanAdmin(
+                                  issueId: issue['id'].toString(),
+                                ),
                               ),
                             );
                           },
 
                           child: Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(14),
+                            margin: const EdgeInsets.only(bottom: 16),
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: issue['priority'] == 'Urgent'
                                   ? const Color.fromARGB(255, 243, 77, 65)
-                                  : Colors.grey[700],
+                                  : Colors.grey[100],
                               borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 6,
+                                    offset: Offset(0, 3),
+                                )
+                              ]
                             ),
 
                             child: Column(
@@ -308,25 +339,32 @@ class _KasusAdminState extends State<KasusAdmin> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
 
-                                    Text(
-                                      issue['title'] ?? '',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                  Expanded(
+  child: Text(
+    issue['title'] ?? '',
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(
+      fontWeight: FontWeight.bold,
+      fontSize: 20,
+      
+    ),
+  ),
+),
 
-                                    Text(
-                                      issue['priority'] ?? '',
-                                      style: TextStyle(
-                                        color: issue['priority'] == 'Urgent'
-                                            ? Colors.white
-                                            : issue['priority'] == 'Medium'
-                                                ? Colors.orange
-                                                : Colors.green,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
+                                  Text(
+  issue['priority'] ?? '',
+  style: TextStyle(
+    color: {
+      'urgent': Colors.white,
+      'high': Colors.deepOrange,
+      'medium': Colors.orange,
+      'low': Colors.green,
+    }[issue['priority']?.toString().toLowerCase()] ?? Colors.black, 
+    fontWeight: FontWeight.w600,
+    fontSize: 18,
+  ),
+),
+
                                   ],
                                 ),
 
@@ -335,8 +373,7 @@ class _KasusAdminState extends State<KasusAdmin> {
                                 Text(
                                   "Lokasi : ${issue['location'] ?? ''}",
                                   style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
+                                    fontSize: 15,
                                   ),
                                 ),
 
@@ -354,16 +391,14 @@ class _KasusAdminState extends State<KasusAdmin> {
                                               .substring(0, 10)
                                           : '',
                                       style: const TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.white,
+                                        fontSize: 15,
                                       ),
                                     ),
 
                                     const Text(
                                       "Lihat Detail",
                                       style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 11,
+                                        fontSize: 15,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -375,6 +410,8 @@ class _KasusAdminState extends State<KasusAdmin> {
                         );
                       },
                     ),
+
+
             ],
           ),
         ),

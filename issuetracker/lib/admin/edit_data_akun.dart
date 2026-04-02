@@ -59,9 +59,9 @@ Future<void> updateProfile() async{
       ),
       body: SafeArea(child: Column(
         children: [
-          Padding(padding: EdgeInsetsGeometry.all(12),
-              child: Container(
-              padding: EdgeInsets.all(8),
+        Padding(padding: EdgeInsetsGeometry.all(12),
+        child: Container(
+          padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
                 
               color: Colors.grey[100],

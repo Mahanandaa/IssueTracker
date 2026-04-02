@@ -22,8 +22,8 @@ class _ProfileAdminState extends State<ProfileAdmin> {
     super.initState();
     fetchUser();
   }
-
-  Future<void> fetchUser() async {
+Future<void> fetchUser() async {
+  try {
     final user = supabase.auth.currentUser;
 
     if (user != null) {
@@ -31,13 +31,23 @@ class _ProfileAdminState extends State<ProfileAdmin> {
           .from('users')
           .select()
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
+      if (mounted) {
+        setState(() {
+          data = response ?? {};
+        });
+      }
+    }
+  } catch (e) {
+    print("Error: $e");
+    if (mounted) {
       setState(() {
-        data = response;
+        data = {};
       });
     }
   }
+}
 
   void logout() async {
     await authService.keluar();

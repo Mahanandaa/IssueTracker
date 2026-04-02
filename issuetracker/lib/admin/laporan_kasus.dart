@@ -47,12 +47,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
     });
 
     try {
-      final response = await supabase
-          .from('issues')
-          .select()
-          .or(
-              'title.ilike.%$searchTerm%, location.ilike.%$searchTerm%,priority.ilike.%$searchTerm%');
-
+      final response = await supabase.from('issues').select().or('title.ilike.%$searchTerm%, location.ilike.%$searchTerm%');
       setState(() {
         issues = List<Map<String, dynamic>>.from(response);
         isLoading = false;
@@ -100,8 +95,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
       backgroundColor: Colors.white,
 
       appBar: AppBar(
-        title: const Text("Laporan"),
-        backgroundColor: Colors.grey[200],
+        title: const Text("Laporan"),        backgroundColor: Colors.grey[200],
       ),
 
       body: SafeArea(

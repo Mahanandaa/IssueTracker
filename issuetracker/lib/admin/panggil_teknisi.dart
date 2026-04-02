@@ -17,7 +17,7 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Panggil Teknisi"),
-        backgroundColor: Colors.grey,
+        backgroundColor: Colors.grey[200],
       ),
       body: SafeArea(
         child: Padding(
@@ -103,10 +103,9 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 10),
+                SizedBox(height: 10),
               Container(
-                height: 150,
+                height: 110,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -117,19 +116,17 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
 
-                    const Text('Nama : Ananda'),
-                    const Text('Role : Teknisi'),
-
-                    const SizedBox(height: 10),
-
+                    const Text('Nama : Ananda', style: TextStyle(fontWeight: FontWeight.bold,),),
+                      const SizedBox(height: 10),
+                    const Text('Role : Teknisi', style: TextStyle(fontWeight: FontWeight.bold,),),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Status : Available'),
+                        const Text('Status : Available' , style: TextStyle(fontWeight: FontWeight.bold,),),
 
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
+                              horizontal: 25, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.green[700],
                             borderRadius: BorderRadius.circular(8),

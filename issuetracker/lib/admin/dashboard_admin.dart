@@ -52,39 +52,31 @@ class _DashboardAdminState extends State<DashboardAdmin> {
     rejectedCount = 0;
     resolvedCount = 0;
     progressCount = 0;
-
     double totalRating = 0;
     double totalTime = 0;
     int ratingCount = 0;
     int timeCount = 0;
-
     categoryCount.clear();
-
     for (var item in data) {
       final status = item['status'];
       final category = item['category'];
-
       if (status == 'Pending') pendingCount++;
       if (status == 'Rejected') rejectedCount++;
       if (status == 'Resolved') resolvedCount++;
       if (status == 'In Progress') progressCount++;
-
       if (item['rating'] != null) {
         totalRating += (item['rating'] as num).toDouble();
         ratingCount++;
       }
-
      if (item['actual_time'] != null) {
   final timeStr = item['actual_time'].toString(); 
   final parts = timeStr.split(":");
-
   if (parts.length == 3) {
     final hours = int.tryParse(parts[0]) ?? 0;
     final minutes = int.tryParse(parts[1]) ?? 0;
     final seconds = int.tryParse(parts[2]) ?? 0;
 
     final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
-
     totalTime += totalSeconds;
     timeCount++;
   }
@@ -261,11 +253,11 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
 
             const SizedBox(height: 12),
               Text(
-                'Data Kasus Prioritas', 
+                'Data Kasus Status', 
                 style: TextStyle(
                   
                   fontWeight: FontWeight.w600,
-                  fontSize: 15
+                  fontSize: 17
                 ),
               ),
               SizedBox(height: 12),

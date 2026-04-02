@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
+import 'package:issuetracker/admin/detail_resolved.dart';
 import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
 import 'package:issuetracker/splash_screen.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';

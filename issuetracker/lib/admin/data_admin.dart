@@ -122,47 +122,43 @@ class _DataAdminState extends State<DataAdmin> {
     ),
   ),
 ),
-              GestureDetector(
-                onTap: () {
-                  
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => TidakSelesai()));
-                },
-  child: Container(
-                
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[100], boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x19000000),
-                                      blurRadius: 3,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
+
+GestureDetector(
+  onTap: () {                 
+   Navigator.push(context, MaterialPageRoute(builder: (context) => TidakSelesai()));
+  },
+      child: Container(           
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      color: Colors.grey[100], boxShadow: [
+      BoxShadow(
+        color: Color(0x19000000),
+        blurRadius: 3,
+        offset: Offset(0, 3),
+        ),
+     ],
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('Tidak Selesai'),
-                    Icon(Icons.send, color: Colors.blue),
-                    
-                  ],
-                ),
-              ),
-              ),
-            
-            GestureDetector(
+     child: Row(
+     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+     children: const [
+     Text('Tidak Selesai'),
+     Icon(Icons.send, color: Colors.blue),             
+     ],
+    ),
+  ),
+),          
+      GestureDetector(
                 onTap: () {
                   
                   Navigator.push(context, MaterialPageRoute(builder: (context) => KasusDitolak()));
                 },
-  child: Container(
-                
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
+    child: Container(           
+   margin: const EdgeInsets.only(bottom: 12),
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+           borderRadius: BorderRadius.circular(12),
                   color: Colors.grey[100], boxShadow: [
                                     BoxShadow(
                                       color: Color(0x19000000),
