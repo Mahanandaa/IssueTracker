@@ -78,10 +78,8 @@ class _KasusAdminState extends State<KasusAdmin> {
       });
     }
   }
-
   @override
   Widget build(BuildContext context) {
-
     List<Map<String, dynamic>> filteredIssues = issues.where((issue) {
       if (selectedStatus == "All") return true;
       return issue['priority'] == selectedStatus;
@@ -91,7 +89,6 @@ class _KasusAdminState extends State<KasusAdmin> {
       return getPriorityOrder(a['priority'] ?? '')
           .compareTo(getPriorityOrder(b['priority'] ?? ''));
     });
-
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -130,13 +127,10 @@ class _KasusAdminState extends State<KasusAdmin> {
           }
         },
       ),
-
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
-        title: const Text("Kasus"),
-      
-
+        title: const Text("Kasus"),   
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -232,20 +226,18 @@ class _KasusAdminState extends State<KasusAdmin> {
                       ),
                     ),
                   ),
-
-                  const SizedBox(width: 8),
-
+                 const SizedBox(width: 8),
                   Expanded(
-                    child: GestureDetector(
-                      onTap: () {
+                  child: GestureDetector(
+                  onTap: () {
                         setState(() {
                           selectedStatus = 'Hard';
                         });
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'Hard'
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                      color: selectedStatus == 'Hard'
                               ? Colors.deepOrange
                               : Colors.grey[200],
                           borderRadius: BorderRadius.circular(6),
@@ -339,31 +331,31 @@ class _KasusAdminState extends State<KasusAdmin> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
 
-                                  Expanded(
-  child: Text(
-    issue['title'] ?? '',
-    overflow: TextOverflow.ellipsis,
-    style: const TextStyle(
-      fontWeight: FontWeight.bold,
-      fontSize: 20,
-      
-    ),
-  ),
-),
+                            Expanded(
+                            child: Text(
+                              issue['title'] ?? '',
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                
+                              ),
+                            ),
+                          ),
 
-                                  Text(
-  issue['priority'] ?? '',
-  style: TextStyle(
-    color: {
-      'urgent': Colors.white,
-      'high': Colors.deepOrange,
-      'medium': Colors.orange,
-      'low': Colors.green,
-    }[issue['priority']?.toString().toLowerCase()] ?? Colors.black, 
-    fontWeight: FontWeight.w600,
-    fontSize: 18,
-  ),
-),
+                          Text(
+                            issue['priority'] ?? '',
+                            style: TextStyle(
+                              color: {
+                                'urgent': Colors.white,
+                                'high': Colors.deepOrange,
+                                'medium': Colors.orange,
+                                'low': Colors.green,
+                              }[issue['priority']?.toString().toLowerCase()] ?? Colors.black, 
+                              fontWeight: FontWeight.w600,
+                              fontSize: 18,
+                            ),
+                          ),
 
                                   ],
                                 ),

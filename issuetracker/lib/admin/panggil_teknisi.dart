@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:issuetracker/teknisi/history_teknisi.dart';
 
 class PanggilTeknisi extends StatefulWidget {
-  const PanggilTeknisi({super.key});
+  const PanggilTeknisi({super.key, required String issueId});
 
   @override
   State<PanggilTeknisi> createState() => _PanggilTeknisiState();

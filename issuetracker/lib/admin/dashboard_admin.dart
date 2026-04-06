@@ -37,11 +37,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   Future<void> fetchIssues() async {
     final response = await supabase.from('issues').select();
-
     final data = List<Map<String, dynamic>>.from(response);
-
     calculateData(data);
-
     setState(() {
       issues = data;
     });
@@ -68,19 +65,18 @@ class _DashboardAdminState extends State<DashboardAdmin> {
         totalRating += (item['rating'] as num).toDouble();
         ratingCount++;
       }
-     if (item['actual_time'] != null) {
-  final timeStr = item['actual_time'].toString(); 
-  final parts = timeStr.split(":");
-  if (parts.length == 3) {
-    final hours = int.tryParse(parts[0]) ?? 0;
-    final minutes = int.tryParse(parts[1]) ?? 0;
-    final seconds = int.tryParse(parts[2]) ?? 0;
-
-    final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
-    totalTime += totalSeconds;
-    timeCount++;
-  }
-}
+      if (item['actual_time'] != null) {
+        final timeStr = item['actual_time'].toString();
+        final parts = timeStr.split(":");
+        if (parts.length == 3) {
+          final hours = int.tryParse(parts[0]) ?? 0;
+          final minutes = int.tryParse(parts[1]) ?? 0;
+          final seconds = int.tryParse(parts[2]) ?? 0;
+          final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+          totalTime += totalSeconds;
+          timeCount++;
+        }
+      }
 
       if (category != null) {
         categoryCount[category] = (categoryCount[category] ?? 0) + 1;
@@ -88,7 +84,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
     }
 
     avgRating = ratingCount == 0 ? 0 : totalRating / ratingCount;
-avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
+    avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;
+  }
 
   List<BarChartGroupData> buildBarGroups() {
     final categories = categoryCount.keys.toList();
@@ -155,7 +152,7 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
       ),
 
       bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
+        type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
@@ -181,10 +178,13 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
           }
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home), label: 'Dashboard'),
           BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Kasus'),
-          BottomNavigationBarItem(icon: Icon(Icons.storage), label: 'Data'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Setting'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.storage), label: 'Data'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Setting'),
         ],
       ),
 
@@ -192,20 +192,27 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
         padding: const EdgeInsets.all(12),
         child: Column(
           children: [
-
             Row(
               children: [
-                Expanded(child: statusBox("Pending", pendingCount.toString(), Colors.orange)),
+                Expanded(
+                    child: statusBox(
+                        "Pending", pendingCount.toString(), Colors.orange)),
                 const SizedBox(width: 10),
-                Expanded(child: statusBox("Ditolak", rejectedCount.toString(), Colors.red)),
+                Expanded(
+                    child: statusBox(
+                        "Ditolak", rejectedCount.toString(), Colors.red)),
               ],
             ),
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(child: statusBox("Selesai", resolvedCount.toString(), Colors.green)),
+                Expanded(
+                    child: statusBox(
+                        "Selesai", resolvedCount.toString(), Colors.green)),
                 const SizedBox(width: 10),
-                Expanded(child: statusBox("Progress", progressCount.toString(), Colors.blue)),
+                Expanded(
+                    child: statusBox(
+                        "Progress", progressCount.toString(), Colors.blue)),
               ],
             ),
 
@@ -217,7 +224,7 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
                   child: statusBox(
                     "Rata-rata Rating",
                     avgRating.toStringAsFixed(1),
-                    Colors.orange
+                    Colors.orange,
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -232,15 +239,11 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
             ),
 
             const SizedBox(height: 12),
- Text(
-                'Data Kasus Kategori', 
-                style: TextStyle(
-                  
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15
-                ),
-              ),
-              const SizedBox(height: 12),
+            Text(
+              'Data Kasus Kategori',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+            ),
+            const SizedBox(height: 12),
             Container(
               height: 300,
               padding: const EdgeInsets.all(12),
@@ -252,87 +255,82 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
             ),
 
             const SizedBox(height: 12),
-              Text(
-                'Data Kasus Status', 
-                style: TextStyle(
-                  
-                  fontWeight: FontWeight.w600,
-                  fontSize: 17
+            Text(
+              'Data Kasus Status',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+            ),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    height: 300,
+                    padding: const EdgeInsets.all(12),
+                    child: PieChart(
+                      PieChartData(
+                        sections: buildPieSections().isEmpty
+                            ? [
+                                PieChartSectionData(
+                                  value: 1,
+                                  color: Colors.grey,
+                                  title: "0%",
+                                )
+                              ]
+                            : buildPieSections(),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 12),
-             Row(
-  children: [
 
-    Expanded(
-      flex: 2,
-      child: Container(
-        height: 300,
-        padding: const EdgeInsets.all(12),
-        child: PieChart(
-          PieChartData(
-            sections: buildPieSections().isEmpty
-                ? [
-                    PieChartSectionData(
-                      value: 1,
-                      color: Colors.grey,
-                      title: "0%",
-                    )
-                  ]
-                : buildPieSections(),
-          ),
-        ),
-      ),
-    ),
+                Expanded(
+                  flex: 1,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                              width: 12, height: 12, color: Colors.green),
+                          const SizedBox(width: 6),
+                          const Text("Selesai"),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
 
-    Expanded(
-      flex: 1,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
+                      Row(
+                        children: [
+                          Container(
+                              width: 12, height: 12, color: Colors.orange),
+                          const SizedBox(width: 6),
+                          const Text("Pending"),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
 
-          Row(
-            children: [
-              Container(width: 12, height: 12, color: Colors.green),
-              const SizedBox(width: 6),
-              const Text("Selesai"),
-            ],
-          ),
-          const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Container(
+                              width: 12, height: 12, color: Colors.red),
+                          const SizedBox(width: 6),
+                          const Text("Ditolak"),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
 
-          Row(
-            children: [
-              Container(width: 12, height: 12, color: Colors.orange),
-              const SizedBox(width: 6),
-              const Text("Pending"),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          Row(
-            children: [
-              Container(width: 12, height: 12, color: Colors.red),
-              const SizedBox(width: 6),
-              const Text("Ditolak"),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          Row(
-            children: [
-              Container(width: 12, height: 12, color: Colors.blue),
-              const SizedBox(width: 6),
-              const Text("Progress"),
-            ],
-          ),
-
-        ],
-      ),
-    ),
-
-  ],
-)
-           
+                      Row(
+                        children: [
+                          Container(
+                              width: 12, height: 12, color: Colors.blue),
+                          const SizedBox(width: 6),
+                          const Text("Progress"),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
           ],
         ),
       ),
@@ -341,17 +339,17 @@ avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;  }
 
   Widget statusBox(String title, String value, Color color) {
     return Container(
-    
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: color),
       ),
       child: Column(
         children: [
           Text(title, style: TextStyle(color: color)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+          Text(value,
+              style:
+                  TextStyle(fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );

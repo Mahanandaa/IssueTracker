@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:issuetracker/Auth/auth_gate.dart';
 import 'Auth/login.dart';
 import 'admin/dashboard_admin.dart';
 import 'admin/data_admin.dart';
@@ -18,7 +19,7 @@ void initState(){
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
   Future.delayed(Duration(seconds: 2), () {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardAdmin())
+      MaterialPageRoute(builder: (_) => const AuthGate())
     );
   });
 }

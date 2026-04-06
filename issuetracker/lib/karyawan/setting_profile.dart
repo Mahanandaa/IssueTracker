@@ -43,84 +43,93 @@ class _profilesettingkaryawanState extends State<profilesettingkaryawan> {
         FutureBuilder(
           
   future: supabase.from('users').select().eq('id', user!.id).single(),
-  builder: (context, snapshot) {
+builder: (context, snapshot) {
+  if (snapshot.connectionState == ConnectionState.waiting) {
+    return const Center(child: CircularProgressIndicator());
+  }
 
-    final data = snapshot.data as Map<String, dynamic>;
+  if (snapshot.hasError) {
+    return const Text("Terjadi error");
+  }
 
-    return Column(
-      children: [
+  if (!snapshot.hasData) {
+    return const Text("Data tidak ditemukan");
+  }
 
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const CircleAvatar(
-              radius: 26,
-              child: Icon(Icons.person),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      data['name'] ?? 'Not Found',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      data['role'] ?? 'Not Found',
-                      style: const TextStyle(
-                        color: Color.fromARGB(255, 20, 121, 236),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(data['email'] ?? 'Not Found'),
-                Text(data['phone'] ?? 'Not Found'),
-              ],
-            ),
-          ],
-        ),
+  final data = snapshot.data as Map<String, dynamic>;
 
-        const SizedBox(height: 28),
-
-GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => EditProfileKaryawan(users: data),
-              ),
-            );
-          },
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 23),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromARGB(255, 153, 160, 167),
-                  blurRadius: 5,
-                )
-              ],
-            ),
-            child: const Text(
-              'Edit Profile Akun',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
+  return Column(
+    children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const CircleAvatar(
+            radius: 26,
+            child: Icon(Icons.person),
           ),
-        ),        
-      ],
-    );
-  },
-  
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    data['name'] ?? 'Not Found',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    data['role'] ?? 'Not Found',
+                    style: const TextStyle(
+                      color: Color.fromARGB(255, 20, 121, 236),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(data['email'] ?? 'Not Found'),
+              Text(data['phone'] ?? 'Not Found'),
+            ],
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 28),
+
+      GestureDetector(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EditProfileKaryawan(users: data),
+            ),
+          );
+        },
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 23),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: const [
+              BoxShadow(
+                color: Color.fromARGB(255, 153, 160, 167),
+                blurRadius: 5,
+              )
+            ],
+          ),
+          child: const Text(
+            'Edit Profile Akun',
+            style: TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    ],
+  );
+}
 ),
           const SizedBox(height: 14),
 
