@@ -1,24 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/teknisi/reject_laporan_teknisi.dart';
-import 'package:path/path.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:issuetracker/teknisi/progress_teknisi.dart';
+
 class DetailLaporanTeknisi extends StatefulWidget {
   final String issueId;
-
   const DetailLaporanTeknisi({super.key, required this.issueId});
 
   @override
-  State<DetailLaporanTeknisi> createState() =>
-      _DetailLaporanTeknisiState();
+  State<DetailLaporanTeknisi> createState() => _DetailLaporanTeknisiState();
 }
 
-
-class _DetailLaporanTeknisiState
-    extends State<DetailLaporanTeknisi> {
+class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
   final supabase = Supabase.instance.client;
+
   Map<String, dynamic>? issue;
   bool isLoading = true;
+
+  String get _uid => supabase.auth.currentUser?.id ?? '';
 
   @override
   void initState() {
@@ -26,252 +23,366 @@ class _DetailLaporanTeknisiState
     fetchDetail();
   }
 
+  Future<void> fetchDetail() async {
+    setState(() => isLoading = true);
+    try {
+      final data = await supabase
+          .from('issues')
+          .select()
+          .eq('id', widget.issueId)
+          .maybeSingle();
 
-Future<void> acceptTask() async{
-   await Supabase.instance.client.from('issues').update({
-    'status' : 'in_progress',
-  });
-}
-
-Future<void> fetchDetail() async {
-  try {
-    final data = await supabase.from('issues').select().eq('id', widget.issueId).maybeSingle(); 
-
-    if (data != null) {
       setState(() {
         issue = data;
         isLoading = false;
       });
-    } else {
-      setState(() {
-        isLoading = false;
-      });
+    } catch (e) {
+      setState(() => isLoading = false);
     }
-  } catch (e) {
-    debugPrint("ERROR DETAIL: $e");
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
-Widget infoBox(String title, String value) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color:
-            const Color.fromARGB(246, 235, 242, 248),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 4,
-            offset: const Offset(0, 3),
+  Future<void> terimaTugas() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Terima Tugas'),
+        content: const Text('Apakah kamu yakin ingin menerima tugas ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-                color: Colors.grey),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style:  TextStyle(fontSize: 20, color: Colors.blue[700], fontWeight: FontWeight.w600),
-            
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Terima',
+                style: TextStyle(color: Colors.blue)),
           ),
         ],
       ),
     );
+
+    if (confirm != true) return;
+
+    try {
+      await supabase.from('issues').update({
+        'status': 'In Progress',
+        'started_at': DateTime.now().toIso8601String(),
+      }).eq('id', widget.issueId);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tugas diterima! Status menjadi In Progress.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        fetchDetail();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      }
+    }
+  }
+
+  Future<void> selesaikanTugas() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Selesaikan Tugas'),
+        content: const Text('Tandai tugas ini sebagai selesai?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Selesai',
+                style: TextStyle(color: Colors.green)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // 1. Update issue → Resolved
+      await supabase.from('issues').update({
+        'status': 'Resolved',
+        'resolved_at': DateTime.now().toIso8601String(),
+      }).eq('id', widget.issueId);
+
+      // 2. Kembalikan teknisi jadi available
+      await supabase
+          .from('users')
+          .update({'is_available': true})
+          .eq('id', _uid);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tugas berhasil diselesaikan!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        fetchDetail();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Gagal: $e')));
+      }
+    }
+  }
+
+  Color _priorityColor(String? p) {
+    switch (p) {
+      case 'Urgent': return Colors.red;
+      case 'High':   return Colors.deepOrange;
+      case 'Medium': return Colors.orange;
+      default:       return Colors.green;
+    }
+  }
+
+  Color _statusColor(String? s) {
+    switch (s) {
+      case 'In Progress': return Colors.blue;
+      case 'Resolved':    return Colors.green;
+      case 'Assigned':    return Colors.orange;
+      default:            return Colors.grey;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (issue == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detail Laporan')),
+        body: const Center(child: Text('Laporan tidak ditemukan')),
+      );
+    }
+
+    final status = issue!['status'] as String?;
+    // Hanya teknisi yang di-assign yang bisa terima/selesaikan
+    final isAssignedToMe = issue!['assigned_to'] == _uid;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xfff4f4f4),
       appBar: AppBar(
+        title: const Text('Detail Laporan'),
         backgroundColor: Colors.grey[200],
-        title: const Text("Laporan"),
-        
+        elevation: 0,
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(12),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+
+              // Header
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8)],
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      issue?['title'] ?? 'WiFi ERROR',
-                      style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600),
-                    ),
-                    const SizedBox(height: 20),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: infoBox(
-                              'Kategori', 
-                              issue?['category'] ?.toString() ??
-                                  'Urgent'),
-                                  
+                          child: Text(
+                            issue!['title'] ?? '-',
+                            style: const TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: infoBox(
-                              'Lokasi',
-                              issue?['location']
-                                      ?.toString() ??
-                                  'Lantai 1'),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: _priorityColor(issue!['priority'])
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: _priorityColor(issue!['priority'])),
+                          ),
+                          child: Text(
+                            issue!['priority'] ?? '-',
+                            style: TextStyle(
+                              color: _priorityColor(issue!['priority']),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: infoBox(
-                              'Tanggal ',
-                               issue?['created_at']
-                               ?.toString().substring(0, 10) ??
-                              'Testing', ),
-                                
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: _statusColor(status)),
+                      ),
+                      child: Text(
+                        status ?? '-',
+                        style: TextStyle(
+                          color: _statusColor(status),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: infoBox(
-                              'Status',
-                              issue?['status']
-                                      ?.toString() ??
-                                  'Panding'),
-                        ),
-                      ],
+                      ),
                     ),
-                      const SizedBox(height: 24),
-            const Text('Deskripsi',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 22)),
-            const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              height: 100,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey, width: 0.5),
-              ),
-              child: Text(
-                issue?['description']?.toString() ?? 'Wifi masih error semenjak hari kemarin',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          const SizedBox(height: 10),
-          const Text('Foto',
-          style: TextStyle(
-            fontWeight: FontWeight.w600, fontSize: 22
-          ),),
-          SizedBox(height: 10),
-          Container(
-width: double.infinity,
-              height: 100,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey, width: 0.5),
-              ),
-              child: Text(
-                issue?['photo_url']?.toString() ?? 'Foto Tidak Ditemukan..',
-                style: const TextStyle(fontSize: 16),
-              ),
-          ),
-const SizedBox(height: 30),
-
-Row(
-  children: [
-    Expanded(
-      child: SizedBox(
-        height: 48,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green[700],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProgressTeknisi(issueId: issue!['id'].toString()),
-              ),
-            );
-          },
-          child: const Text(
-            'Terima',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.white
-            ),
-          ),
-        ),
-      ),
-    ),
-    const SizedBox(width: 12),
-   Expanded(
-  child: SizedBox(
-    height: 48,
-    child: ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.red[700],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      onPressed: () {
-
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => RejectLaporanTeknisi(
-              issueId: issue!['id'].toString(),
-            ),
-          ),
-        );
-        acceptTask();
-      },
-      child: const Text(
-        'Tolak',
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          color: Colors.white
-        ),
-      ),
-    ),
-  ),
-)
-  ],
-),
                   ],
-                  
                 ),
-                
-               ),
-                      
-            ),
+              ),
+
+              const SizedBox(height: 14),
+
+              // Detail info
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 8)],
+                ),
+                child: Column(
+                  children: [
+                    _infoRow(Icons.category_outlined, 'Kategori',
+                        issue!['category'] ?? '-'),
+                    _divider(),
+                    _infoRow(Icons.location_on_outlined, 'Lokasi',
+                        issue!['location'] ?? '-'),
+                    _divider(),
+                    _infoRow(Icons.description_outlined, 'Deskripsi',
+                        issue!['description'] ?? '-'),
+                    _divider(),
+                    _infoRow(
+                      Icons.calendar_today_outlined,
+                      'Dilaporkan',
+                      issue!['created_at'] != null
+                          ? issue!['created_at'].toString().substring(0, 10)
+                          : '-',
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Tombol aksi — hanya muncul jika ini teknisi yang ditugaskan
+              if (isAssignedToMe && status == 'Assigned')
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: terimaTugas,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[700],
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text(
+                      'Terima Tugas',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                  ),
+                ),
+
+              if (isAssignedToMe && status == 'In Progress')
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: selesaikanTugas,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text(
+                      'Tandai Selesai',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16),
+                    ),
+                  ),
+                ),
+
+              if (status == 'Resolved')
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.shade300),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text(
+                        'Tugas Telah Diselesaikan',
+                        style: TextStyle(
+                            color: Colors.green, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
-  
+  Widget _infoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: Colors.grey[600]),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 14, fontWeight: FontWeight.w500)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
 }

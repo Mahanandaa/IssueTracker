@@ -1,149 +1,246 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/teknisi/history_teknisi.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PanggilTeknisi extends StatefulWidget {
-  const PanggilTeknisi({super.key, required String issueId});
+  final String issueId;
+  const PanggilTeknisi({super.key, required this.issueId});
 
   @override
   State<PanggilTeknisi> createState() => _PanggilTeknisiState();
 }
 
-String? selectedStatus;
-
 class _PanggilTeknisiState extends State<PanggilTeknisi> {
+  final supabase = Supabase.instance.client;
+
+  List<Map<String, dynamic>> teknisiList = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchTeknisi();
+  }
+
+  Future<void> fetchTeknisi() async {
+    setState(() => isLoading = true);
+    try {
+      final response = await supabase
+          .from('users')
+          .select('id, name, phone, department, is_available')
+          .eq('role', 'teknisi')
+          .order('is_available', ascending: false);
+
+      setState(() {
+        teknisiList = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memuat teknisi: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> panggilTeknisi(Map<String, dynamic> teknisi) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi'),
+        content: Text('Panggil ${teknisi['name']} untuk menangani laporan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ya, Panggil',
+                style: TextStyle(color: Colors.blue)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      // 1. Update issues: set assigned_to, status Assigned, assigned_at
+      await supabase.from('issues').update({
+        'assigned_to': teknisi['id'],
+        'status': 'Assigned',
+        'assigned_at': DateTime.now().toIso8601String(),
+      }).eq('id', widget.issueId);
+
+      // 2. Set teknisi is_available = false
+      await supabase
+          .from('users')
+          .update({'is_available': false})
+          .eq('id', teknisi['id']);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${teknisi['name']} berhasil dipanggil!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal memanggil teknisi: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Panggil Teknisi"),
+        title: const Text('Panggil Teknisi'),
         backgroundColor: Colors.grey[200],
+        elevation: 0,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        setState(() {
-                          selectedStatus = "Escalated";
-                        });
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : teknisiList.isEmpty
+                ? const Center(child: Text('Tidak ada teknisi'))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: teknisiList.length,
+                    itemBuilder: (context, index) {
+                      final teknisi = teknisiList[index];
+                      final bool isAvailable = teknisi['is_available'] == true;
 
-                        final response = await supabase
-                            .from('issues')
-                            .select()
-                            .eq('status', 'Escalated');
-
-                        setState(() {
-                          issues = List<Map<String, dynamic>>.from(response);
-                        });
-                      },
-                      child: Container(
-                        height: 50,
-                        alignment: Alignment.center,
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: selectedStatus == "Escalated"
-                              ? Colors.amber[700]
-                              : Colors.grey[200],
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "Tersedia",
-                          style: TextStyle(
-                            color: selectedStatus == "Escalated"
-                                ? Colors.white
-                                : Colors.black,
+                          border: Border.all(
+                            color: isAvailable
+                                ? Colors.green.shade200
+                                : Colors.grey.shade300,
                           ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
+                        child: Row(
+                          children: [
+                            // Avatar inisial
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: isAvailable
+                                  ? Colors.green.shade100
+                                  : Colors.grey.shade200,
+                              child: Text(
+                                (teknisi['name'] as String? ?? '?')
+                                    .substring(0, 1)
+                                    .toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isAvailable
+                                      ? Colors.green.shade700
+                                      : Colors.grey,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 12),
+
+                            // Info teknisi
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    teknisi['name'] ?? '-',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    teknisi['department'] ?? 'Teknisi',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600]),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: isAvailable
+                                          ? Colors.green.shade50
+                                          : Colors.orange.shade50,
+                                      borderRadius:
+                                          BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: isAvailable
+                                            ? Colors.green.shade300
+                                            : Colors.orange.shade300,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      isAvailable ? 'Available' : 'On Progress',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isAvailable
+                                            ? Colors.green.shade700
+                                            : Colors.orange.shade700,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Tombol Call
+                            GestureDetector(
+                              onTap: isAvailable
+                                  ? () => panggilTeknisi(teknisi)
+                                  : null,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 18, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isAvailable
+                                      ? Colors.green[700]
+                                      : Colors.grey[300],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  'Call',
+                                  style: TextStyle(
+                                    color: isAvailable
+                                        ? Colors.white
+                                        : Colors.grey[500],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-
-                  const SizedBox(width: 10),
-
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () async {
-                        setState(() {
-                          selectedStatus = "Progress";
-                        });
-
-                        final response = await supabase
-                            .from('issues')
-                            .select()
-                            .eq('status', 'Progress');
-
-                        setState(() {
-                          issues = List<Map<String, dynamic>>.from(response);
-                        });
-                      },
-                      child: Container(
-                        height: 50,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: selectedStatus == "Progress"
-                              ? Colors.blue[700]
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          "Progress",
-                          style: TextStyle(
-                            color: selectedStatus == "Progress"
-                                ? Colors.white
-                                : Colors.black,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-                SizedBox(height: 10),
-              Container(
-                height: 110,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey, width: 0.5),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-
-                    const Text('Nama : Ananda', style: TextStyle(fontWeight: FontWeight.bold,),),
-                      const SizedBox(height: 10),
-                    const Text('Role : Teknisi', style: TextStyle(fontWeight: FontWeight.bold,),),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text('Status : Available' , style: TextStyle(fontWeight: FontWeight.bold,),),
-
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 25, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.green[700],
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            "Call",
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
