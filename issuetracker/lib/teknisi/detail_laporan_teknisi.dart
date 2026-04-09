@@ -43,7 +43,6 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
     }
   }
 
-  // ── Terima → navigasi ke ProgressTeknisi ──
   void terimaTugas() {
     Navigator.push(
       context,
@@ -53,7 +52,6 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
     ).then((_) => fetchDetail());
   }
 
-  // ── Tolak → navigasi ke RejectLaporanTeknisi ──
   void tolakTugas() {
     Navigator.push(
       context,
@@ -112,6 +110,8 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
       }
     }
   }
+
+
 
   Color _priorityColor(String? p) {
     switch (p) {
@@ -285,6 +285,7 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: SizedBox(
+                        
                         height: 48,
                         child: ElevatedButton(
                           onPressed: tolakTugas,

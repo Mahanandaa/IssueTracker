@@ -24,7 +24,7 @@ class AuthGate extends StatelessWidget {
 
         if (session != null) {
           return FutureBuilder<String?>(
-            key: ValueKey(session.user.id), // ← cegah rebuild berulang
+            key: ValueKey(session.user.id), 
             future: AuthService().getUserRole(session.user.id),
             builder: (context, roleSnapshot) {
               if (roleSnapshot.connectionState == ConnectionState.waiting) {
@@ -34,7 +34,7 @@ class AuthGate extends StatelessWidget {
               }
 
               if (roleSnapshot.hasError) {
-                return const DashboardKaryawan(); // fallback jika error
+                return const DashboardKaryawan(); 
               }
 
               final role = roleSnapshot.data;

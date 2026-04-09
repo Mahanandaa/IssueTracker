@@ -189,9 +189,9 @@ class _DashboardAdminState extends State<DashboardAdmin> {
       ),
 
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
+      padding: const EdgeInsets.all(12),
+      child: Column(
+      children: [
             Row(
               children: [
                 Expanded(
@@ -348,8 +348,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
         children: [
           Text(title, style: TextStyle(color: color)),
           Text(value,
-              style:
-                  TextStyle(fontWeight: FontWeight.bold, color: color)),
+          style:
+          TextStyle(fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );

@@ -206,8 +206,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 20),
 
-            // Prioritas dengan warna badge
-            Row(
+           Row(
               children: [
                 const Text('Prioritas: ',
                     style: TextStyle(
@@ -333,7 +332,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
 
             const SizedBox(height: 12),
 
-            // Input komentar baru
             Row(
               children: [
                 Expanded(

@@ -24,9 +24,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
 
   Future<void> fetchIssues() async {
     try {
-      final response = await supabase
-          .from('issues')
-          .select('*, users!reported_by(name), spare_parts(part_name)');
+      final response = await supabase.from('issues').select();
 
       setState(() {
         issues = List<Map<String, dynamic>>.from(response);
@@ -49,11 +47,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
     });
 
     try {
-      final response = await supabase
-          .from('issues')
-          .select('*, users!reported_by(name), spare_parts(part_name)')
-          .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
-
+      final response = await supabase.from('issues').select().or('title.ilike.%$searchTerm%, location.ilike.%$searchTerm%');
       setState(() {
         issues = List<Map<String, dynamic>>.from(response);
         isLoading = false;
@@ -66,13 +60,6 @@ class _LaporanKasusState extends State<LaporanKasus> {
   }
 
   Widget buildCard(Map<String, dynamic> item) {
-    final namaPerlapor = item['users']?['name'] ?? '-';
-
-    final sparepartList = item['spare_parts'] as List<dynamic>? ?? [];
-    final sparepartText = sparepartList.isEmpty
-        ? '-'
-        : sparepartList.map((s) => s['part_name']).join(', ');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -94,9 +81,9 @@ class _LaporanKasusState extends State<LaporanKasus> {
           Text('Lokasi: ${item['location'] ?? '-'}'),
           Text('Kategori: ${item['category'] ?? '-'}'),
           Text('Prioritas: ${item['priority'] ?? '-'}'),
-          Text('Pelapor: $namaPerlapor'),
+          Text('Pelapor: ${item['reporter'] ?? '-'}'),
           Text('Status: ${item['status'] ?? '-'}'),
-          Text('Sparepart: $sparepartText'),
+          Text('Sparepart: ${item['sparepart'] ?? '-'}'),
         ],
       ),
     );
@@ -108,7 +95,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
       backgroundColor: Colors.white,
 
       appBar: AppBar(
-        title: const Text("Laporan"),
+        title: const Text("Laporan"),       
         backgroundColor: Colors.grey[200],
       ),
 
@@ -138,7 +125,21 @@ class _LaporanKasusState extends State<LaporanKasus> {
 
               const SizedBox(height: 12),
 
-             
+              Expanded(
+                child: isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator())
+                    : issues.isEmpty
+                        ? const Center(
+                            child: Text('Tidak ada data'))
+                        : ListView.builder(
+                            itemCount: issues.length,
+                            itemBuilder: (context, index) {
+                              final item = issues[index];
+                              return buildCard(item);
+                            },
+                          ),
+              ),
             ],
           ),
         ),

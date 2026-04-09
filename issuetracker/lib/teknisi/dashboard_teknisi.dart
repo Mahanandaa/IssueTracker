@@ -29,9 +29,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
     super.initState();
     fetchIssues();
   }
-
-  // Ambil semua issue yang assigned_to = uid teknisi ini
-  Future<void> fetchIssues() async {
+Future<void> fetchIssues() async {
     if (_uid.isEmpty) return;
     setState(() => _isLoading = true);
     try {
@@ -168,7 +166,6 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                 const SizedBox(height: 18),
 
-                // Filter berdasarkan prioritas
                 Row(
                   children: [
                     Expanded(
@@ -178,8 +175,8 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: selectedStatus == 'All'
-                                ? Colors.blue
-                                : Colors.grey[200],
+                            ? Colors.blue
+                            : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("All")),
