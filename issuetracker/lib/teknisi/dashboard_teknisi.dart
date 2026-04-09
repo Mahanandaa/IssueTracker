@@ -22,7 +22,6 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
   List<Map<String, dynamic>> issues = [];
   bool _isLoading = false;
 
-  // UID teknisi yang sedang login
   String get _uid => supabase.auth.currentUser?.id ?? '';
 
   @override
@@ -31,92 +30,54 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
     fetchIssues();
   }
 
+  // Ambil semua issue yang assigned_to = uid teknisi ini
   Future<void> fetchIssues() async {
     if (_uid.isEmpty) return;
+    setState(() => _isLoading = true);
     try {
-      // Ambil issue_id yang di-assign ke teknisi ini
-      final assignments = await supabase
-          .from('issue_assignments')
-          .select('issue_id')
-          .eq('technician_id', _uid);
-
-      final assignedIds = List<Map<String, dynamic>>.from(assignments)
-          .map((a) => a['issue_id'] as String)
-          .toList();
-
-      if (assignedIds.isEmpty) {
-        if (mounted) setState(() => issues = []);
-        return;
-      }
-
-      // Ambil issues berdasarkan ID yang di-assign ke teknisi ini
       final response = await supabase
           .from('issues')
           .select()
-          .inFilter('id', assignedIds);
+          .eq('assigned_to', _uid)
+          .order('assigned_at', ascending: false);
 
       if (mounted) {
         setState(() {
           issues = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('fetchIssues teknisi error: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  // Cari issue berdasarkan judul atau lokasi
   Future<void> fenchData([String? searchTerm]) async {
-    setState(() {
-      _isLoading = true;
-    });
-
+    if (_uid.isEmpty) return;
+    setState(() => _isLoading = true);
     try {
-      // Ambil issue_id yang di-assign ke teknisi ini
-      final assignments = await supabase
-          .from('issue_assignments')
-          .select('issue_id')
-          .eq('technician_id', _uid);
-
-      final assignedIds = List<Map<String, dynamic>>.from(assignments)
-          .map((a) => a['issue_id'] as String)
-          .toList();
-
-      if (assignedIds.isEmpty) {
-        setState(() {
-          issues = [];
-          _isLoading = false;
-        });
-        return;
-      }
-
-      var query = supabase
+      var response = await supabase
           .from('issues')
           .select()
-          .inFilter('id', assignedIds);
+          .eq('assigned_to', _uid)
+          .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%')
+          .order('assigned_at', ascending: false);
 
-      if (searchTerm != null && searchTerm.isNotEmpty) {
-        query = supabase
-            .from('issues')
-            .select()
-            .inFilter('id', assignedIds)
-            .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
+      if (mounted) {
+        setState(() {
+          issues = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
+        });
       }
-
-      final data = await query;
-
-      setState(() {
-        issues = List<Map<String, dynamic>>.from(data);
-      });
     } on PostgrestException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error : ${error.message}')),
+          SnackBar(content: Text('Error: ${error.message}')),
         );
+        setState(() => _isLoading = false);
       }
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
@@ -175,8 +136,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
               children: [
                 const Text(
                   "Selamat Datang.",
-                  style:
-                      TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
                 ),
 
                 const SizedBox(height: 14),
@@ -208,15 +168,12 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                 const SizedBox(height: 18),
 
+                // Filter berdasarkan prioritas
                 Row(
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedStatus = 'All';
-                          });
-                        },
+                        onTap: () => setState(() => selectedStatus = 'All'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -234,11 +191,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedStatus = 'Low';
-                          });
-                        },
+                        onTap: () => setState(() => selectedStatus = 'Low'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -256,11 +209,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedStatus = 'Medium';
-                          });
-                        },
+                        onTap: () => setState(() => selectedStatus = 'Medium'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -278,20 +227,16 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedStatus = 'Hard';
-                          });
-                        },
+                        onTap: () => setState(() => selectedStatus = 'High'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'Hard'
+                            color: selectedStatus == 'High'
                                 ? Colors.deepOrange
                                 : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
-                          child: const Center(child: Text("Sulit")),
+                          child: const Center(child: Text("Tinggi")),
                         ),
                       ),
                     ),
@@ -300,11 +245,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                     Expanded(
                       child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedStatus = 'Urgent';
-                          });
-                        },
+                        onTap: () => setState(() => selectedStatus = 'Urgent'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
@@ -324,125 +265,124 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
 
                 const Text(
                   "Tugas Terbaru",
-                  style:
-                      TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
 
                 const SizedBox(height: 12),
 
-                filteredIssues.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Tidak Ada Laporan',
-                          style: TextStyle(
-                            fontStyle: FontStyle.italic,
-                            fontSize: 20,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: filteredIssues.length,
-                        itemBuilder: (context, index) {
-                          final issue = filteredIssues[index];
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DetailLaporanTeknisi(
-                                    issueId: issue['id'].toString(),
+                _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filteredIssues.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'Tidak Ada Laporan',
+                              style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontSize: 20,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredIssues.length,
+                            itemBuilder: (context, index) {
+                              final issue = filteredIssues[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => DetailLaporanTeknisi(
+                                        issueId: issue['id'].toString(),
+                                      ),
+                                    ),
+                                  );
+                                },
+
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.all(14),
+
+                                  decoration: BoxDecoration(
+                                    color: issue['priority'] == 'Urgent'
+                                        ? const Color.fromARGB(255, 243, 77, 65)
+                                        : Colors.grey[700],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            issue['title'] ?? '',
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+
+                                          Text(
+                                            issue['priority'] ?? '',
+                                            style: TextStyle(
+                                              color: issue['priority'] == 'Urgent'
+                                                  ? Colors.white
+                                                  : issue['priority'] == 'Medium'
+                                                      ? Colors.orange
+                                                      : Colors.green,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 6),
+
+                                      Text(
+                                         "Lokasi : ${issue['location'] ?? 'Location Not Found'}",
+                                          style: const TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            issue['created_at'] != null
+                                                ? issue['created_at']
+                                                    .toString()
+                                                    .substring(0, 10)
+                                                : '',
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+
+                                          const Text(
+                                            "Lihat Detail",
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
                                   ),
                                 ),
                               );
                             },
-
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(14),
-
-                              decoration: BoxDecoration(
-                                color: issue['priority'] == 'Urgent'
-                                    ? const Color.fromARGB(255, 243, 77, 65)
-                                    : Colors.grey[700],
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        issue['title'] ?? '',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-
-                                      Text(
-                                        issue['priority'] ?? '',
-                                        style: TextStyle(
-                                          color: issue['priority'] == 'Urgent'
-                                              ? Colors.white
-                                              : issue['priority'] == 'Medium'
-                                                  ? Colors.orange
-                                                  : Colors.green,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  const SizedBox(height: 6),
-
-                                  Text(
-                                    "Lokasi : ${issue['location'] ?? ''}",
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 6),
-
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        issue['created_at'] != null
-                                            ? issue['created_at']
-                                                .toString()
-                                                .substring(0, 10)
-                                            : '',
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-
-                                      const Text(
-                                        "Lihat Detail",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
+                          ),
               ],
             ),
           ),

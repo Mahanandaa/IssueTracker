@@ -470,7 +470,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                     child: GestureDetector(
                       onTap: () async {
                         setState(() => selectedStatus = 'Escalated');
-                        // Hanya laporan milik karyawan ini + status Escalated
                         final response = await supabase
                             .from('issues')
                             .select()
@@ -531,9 +530,9 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => DetailLaporanKaryawan(
-                                    issueId: issue['id'].toString()),
-                              ),
+                                builder: (_) => DetailLaporanKaryawan(issueId: issue['id'].toString()),
+                                
+                                ),
                             );
                           },
                           child: Container(
@@ -543,9 +542,9 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                               color: Colors.grey[100],
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: const [
-                                BoxShadow(
-                                  color: Color(0x19000000),
-                                  blurRadius: 20,
+                              BoxShadow(
+                              color: Color(0x19000000),
+                              blurRadius: 20,
                                   offset: Offset(0, 8),
                                 ),
                               ],
@@ -558,7 +557,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      issue['title'] ?? '',
+                                      issue['title'] ?? 'Title Not Found',
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 20,
@@ -590,7 +589,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Text('Lokasi : ${issue['location'] ?? ''}'),
+                                Text('Lokasi : ${issue['location'] ?? 'Location Not Found'}'),
                                 Text(
                                   issue['created_at'] != null
                                       ? issue['created_at']
@@ -634,7 +633,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                                             BorderRadius.circular(4),
                                       ),
                                       child: Text(
-                                        issue['status'] ?? '',
+                                        issue['status'] ?? 'Status Not Found',
                                         style: TextStyle(
                                           color: issue['status'] == 'Pending'
                                               ? Colors.orange[900]

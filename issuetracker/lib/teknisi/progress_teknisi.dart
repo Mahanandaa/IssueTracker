@@ -5,7 +5,6 @@ import 'selesai_teknis.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 class ProgressTeknisi extends StatefulWidget {
   final String issueId;
 
@@ -24,7 +23,7 @@ class _ProgressTeknisiState extends State<ProgressTeknisi> {
   bool isRunning = false;
   Duration? savedTime;
   File? _imageFile;
-
+ 
   final TextEditingController note_parts = TextEditingController();
   final TextEditingController note_result = TextEditingController();
 
@@ -37,7 +36,8 @@ Future<void> noteRes() async {
       })
       .eq('id', widget.issueId);
 }
-Future<void> sparePart() async {await supabase.from('spare_parts').insert({
+Future<void> sparePart() async {
+     await supabase.from('spare_parts').insert({
     'issue_id': widget.issueId,
     'part_name': note_parts.text.trim(),
   });

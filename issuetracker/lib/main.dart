@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/admin/dashboard_admin.dart';
-import 'package:issuetracker/admin/detail_resolved.dart';
-import 'package:issuetracker/karyawan/dashboard_karyawan.dart';
 import 'package:issuetracker/splash_screen.dart';
-import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
+import 'package:issuetracker/teknisi/selesai_teknis.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
@@ -14,6 +11,7 @@ Future<void> main() async {
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2enVodWVidWVvdGJqcGZ1bnhwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEzNTgzNTAsImV4cCI6MjA4NjkzNDM1MH0.rzB9-boI2ids70DLS2ptlRii6d_Wrp8dfZe5BSvu9BY'
   );
   runApp(const MyApp());
+
 }
 
 class MyApp extends StatelessWidget {

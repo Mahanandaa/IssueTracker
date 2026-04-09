@@ -207,26 +207,18 @@ class _TambahLaporanState extends State<TambahLaporan> {
                     Icon(
                       Icons.calendar_month_outlined,
                       size: 18,
-                      color: _selectedDeadline != null
-                          ? Colors.blue
-                          : Colors.grey,
+                   color: const Color.fromARGB(255, 21, 148, 252)
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        _selectedDeadline != null
-                            ? _formatDeadline(_selectedDeadline!)
-                            : 'Pilih tanggal & waktu',
-                        style: TextStyle(
-                          color: _selectedDeadline != null
-                              ? Colors.black87
-                              : Colors.grey,
-                          fontSize: 14,
-                        ),
+                        'pilih tegat waktu tugas'
                       ),
                     ),
-                    // Tombol hapus pilihan
-                    if (_selectedDeadline != null)
+
+
+
+                   if (_selectedDeadline != null)
                       GestureDetector(
                         onTap: () => setState(() => _selectedDeadline = null),
                         child: const Icon(Icons.close,
@@ -237,8 +229,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
               ),
             ),
             const SizedBox(height: 25),
-
-            // ── Kategori ──
             const Text("Kategori",
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             const SizedBox(height: 12),

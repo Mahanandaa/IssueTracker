@@ -43,6 +43,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     super.dispose();
   }
 
+  // Ambil detail laporan dari Supabase
   Future<void> fetchIssueDetail() async {
     try {
       final response = await supabase
@@ -61,6 +62,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     }
   }
 
+  // Ambil daftar komentar
   Future<void> fetchComments() async {
     try {
       final response = await supabase
@@ -78,6 +80,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     }
   }
 
+  // Kirim komentar baru
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
@@ -102,6 +105,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     }
   }
 
+  // Simpan rating dan feedback ke Supabase
   Future<void> kirimUlasan() async {
     await supabase.from('ratings').insert({
       'rating': int.tryParse(rate.text.trim()) ?? 0,
@@ -110,6 +114,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     });
   }
 
+  // Format tanggal dari ISO string ke "yyyy-MM-dd HH:mm"
   String _formatTanggal(String? raw) {
     if (raw == null) return '';
     try {
@@ -139,13 +144,12 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Judul
+            // Judul laporan
             Text(issue?['title']?.toString() ?? '',
                 style: const TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 24)),
             const SizedBox(height: 20),
 
-            // Kategori & Lokasi
             Row(children: [
               _infoBox('Kategori', issue?['category']?.toString() ?? ''),
               const SizedBox(width: 12),
@@ -153,7 +157,6 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ]),
             const SizedBox(height: 14),
 
-            // Tanggal & Status
             Row(children: [
               _infoBox('Tanggal',
                   _formatTanggal(issue?['created_at']?.toString())),
@@ -198,7 +201,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 24),
 
-            // Langkah Perbaikan
+            // Langkah perbaikan
             const Text('Langkah - Langkah Perbaikan',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
             const SizedBox(height: 10),
@@ -218,7 +221,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 24),
 
-            // Ringkasan Solusi
+            // Ringkasan solusi
             const Text('Ringkasan Solusi',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
             const SizedBox(height: 10),
@@ -234,9 +237,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 30),
 
-            // ═══════════════════════════════════════════
-            // SEKSI KOMENTAR
-            // ═══════════════════════════════════════════
+            // Komentar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -252,7 +253,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 10),
 
-            // Daftar bubble komentar
+            // Tampilkan daftar komentar atau pesan kosong
             comments.isEmpty
                 ? Container(
                     padding: const EdgeInsets.all(20),
@@ -384,9 +385,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
 
             const SizedBox(height: 30),
 
-            // ═══════════════════════════════════════════
-            // FEEDBACK & RATING
-            // ═══════════════════════════════════════════
+            // Feedback
             const Text('Feedback',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
             const SizedBox(height: 10),
@@ -408,6 +407,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 16),
 
+            // Rating
             const Text('Rating (1–5)',
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
             const SizedBox(height: 10),
@@ -430,7 +430,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 30),
 
-            // Tombol Selesai
+            // Tombol selesai
             SizedBox(
               width: double.infinity,
               height: 50,

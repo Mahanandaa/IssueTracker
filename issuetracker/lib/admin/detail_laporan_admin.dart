@@ -38,6 +38,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     super.dispose();
   }
 
+  // Ambil detail laporan dari Supabase
   Future<void> fetchIssueDetail() async {
     try {
       final response = await supabase
@@ -57,6 +58,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
+  // Ambil daftar komentar
   Future<void> fetchComments() async {
     try {
       final response = await supabase
@@ -74,6 +76,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
+  // Kirim komentar baru
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
@@ -126,12 +129,13 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            // Judul laporan
             Text(issue?['title']?.toString() ?? '',
                 style: const TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 24)),
             const SizedBox(height: 20),
 
-           Row(children: [
+            Row(children: [
               _infoBox('Kategori',
                   issue?['category']?.toString() ?? 'Not Found'),
               const SizedBox(width: 12),
@@ -144,13 +148,14 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
               _infoBox(
                   'Tanggal',
                   _formatTanggal(
-                      issue?['created_at']?.toString().substring(0,10))),
+                      issue?['created_at']?.toString().substring(0, 10))),
               const SizedBox(width: 12),
               _infoBox(
                   'Status', issue?['status']?.toString() ?? 'Not Found'),
             ]),
             const SizedBox(height: 20),
 
+            // Deskripsi
             const Text('Deskripsi',
                 style: TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 20)),
@@ -168,7 +173,8 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 20),
 
-          const Text('Foto',
+            // Foto
+            const Text('Foto',
                 style: TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
@@ -200,6 +206,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 20),
 
+            // Prioritas dengan warna badge
             Row(
               children: [
                 const Text('Prioritas: ',
@@ -229,6 +236,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 24),
 
+            // Komentar
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -244,7 +252,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 10),
 
-            comments.isEmpty
+          comments.isEmpty
                 ? Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -260,8 +268,9 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                   )
                 : Column(
                     children: comments.map((c) {
-                 final isMine = c['user_id'] == _uid;
-                final namaUser = c['users']?['name']?.toString() ?? 'Unknown';
+                      final isMine = c['user_id'] == _uid;
+                      final namaUser =
+                          c['users']?['name']?.toString() ?? 'Unknown';
                       final waktu =
                           _formatTanggal(c['created_at']?.toString().substring(0, 10));
 
@@ -324,6 +333,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
 
             const SizedBox(height: 12),
 
+            // Input komentar baru
             Row(
               children: [
                 Expanded(
@@ -369,6 +379,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 30),
 
+            // Tombol panggil teknisi
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -396,7 +407,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 16),
 
-            // Tombol Tolak / Reject
+            // Tombol tolak laporan
             SizedBox(
               width: double.infinity,
               height: 50,

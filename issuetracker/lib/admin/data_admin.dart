@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/admin/data_akun.dart';
-import 'package:issuetracker/admin/detail_laporan_admin.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
 import 'package:issuetracker/admin/kasus_ditolak.dart';
 import 'package:issuetracker/admin/laporan_kasus.dart';
+import 'package:issuetracker/admin/profile_admin.dart';
 import 'package:issuetracker/admin/tidak_selesai.dart';
-import 'package:issuetracker/teknisi/history_teknisi.dart';
 
 class DataAdmin extends StatefulWidget {
   const DataAdmin({super.key});
@@ -80,7 +79,7 @@ class _DataAdminState extends State<DataAdmin> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => const DashboardAdmin(),
+                builder: (context) => const ProfileAdmin(),
               ),
             );
           }

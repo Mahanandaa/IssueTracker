@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/detail_laporan_admin.dart';
+import 'package:issuetracker/admin/profile_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class KasusAdmin extends StatefulWidget {
@@ -123,7 +124,7 @@ class _KasusAdminState extends State<KasusAdmin> {
           } else if (index == 2){
             Navigator.push(context, MaterialPageRoute(builder: (context) => const DataAdmin()));
           } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const DashboardAdmin()));
+            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileAdmin()));
           }
         },
       ),

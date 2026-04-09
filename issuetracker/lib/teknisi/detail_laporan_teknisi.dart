@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'progress_teknisi.dart';       // sesuaikan path project kamu
+import 'reject_laporan_teknisi.dart'; // sesuaikan path project kamu
 
 class DetailLaporanTeknisi extends StatefulWidget {
   final String issueId;
@@ -41,49 +43,24 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
     }
   }
 
-  Future<void> terimaTugas() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Terima Tugas'),
-        content: const Text('Apakah kamu yakin ingin menerima tugas ini?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Terima',
-                style: TextStyle(color: Colors.blue)),
-          ),
-        ],
+  // ── Terima → navigasi ke ProgressTeknisi ──
+  void terimaTugas() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProgressTeknisi(issueId: widget.issueId),
       ),
-    );
+    ).then((_) => fetchDetail());
+  }
 
-    if (confirm != true) return;
-
-    try {
-      await supabase.from('issues').update({
-        'status': 'In Progress',
-        'started_at': DateTime.now().toIso8601String(),
-      }).eq('id', widget.issueId);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tugas diterima! Status menjadi In Progress.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        fetchDetail();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Gagal: $e')));
-      }
-    }
+  // ── Tolak → navigasi ke RejectLaporanTeknisi ──
+  void tolakTugas() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RejectLaporanTeknisi(issueId: widget.issueId),
+      ),
+    ).then((_) => fetchDetail());
   }
 
   Future<void> selesaikanTugas() async {
@@ -109,13 +86,11 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
     if (confirm != true) return;
 
     try {
-      // 1. Update issue → Resolved
       await supabase.from('issues').update({
         'status': 'Resolved',
         'resolved_at': DateTime.now().toIso8601String(),
       }).eq('id', widget.issueId);
 
-      // 2. Kembalikan teknisi jadi available
       await supabase
           .from('users')
           .update({'is_available': true})
@@ -169,7 +144,6 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
     }
 
     final status = issue!['status'] as String?;
-    // Hanya teknisi yang di-assign yang bisa terima/selesaikan
     final isAssignedToMe = issue!['assigned_to'] == _uid;
 
     return Scaffold(
@@ -186,7 +160,6 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              // Header
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -253,7 +226,7 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
 
               const SizedBox(height: 14),
 
-              // Detail info
+              // ── Info detail ──
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -286,50 +259,73 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
 
               const SizedBox(height: 24),
 
-              // Tombol aksi — hanya muncul jika ini teknisi yang ditugaskan
               if (isAssignedToMe && status == 'Assigned')
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: terimaTugas,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[700],
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: terimaTugas,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[700],
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text(
+                            'Terima Tugas',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15),
+                          ),
+                        ),
+                      ),
                     ),
-                    child: const Text(
-                      'Terima Tugas',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SizedBox(
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: tolakTugas,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red[700],
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text(
+                            'Tolak Tugas',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-
               if (isAssignedToMe && status == 'In Progress')
                 SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: selesaikanTugas,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text(
-                      'Tandai Selesai',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
-                    ),
-                  ),
-                ),
-
-              if (status == 'Resolved')
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                onPressed: selesaikanTugas,
+                style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[700],
+                shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+                   ),
+                   child: const Text(
+                        'Tandai Selesai',
+                         style: TextStyle(
+                         color: Colors.white,
+                         fontWeight: FontWeight.bold,
+                         fontSize: 16),
+                   ),
+                 ),
+               ),
+             if (status == 'Resolved')
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),

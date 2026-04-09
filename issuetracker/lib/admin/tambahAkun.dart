@@ -68,11 +68,11 @@ class _TambahakunState extends State<Tambahakun> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+      return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade200,
-        title: const Text('Tambah Akun'),
+      backgroundColor: Colors.grey.shade200,
+      title: const Text('Tambah Akun'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
