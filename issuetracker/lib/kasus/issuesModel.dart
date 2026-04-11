@@ -41,7 +41,7 @@ String? not_completed_reason;
     this.updatedAt,
     this.assignedAt,
     this.startedAt,
-    this.resolvedAt,
+    this.resolvedAt, DateTime? deadline,
   });
 factory IssueModel.fromMap(Map<String, dynamic> map) {
   return IssueModel(

@@ -16,14 +16,15 @@ class SettingProfileTeknisi extends StatefulWidget {
 }
 
 class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
-
   final authService = AuthService();
   final supabase = Supabase.instance.client;
 
   Map<String, dynamic>? userData;
   bool isLoading = true;
 
-  User? get user => supabase.auth.currentUser;
+  // FIX 3: Variabel untuk menyimpan data rating & waktu pengerjaan dari DB
+  double avgRating = 0.0;
+  String avgDuration = '-';
 
   @override
   void initState() {
@@ -35,14 +36,67 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
+    // Ambil profil user
     final response = await supabase
         .from('users')
         .select()
         .eq('id', user.id)
         .single();
 
+    // FIX 3a: Ambil rata-rata rating dari tabel ratings berdasarkan technician_id
+    final ratingsResponse = await supabase
+        .from('ratings')
+        .select('rating')
+        .eq('technician_id', user.id);
+
+    double calculatedRating = 0.0;
+    if (ratingsResponse.isNotEmpty) {
+      final List ratings = ratingsResponse as List;
+      final total = ratings.fold<int>(
+          0, (sum, r) => sum + ((r['rating'] as int?) ?? 0));
+      calculatedRating = total / ratings.length;
+    }
+
+    // FIX 3b: Ambil rata-rata waktu pengerjaan dari issues yang sudah resolved
+    // Waktu pengerjaan = resolved_at - assigned_at (dalam menit)
+    final resolvedIssues = await supabase
+        .from('issues')
+        .select('assigned_at, resolved_at')
+        .eq('assigned_to', user.id)
+        .eq('status', 'Resolved')
+        .not('resolved_at', 'is', null)
+        .not('assigned_at', 'is', null);
+
+    String durationStr = '-';
+    if (resolvedIssues.isNotEmpty) {
+      final List issues = resolvedIssues as List;
+      int totalMinutes = 0;
+      int count = 0;
+      for (var issue in issues) {
+        try {
+          final assigned = DateTime.parse(issue['assigned_at']);
+          final resolved = DateTime.parse(issue['resolved_at']);
+          final diff = resolved.difference(assigned).inMinutes;
+          totalMinutes += diff;
+          count++;
+        } catch (_) {}
+      }
+      if (count > 0) {
+        final avgMin = totalMinutes ~/ count;
+        if (avgMin < 60) {
+          durationStr = '$avgMin Menit';
+        } else {
+          final hours = avgMin ~/ 60;
+          final minutes = avgMin % 60;
+          durationStr = minutes > 0 ? '$hours Jam $minutes Mnt' : '$hours Jam';
+        }
+      }
+    }
+
     setState(() {
       userData = response;
+      avgRating = calculatedRating;
+      avgDuration = durationStr;
       isLoading = false;
     });
   }
@@ -50,29 +104,21 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
   void logout() async {
     await authService.keluar();
     if (!mounted) return;
-
     Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const Loginpage()),
-    );
+        context, MaterialPageRoute(builder: (_) => const Loginpage()));
   }
 
   int _currentIndex = 3;
 
   @override
   Widget build(BuildContext context) {
-
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+          body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
@@ -89,51 +135,28 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           BottomNavigationBarItem(
               icon: Icon(Icons.settings), label: 'Settings'),
         ],
-
         onTap: (index) {
-
           if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => DashboardTeknisi(),
-              ),
-            );
-          }
-
-          else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => HistoryTeknisi(),
-              ),
-            );
-          }
-
-          else if (index == 2) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => Statistic(),
-              ),
-            );
-          }
-
-          else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SettingProfileTeknisi(),
-              ),
-            );
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => DashboardTeknisi()));
+          } else if (index == 1) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const HistoryTeknisi()));
+          } else if (index == 2) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const Statistic()));
+          } else if (index == 3) {
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const SettingProfileTeknisi()));
           }
         },
       ),
-
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-
+          // Card profil
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
@@ -141,40 +164,36 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
               borderRadius: BorderRadius.circular(14),
               boxShadow: const [
                 BoxShadow(
-                  color: Color.fromARGB(255, 200, 200, 200),
-                  blurRadius: 6,
-                )
+                    color: Color.fromARGB(255, 200, 200, 200), blurRadius: 6)
               ],
             ),
             child: Column(
               children: [
-
-                const CircleAvatar(
+                // FIX 3c: Tampilkan foto profil jika ada, fallback ke ikon
+                CircleAvatar(
                   radius: 40,
-                  child: Icon(Icons.person, size: 40),
+                  backgroundImage: userData?['photo_url'] != null
+                      ? NetworkImage(userData!['photo_url'])
+                      : null,
+                  child: userData?['photo_url'] == null
+                      ? const Icon(Icons.person, size: 40)
+                      : null,
                 ),
-
                 const SizedBox(height: 15),
-
                 Text(
                   userData?['name'] ?? '',
                   style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 18,
-                  ),
+                      fontWeight: FontWeight.bold, fontSize: 18),
                 ),
-
                 const SizedBox(height: 5),
-
                 Text(userData?['email'] ?? ''),
-
                 const SizedBox(height: 20),
               ],
             ),
           ),
-
           const SizedBox(height: 20),
 
+          // FIX 3: Rating & Rata-rata waktu dari database
           Row(
             children: [
               Expanded(
@@ -184,15 +203,15 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.blue),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(Icons.star, color: Colors.amber),
-                      SizedBox(height: 6),
-                      Text(
-                        "Rating",
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text("4.8"),
+                      const Icon(Icons.star, color: Colors.amber),
+                      const SizedBox(height: 6),
+                      const Text("Rating",
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(avgRating > 0
+                          ? avgRating.toStringAsFixed(1)
+                          : 'Belum ada'),
                     ],
                   ),
                 ),
@@ -205,32 +224,34 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: Colors.blue),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(Icons.timer, color: Colors.blue),
-                      SizedBox(height: 6),
-                      Text(
-                        "Rata-rata",
-                        style: TextStyle(fontWeight: FontWeight.w600),
-                      ),
-                      Text("1 Jam"),
+                      const Icon(Icons.timer, color: Colors.blue),
+                      const SizedBox(height: 6),
+                      const Text("Rata-rata",
+                          style: TextStyle(fontWeight: FontWeight.w600)),
+                      Text(avgDuration),
                     ],
                   ),
                 ),
               ),
             ],
           ),
-
           const SizedBox(height: 20),
 
+          // Tombol edit profil
           GestureDetector(
-            onTap: () {
-              Navigator.push(
+            onTap: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => EditProfileTeknisi(users: userData!),
+                  builder: (_) =>
+                      EditProfileTeknisi(users: userData!),
                 ),
               );
+              // Refresh data setelah kembali dari edit profil
+              setState(() => isLoading = true);
+              await getUserData();
             },
             child: Container(
               width: double.infinity,
@@ -250,37 +271,31 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                 child: Text(
                   'Edit Profile Akun',
                   style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
-                  ),
+                      fontWeight: FontWeight.w600, color: Colors.black),
                 ),
               ),
             ),
           ),
-
           const SizedBox(height: 15),
 
+          // Toggle tema gelap
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 20, vertical: 18),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
-                  color: Color.fromARGB(255, 200, 200, 200),
-                  blurRadius: 6,
-                )
+                    color: Color.fromARGB(255, 200, 200, 200),
+                    blurRadius: 6)
               ],
             ),
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Tema Gelap',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
+                const Text('Tema Gelap',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 ValueListenableBuilder(
                   valueListenable: themeNotifier,
                   builder: (context, ThemeMode mode, _) {
@@ -296,35 +311,29 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
               ],
             ),
           ),
-
           const SizedBox(height: 15),
 
+          // Tombol keluar
           Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 20, vertical: 18),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               boxShadow: const [
                 BoxShadow(
-                  color: Color.fromARGB(255, 200, 200, 200),
-                  blurRadius: 6,
-                )
+                    color: Color.fromARGB(255, 200, 200, 200),
+                    blurRadius: 6)
               ],
             ),
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Keluar',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
+                const Text('Keluar',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
                 IconButton(
-                  icon: const Icon(
-                    Icons.exit_to_app_outlined,
-                    color: Colors.red,
-                  ),
+                  icon: const Icon(Icons.exit_to_app_outlined,
+                      color: Colors.red),
                   onPressed: logout,
                 ),
               ],

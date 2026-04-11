@@ -14,12 +14,10 @@ class Statistic extends StatefulWidget {
 }
 
 class _StatisticState extends State<Statistic> {
-
   final supabase = Supabase.instance.client;
 
-  List<double> weeklyData = [0,0,0,0];
-  List<double> monthlyData = List.generate(12, (index) => 0);
-
+  List<double> weeklyData = [0, 0, 0, 0];
+  List<double> monthlyData = List.generate(12, (_) => 0);
   int totalTask = 0;
 
   @override
@@ -29,12 +27,16 @@ class _StatisticState extends State<Statistic> {
   }
 
   Future<void> loadStatistic() async {
+    // FIX 2: Filter hanya issues yang di-assign ke teknisi yang sedang login
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
 
     final response = await supabase
         .from('issues')
-        .select('created_at');
+        .select('created_at')
+        .eq('assigned_to', userId);
 
-    List data = response;
+    final List data = response;
 
     setState(() {
       weeklyData = countWeekly(data);
@@ -44,177 +46,104 @@ class _StatisticState extends State<Statistic> {
   }
 
   List<double> countWeekly(List data) {
-
-    List<double> weeks = [0,0,0,0];
-
+    final List<double> weeks = [0, 0, 0, 0];
     for (var item in data) {
-
-      DateTime date = DateTime.parse(item['created_at']);
-
-      int week = ((date.day - 1) / 7).floor();
-
-      if(week >=0 && week <4){
-        weeks[week] +=1;
+      final DateTime date = DateTime.parse(item['created_at']);
+      final int week = ((date.day - 1) / 7).floor();
+      if (week >= 0 && week < 4) {
+        weeks[week] += 1;
       }
-
     }
-
     return weeks;
   }
 
-  List<double> countMonthly(List data){
-
-    List<double> months = List.generate(12, (index) => 0);
-
-    for (var item in data){
-
-      DateTime date = DateTime.parse(item['created_at']);
-
-      months[date.month -1] +=1;
-
+  List<double> countMonthly(List data) {
+    final List<double> months = List.generate(12, (_) => 0);
+    for (var item in data) {
+      final DateTime date = DateTime.parse(item['created_at']);
+      months[date.month - 1] += 1;
     }
-
     return months;
   }
 
   @override
   Widget build(BuildContext context) {
-
-    int currentIndex = 2;
+    const int currentIndex = 2;
 
     return Scaffold(
-
       backgroundColor: const Color(0xffF5F6FA),
-
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
         centerTitle: true,
         title: const Text(
           "Statistic",
-          style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.w600
-          ),
+          style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
-
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: currentIndex,
-
         items: const [
-
           BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined), label: 'Dashboard'),
-
           BottomNavigationBarItem(
               icon: Icon(Icons.history), label: 'History'),
-
           BottomNavigationBarItem(
               icon: Icon(Icons.bar_chart), label: 'Statistic'),
-
           BottomNavigationBarItem(
               icon: Icon(Icons.settings), label: 'Settings'),
-
         ],
-
-        onTap: (index){
-
-          if(index == 0){
-
-            Navigator.push(
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => DashboardTeknisi()));
+          } else if (index == 1) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const HistoryTeknisi()));
+          } else if (index == 3) {
+            Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                    builder: (context)=> DashboardTeknisi()
-                )
-            );
-
+                    builder: (_) => const SettingProfileTeknisi()));
           }
-
-          else if(index == 1){
-
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context)=> HistoryTeknisi()
-                )
-            );
-
-          }
-
-          else if(index == 3){
-
-            Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context)=> SettingProfileTeknisi()
-                )
-            );
-
-          }
-
         },
-
       ),
-
       body: SingleChildScrollView(
-
         child: Padding(
-
           padding: const EdgeInsets.all(16),
-
           child: Column(
-
             crossAxisAlignment: CrossAxisAlignment.start,
-
             children: [
-
               Container(
-
                 width: double.infinity,
-
-                padding: const EdgeInsets.symmetric(
-                    vertical: 22,
-                    horizontal: 16
-                ),
-
+                padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 16),
                 decoration: BoxDecoration(
-
                   color: Colors.white,
-
                   borderRadius: BorderRadius.circular(14),
-
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
-                      offset: const Offset(0,4),
+                      offset: const Offset(0, 4),
                     )
                   ],
-
                 ),
-
                 child: Column(
-
                   children: [
-
                     Text(
-                      'Total Tugas',
+                      'Total Tugas Saya',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-
                     const SizedBox(height: 6),
-
                     Text(
                       totalTask.toString(),
                       style: const TextStyle(
@@ -223,233 +152,130 @@ class _StatisticState extends State<Statistic> {
                         color: Colors.blue,
                       ),
                     ),
-
                   ],
-
                 ),
-
               ),
-
               const SizedBox(height: 28),
-
               const Text(
                 "Statistik Mingguan",
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               ),
-
               const SizedBox(height: 12),
-
               Container(
-
                 height: 230,
-
                 padding: const EdgeInsets.all(16),
-
                 decoration: BoxDecoration(
-
                   color: Colors.white,
-
                   borderRadius: BorderRadius.circular(14),
-
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
-                      offset: const Offset(0,4),
+                      offset: const Offset(0, 4),
                     )
                   ],
-
                 ),
-
                 child: ChartWeek(data: weeklyData),
-
               ),
-
               const SizedBox(height: 28),
-
               const Text(
                 "Statistik Bulanan",
-                style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               ),
-
               const SizedBox(height: 12),
-
               Container(
-
                 height: 320,
-
                 padding: const EdgeInsets.all(16),
-
                 decoration: BoxDecoration(
-
                   color: Colors.white,
-
                   borderRadius: BorderRadius.circular(14),
-
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.05),
                       blurRadius: 10,
-                      offset: const Offset(0,4),
+                      offset: const Offset(0, 4),
                     )
                   ],
-
                 ),
-
                 child: ChartMonth(data: monthlyData),
-
               ),
-
             ],
-
           ),
-
         ),
-
       ),
-
     );
-
   }
-
 }
+
 class ChartWeek extends StatelessWidget {
-
   final List<double> data;
-
   const ChartWeek({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-
     return BarChart(
-
       BarChartData(
-
         titlesData: FlTitlesData(
-
           bottomTitles: AxisTitles(
-
             sideTitles: SideTitles(
-
               showTitles: true,
-
-              getTitlesWidget: (value, meta){
-
-                const weeks = [
-                  'M1','M2','M3','M4'
-                ];
-
-                if(value.toInt() >=0 && value.toInt() < weeks.length){
+              getTitlesWidget: (value, meta) {
+                const weeks = ['M1', 'M2', 'M3', 'M4'];
+                if (value.toInt() >= 0 && value.toInt() < weeks.length) {
                   return Text(weeks[value.toInt()]);
                 }
-
                 return const Text('');
-
               },
-
             ),
-
           ),
-
         ),
-
-        barGroups: List.generate(data.length, (i){
-
+        barGroups: List.generate(data.length, (i) {
           return BarChartGroupData(
-
             x: i,
-
             barRods: [
-
-              BarChartRodData(
-                toY: data[i],
-                color: Colors.blue,
-              )
-
+              BarChartRodData(toY: data[i], color: Colors.blue),
             ],
-
           );
-
         }),
-
       ),
-
     );
-
   }
-
 }
 
 class ChartMonth extends StatelessWidget {
-
   final List<double> data;
-
   const ChartMonth({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
-
     return BarChart(
-
       BarChartData(
-
         titlesData: FlTitlesData(
-
           bottomTitles: AxisTitles(
-
             sideTitles: SideTitles(
-
               showTitles: true,
-
-              getTitlesWidget: (value, meta){
-
+              getTitlesWidget: (value, meta) {
                 const months = [
-                  '1','2','3','4','5','6',
-                  '7','8','9','10','11','12'
+                  '1', '2', '3', '4', '5', '6',
+                  '7', '8', '9', '10', '11', '12'
                 ];
-
-                if(value.toInt() >=0 && value.toInt() < months.length){
+                if (value.toInt() >= 0 && value.toInt() < months.length) {
                   return Text(months[value.toInt()]);
                 }
-
                 return const Text('');
-
               },
-
             ),
-
           ),
-
         ),
-
-        barGroups: List.generate(data.length, (i){
-
+        barGroups: List.generate(data.length, (i) {
           return BarChartGroupData(
-
             x: i,
-
             barRods: [
-
-              BarChartRodData(
-                toY: data[i],
-                color: Colors.blue,
-              )
-
+              BarChartRodData(toY: data[i], color: Colors.blue),
             ],
-
           );
-
         }),
-
       ),
-
     );
-
   }
-
 }

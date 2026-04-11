@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dashboard_teknisi.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+final FlutterLocalNotificationsPlugin notificationPlugin =
+    FlutterLocalNotificationsPlugin();
+
 class RejectLaporanTeknisi extends StatefulWidget {
 final String issueId;
 const RejectLaporanTeknisi({
@@ -27,6 +32,79 @@ Future<void>rejectIssue() async{
         .select();
 }
 
+
+
+  Future<void> initNotification() async {
+    const initSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const initSettings = InitializationSettings(
+      android: initSettingsAndroid,
+    );
+
+  }
+  Future<void> showNotif({
+    int id = 0,
+    required String title,
+    required String body,
+  }) async {
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'issue_channel',
+        'Issue Tracker',
+        channelDescription: 'Notifikasi status laporan',
+        importance: Importance.max,
+        priority: Priority.high,
+      ),
+    );
+  }
+
+Future<void> kirimNotifikasi() async{
+  final issue = await supabase.from('issues')
+        .select('title, reported_by, assigned_to')
+        .eq('id', widget.issueId)
+        .single();
+        final judulIssue = issue['title'] ?? 'Laporan';
+        final karyawanId = issue['reported_by'] as String?;
+        final teknisId = issue['assigned_to'] as String?;
+        final admins = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'admin');
+        final List<Map<String, dynamic>> notifList = [];
+        if (karyawanId != null){
+  notifList.add({
+    'user_id' : karyawanId,
+    'title' : 'Laporan Ditolak! ',
+    'message' : 'Laporan $judulIssue ditolak teknisi',
+    'type' : 'issue_rejected',
+    'is_read' : false,
+ 
+  
+});
+}
+
+if(teknisId != null) {
+  notifList.add({
+    'user_id' : teknisId,
+    'title' : "Tugas Ditolak!",
+    'message' : "Kamu telah menolak laporan $judulIssue",
+    'type' : 'task_completed',
+    'is_read' : false,
+  });
+}
+for (final admin in admins){
+  notifList.add({
+    'user_id' : admin['id'],
+    'title' : 'Laporan Ditolak!',
+    'message' : 'Laporan $judulIssue telah ditolak oleh teknisi'
+  });
+}
+if (notifList.isNotEmpty){
+  await supabase.from('notifications').insert(notifList);
+}
+}
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,13 +123,13 @@ Future<void>rejectIssue() async{
     'Alasan Tolak Kasus',
           style: TextStyle(
           fontWeight: FontWeight.w600,
-           fontSize: 18,
+          fontSize: 18,
                 ),
               ),
 
-              const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-              TextField(
+          TextField(
                 controller: alasanController,
                 maxLines: 4,
                 decoration: InputDecoration(
@@ -62,7 +140,7 @@ Future<void>rejectIssue() async{
                     borderRadius: BorderRadius.circular(12),
                   ),
 
-                  focusedBorder: OutlineInputBorder(
+                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(
                       color: Colors.blue.shade700,
@@ -87,7 +165,13 @@ Future<void>rejectIssue() async{
                     ),
                   ),
 onPressed: () async {
-
+      await rejectIssue();
+      await kirimNotifikasi();
+      await showNotif(
+       title: 'Laporan Ditolak',
+       body: 'Laporan Ditolak Oleh Teknisi'
+       
+       );
   if (alasanController.text.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -98,31 +182,19 @@ onPressed: () async {
   }
 
   try {
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    await rejectIssue();
-
-    Navigator.pop(context);
-
+   Navigator.pop(context);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text("Laporan berhasil ditolak"),
       ),
     );
-
     Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const DashboardTeknisi(),
+     context,
+     MaterialPageRoute(
+       builder: (_) => const DashboardTeknisi(),
       ),
       (route) => false,
+      
     );
 
   } catch (e) {

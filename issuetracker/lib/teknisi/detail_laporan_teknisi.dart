@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'progress_teknisi.dart';       // sesuaikan path project kamu
-import 'reject_laporan_teknisi.dart'; // sesuaikan path project kamu
+import 'progress_teknisi.dart';       
+import 'reject_laporan_teknisi.dart'; 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+final FlutterLocalNotificationsPlugin notificationPlugin =
+    FlutterLocalNotificationsPlugin();
 
 class DetailLaporanTeknisi extends StatefulWidget {
   final String issueId;
@@ -25,6 +29,7 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
     fetchDetail();
   }
 
+
   Future<void> fetchDetail() async {
     setState(() => isLoading = true);
     try {
@@ -42,6 +47,75 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
       setState(() => isLoading = false);
     }
   }
+
+  Future<void> initNotification() async {
+    const initSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const initSettings = InitializationSettings(
+      android: initSettingsAndroid,
+    );
+
+  }
+  Future<void> showNotif({int id = 0, required String title, required String body})async{
+    const details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'issue_channel',
+       'Issue Tracker',
+       channelDescription: 'Notifikasi Status Laporan',
+       importance: Importance.max,
+       priority: Priority.high
+       
+        )
+    );
+  }
+Future<void> kirimNotifikasi() async{
+  final issue = await supabase.from('issues')
+  .select('title, reported_by, assigned_by')
+  .eq('id', widget.issueId)
+  .single();
+      final judulIssue = issue['title'] ?? 'Laporan';
+        final karyawanId = issue['reported_by'] as String?;
+        final teknisId = issue['assigned_to'] as String?;
+          final admins = await supabase
+        .from('users')
+        .select('id')
+        .eq('role', 'admin');
+
+        final List<Map<String, dynamic>> notifList = [];
+        if(karyawanId != null) {
+          notifList.add({
+            'user_id' : karyawanId,
+            'title' : 'Laporan sedang dikerjakan!',
+            'message' : 'Laporan $judulIssue sedang dikerjakan!',
+            'type' : 'issue_resolved',
+            'is_read' : false,
+          });
+        }
+
+        if(teknisId != null){
+          notifList.add({
+              'user_id' : teknisId,
+              'title' : 'Kamu sedang mengerjakan!',
+              'message' : 'Kamu sedang menyelesaikan tugas $judulIssue',
+              'is_read' : false,
+          });
+        }
+
+        for (final admin in admins){
+          notifList.add({
+            'user_id' : admin['id'],
+            'title' : 'Laporan sedang dikerjakan',
+            'message' : 'Laporan $judulIssue telah sedang dikerjakan!'
+          });
+        }
+
+        if(notifList.isNotEmpty){
+          await supabase.from('noticisations').insert(notifList);
+
+        }
+}
+
 
   void terimaTugas() {
     Navigator.push(
@@ -226,7 +300,6 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
 
               const SizedBox(height: 14),
 
-              // ── Info detail ──
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -264,9 +337,17 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
                   children: [
                     Expanded(
                       child: SizedBox(
+                        
                         height: 48,
+                      
                         child: ElevatedButton(
-                          onPressed: terimaTugas,
+                          onPressed: () async{
+                             kirimNotifikasi();
+                            terimaTugas();
+                            showNotif(
+                            title: 'Laporan Sedang Dikerjakan', 
+                            body: 'Laporan sedang dikerjakan oleh teknisi');
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue[700],
                             shape: RoundedRectangleBorder(

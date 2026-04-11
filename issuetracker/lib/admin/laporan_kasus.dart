@@ -24,42 +24,45 @@ class _LaporanKasusState extends State<LaporanKasus> {
 
   Future<void> fetchIssues() async {
     try {
-      final response = await supabase.from('issues').select();
+      // FIX 4: Join dengan tabel users untuk mendapatkan nama pelapor
+      final response = await supabase
+          .from('issues')
+          .select('*, reporter:users!reported_by(name, email, phone)');
 
       setState(() {
         issues = List<Map<String, dynamic>>.from(response);
         isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      setState(() => isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     }
   }
 
   Future<void> searchIssues(String searchTerm) async {
-    setState(() {
-      isLoading = true;
-    });
-
+    setState(() => isLoading = true);
     try {
-      final response = await supabase.from('issues').select().or('title.ilike.%$searchTerm%, location.ilike.%$searchTerm%');
+      final response = await supabase
+          .from('issues')
+          .select('*, reporter:users!reported_by(name, email, phone)')
+          .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
       setState(() {
         issues = List<Map<String, dynamic>>.from(response);
         isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
   Widget buildCard(Map<String, dynamic> item) {
+    // FIX 4: Ambil nama pelapor dari hasil join
+    final reporterData = item['reporter'] as Map<String, dynamic>?;
+    final reporterName = reporterData?['name'] ?? item['reported_by'] ?? '-';
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -76,12 +79,15 @@ class _LaporanKasusState extends State<LaporanKasus> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Kasus: ${item['title'] ?? '-'}'),
+          Text('Kasus: ${item['title'] ?? '-'}',
+              style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 4),
           Text('Tanggal: ${item['created_at'].toString().substring(0, 10)}'),
           Text('Lokasi: ${item['location'] ?? '-'}'),
           Text('Kategori: ${item['category'] ?? '-'}'),
           Text('Prioritas: ${item['priority'] ?? '-'}'),
-          Text('Pelapor: ${item['reporter'] ?? '-'}'),
+          // FIX 4: Tampilkan nama pelapor, bukan UUID
+          Text('Pelapor: $reporterName'),
           Text('Status: ${item['status'] ?? '-'}'),
           Text('Sparepart: ${item['sparepart'] ?? '-'}'),
         ],
@@ -93,16 +99,13 @@ class _LaporanKasusState extends State<LaporanKasus> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
-        title: const Text("Laporan"),       
+        title: const Text("Laporan"),
         backgroundColor: Colors.grey[200],
       ),
-
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(12),
-
           child: Column(
             children: [
               TextField(
@@ -122,22 +125,16 @@ class _LaporanKasusState extends State<LaporanKasus> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 12),
-
               Expanded(
                 child: isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator())
+                    ? const Center(child: CircularProgressIndicator())
                     : issues.isEmpty
-                        ? const Center(
-                            child: Text('Tidak ada data'))
+                        ? const Center(child: Text('Tidak ada data'))
                         : ListView.builder(
                             itemCount: issues.length,
-                            itemBuilder: (context, index) {
-                              final item = issues[index];
-                              return buildCard(item);
-                            },
+                            itemBuilder: (context, index) =>
+                                buildCard(issues[index]),
                           ),
               ),
             ],

@@ -5,10 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DetailLaporanAdmin extends StatefulWidget {
   final String issueId;
 
-  const DetailLaporanAdmin({
-    super.key,
-    required this.issueId,
-  });
+  const DetailLaporanAdmin({super.key, required this.issueId});
 
   @override
   State<DetailLaporanAdmin> createState() => _DetailLaporanAdminState();
@@ -38,7 +35,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     super.dispose();
   }
 
-  // Ambil detail laporan dari Supabase
   Future<void> fetchIssueDetail() async {
     try {
       final response = await supabase
@@ -58,7 +54,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
-  // Ambil daftar komentar
   Future<void> fetchComments() async {
     try {
       final response = await supabase
@@ -76,7 +71,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
-  // Kirim komentar baru
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
@@ -101,6 +95,51 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
+  /// FIX 7: Tolak laporan dan update state lokal agar tombol hilang tanpa reload
+  Future<void> _tolakLaporan() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Tolak Laporan'),
+        content: const Text('Yakin ingin menolak laporan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Tolak',
+                style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await supabase
+          .from('issues')
+          .update({'status': 'Rejected'}).eq('id', widget.issueId);
+
+      if (mounted) {
+        // FIX 7: Update state lokal → tombol langsung hilang
+        setState(() {
+          issue = {...?issue, 'status': 'Rejected'};
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Laporan ditolak.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
+  }
+
   String _formatTanggal(String? raw) {
     if (raw == null) return '';
     try {
@@ -113,11 +152,20 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
     }
     if (issue == null) {
-      return const Scaffold(body: Center(child: Text("Data tidak ditemukan")));
+      return const Scaffold(
+          body: Center(child: Text("Data tidak ditemukan")));
     }
+
+    // FIX 7: Cek status laporan untuk sembunyikan tombol aksi
+    final String currentStatus = issue?['status']?.toString() ?? '';
+    final bool isRejected = currentStatus == 'Rejected';
+    final bool isAlreadyAssigned = currentStatus == 'Assigned' ||
+        currentStatus == 'In Progress' ||
+        currentStatus == 'Resolved';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -129,7 +177,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Judul laporan
+            // Judul
             Text(issue?['title']?.toString() ?? '',
                 style: const TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 24)),
@@ -139,19 +187,21 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
               _infoBox('Kategori',
                   issue?['category']?.toString() ?? 'Not Found'),
               const SizedBox(width: 12),
-              _infoBox(
-                  'Lokasi', issue?['location']?.toString() ?? 'Not Found'),
+              _infoBox('Lokasi',
+                  issue?['location']?.toString() ?? 'Not Found'),
             ]),
             const SizedBox(height: 14),
 
             Row(children: [
               _infoBox(
                   'Tanggal',
-                  _formatTanggal(
-                      issue?['created_at']?.toString().substring(0, 10))),
+                  _formatTanggal(issue?['created_at']
+                      ?.toString()
+                      .substring(0, 10))),
               const SizedBox(width: 12),
-              _infoBox(
-                  'Status', issue?['status']?.toString() ?? 'Not Found'),
+              _infoBox('Status', currentStatus.isNotEmpty
+                  ? currentStatus
+                  : 'Not Found'),
             ]),
             const SizedBox(height: 20),
 
@@ -206,7 +256,8 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 20),
 
-           Row(
+            // Prioritas
+            Row(
               children: [
                 const Text('Prioritas: ',
                     style: TextStyle(
@@ -220,9 +271,9 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                           'High': Colors.deepOrange,
                           'Medium': Colors.orange,
                           'Low': Colors.green,
-                        }[issue?['priority']?.toString()] ??
+                        }[issue?['priority']] ??
                         Colors.grey,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     issue?['priority']?.toString() ?? '-',
@@ -233,105 +284,103 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
+
+            // FIX 7: Banner status jika sudah Rejected
+            if (isRejected)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.red.shade200),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.cancel_outlined, color: Colors.red),
+                    SizedBox(width: 10),
+                    Text(
+                      'Laporan ini telah ditolak',
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+
+            if (isRejected) const SizedBox(height: 20),
 
             // Komentar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Komentar',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 20)),
-                IconButton(
-                  onPressed: fetchComments,
-                  icon: const Icon(Icons.refresh, color: Colors.blue),
-                  tooltip: 'Refresh komentar',
-                ),
-              ],
-            ),
+            const Text('Komentar',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
 
-          comments.isEmpty
-                ? Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Text('Belum ada komentar.',
-                          style: TextStyle(
-                              color: Colors.grey,
-                              fontStyle: FontStyle.italic)),
-                    ),
-                  )
-                : Column(
-                    children: comments.map((c) {
-                      final isMine = c['user_id'] == _uid;
-                      final namaUser =
-                          c['users']?['name']?.toString() ?? 'Unknown';
-                      final waktu =
-                          _formatTanggal(c['created_at']?.toString().substring(0, 10));
+            ...comments.map((c) {
+              final bool isMine = c['user_id']?.toString() == _uid;
+              final userMap =
+                  c['users'] as Map<String, dynamic>?;
+              final namaUser = userMap?['name'] ?? 'Unknown';
+              final waktu =
+                  _formatTanggal(c['created_at']?.toString());
 
-                      return Align(
-                        alignment: isMine
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 10),
-                          constraints: BoxConstraints(
-                            maxWidth:
-                                MediaQuery.of(context).size.width * 0.75,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isMine
-                                ? Colors.blue.shade100
-                                : Colors.grey.shade200,
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(12),
-                              topRight: const Radius.circular(12),
-                              bottomLeft: isMine
-                                  ? const Radius.circular(12)
-                                  : Radius.zero,
-                              bottomRight: isMine
-                                  ? Radius.zero
-                                  : const Radius.circular(12),
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: isMine
-                                ? CrossAxisAlignment.end
-                                : CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '$namaUser',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: isMine
-                                      ? Colors.blue.shade800
-                                      : Colors.grey.shade700,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(c['comment']?.toString() ?? '',
-                                  style: const TextStyle(fontSize: 15)),
-                              const SizedBox(height: 4),
-                              Text(waktu,
-                                  style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.grey)),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
+              return Align(
+                alignment: isMine
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        MediaQuery.of(context).size.width * 0.75,
                   ),
+                  decoration: BoxDecoration(
+                    color: isMine
+                        ? Colors.blue.shade100
+                        : Colors.grey.shade200,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(12),
+                      topRight: const Radius.circular(12),
+                      bottomLeft: isMine
+                          ? const Radius.circular(12)
+                          : Radius.zero,
+                      bottomRight: isMine
+                          ? Radius.zero
+                          : const Radius.circular(12),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: isMine
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        namaUser,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isMine
+                              ? Colors.blue.shade800
+                              : Colors.grey.shade700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(c['comment']?.toString() ?? '',
+                          style: const TextStyle(fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text(waktu,
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              );
+            }),
 
             const SizedBox(height: 12),
 
+            // Input komentar
             Row(
               children: [
                 Expanded(
@@ -358,8 +407,8 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     ? const SizedBox(
                         width: 44,
                         height: 44,
-                        child:
-                            CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2))
                     : Material(
                         color: Colors.blue,
                         shape: const CircleBorder(),
@@ -377,94 +426,81 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 30),
 
-            // Tombol panggil teknisi
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          PanggilTeknisi(issueId: widget.issueId),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                ),
-                child: const Text('Panggil Teknisi',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16)),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Tombol tolak laporan
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton(
-                onPressed: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (_) => AlertDialog(
-                      title: const Text('Tolak Laporan'),
-                      content: const Text(
-                          'Yakin ingin menolak laporan ini?'),
-                      actions: [
-                        TextButton(
-                            onPressed: () =>
-                                Navigator.pop(context, false),
-                            child: const Text('Batal')),
-                        TextButton(
-                            onPressed: () =>
-                                Navigator.pop(context, true),
-                            child: const Text('Tolak',
-                                style:
-                                    TextStyle(color: Colors.red))),
-                      ],
-                    ),
-                  );
-                  if (confirm == true) {
-                    try {
-                      await supabase
-                          .from('issues')
-                          .update({'status': 'Rejected'}).eq(
-                              'id', widget.issueId);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Laporan ditolak.')),
-                        );
-                        Navigator.pop(context);
-                      }
-                    } catch (e) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Error: $e')),
-                        );
-                      }
+            // FIX 7: Tombol aksi hanya tampil jika status BUKAN Rejected
+            // dan belum di-assign
+            if (!isRejected && !isAlreadyAssigned) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    final result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            PanggilTeknisi(issueId: widget.issueId),
+                      ),
+                    );
+                    // Refresh detail setelah kembali dari panggil teknisi
+                    if (result == true) {
+                      fetchIssueDetail();
                     }
-                  }
-                },
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Panggil Teknisi',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16)),
                 ),
-                child: const Text('Tolak Laporan',
-                    style: TextStyle(
-                        color: Colors.red,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16)),
               ),
-            ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton(
+                  onPressed: _tolakLaporan,
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: const Text('Tolak Laporan',
+                      style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16)),
+                ),
+              ),
+            ],
+
+            // FIX 7: Tampilkan info jika sudah assigned
+            if (isAlreadyAssigned)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: Colors.blue),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Laporan sedang $currentStatus',
+                      style: const TextStyle(
+                          color: Colors.blue,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
+
             const SizedBox(height: 30),
           ],
         ),

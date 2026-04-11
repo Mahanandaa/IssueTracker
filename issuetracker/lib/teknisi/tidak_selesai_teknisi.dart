@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+final FlutterLocalNotificationsPlugin notificationPlugin =
+    FlutterLocalNotificationsPlugin();
 
 class TidakSelesaiTeknisi extends StatefulWidget {
   
@@ -30,7 +34,71 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
         .eq('id', widget.issueId);
   }
 
+Future<void> initNotification() async{
+const initSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
 
+const initSettings = InitializationSettings(
+android: initSettingsAndroid,
+);
+}
+
+Future<void> showNotif({ int id = 0 , required String title, required String body}) async{
+  const details = NotificationDetails(
+    android:  AndroidNotificationDetails(
+    'issue_channel', 
+    'Issue tracker',
+    channelDescription: 'Notifikasi status laporan,',
+    importance: Importance.max,
+    priority: Priority.high,
+    ),
+  );
+}
+Future<void> kirimNotifikasi() async{
+  final issue= await supabase.from('issues')
+  .select('title, reported_by, assigned_to')
+  .eq('id', widget.issueId)
+  .single();
+
+  final judulIssue = issue['title'] ?? 'laporan';
+  final karyawanId =  issue['reported_by'] as String?;
+  final teknisId = issue['assigned_to'] as String?;
+  final admins = await supabase
+  .from('users')
+  .select('id')
+  .eq('role', 'admin');
+
+  final List<Map<String, dynamic>> notifList = [];
+  if(karyawanId != null){
+    notifList.add({
+    'user_id' : karyawanId,
+    'title' : 'Laporan Tidak Selesai',
+    'message' : 'Laporan $judulIssue tidak selesai',
+    'type' : 'issue_pending',
+    'is_read' : false,
+
+    }); 
+
+    
+    if(teknisId != null){
+      notifList.add({
+      'user_id' : teknisId,
+      'title' : 'Tugas Tidak Selesai !',
+      'message' : 'Tugas $judulIssue tidak selesai',
+      'type' : 'issue_pending',     
+      });
+    }  
+
+    for (final admin in admins) {
+      notifList.add({
+          'user_id' : admin['id'],
+          'title ' : 'Laporan Tidak Selesai',
+          'message' : 'Laporam $judulIssue tidak selesai',
+
+      });
+    }
+
+     }
+}
 
   Future<void> pickImage(ImageSource source) async {
     final image = await picker.pickImage(source: source);
@@ -219,6 +287,8 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
                   return;
                  }
                 try{
+                  await kirimNotifikasi();
+                  await showNotif(title: "Laporan Tidak Selesai", body: "Tugas Tidak Selesai Dikerjakan");
                   await tidakSelesai();
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Laporan Berhasil'),
                   )

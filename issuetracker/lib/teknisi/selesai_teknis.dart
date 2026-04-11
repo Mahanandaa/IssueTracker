@@ -5,7 +5,6 @@ import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-// Plugin notifikasi lokal — dideklarasikan di sini agar bisa dipakai di seluruh file
 final FlutterLocalNotificationsPlugin notificationPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -64,7 +63,16 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
 
   }
 
-  // Update status issue menjadi Resolved
+Future<void> updateStatuss() async {
+  final userId = supabase.auth.currentUser?.id;
+
+  if (userId == null) return;
+
+  await supabase.from('users').update({
+    'is_available': true,
+  }).eq('id', userId);
+}
+
   Future<void> selesai() async {
     await supabase.from('issues').update({
       'status': 'Resolved',
@@ -72,9 +80,7 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     }).eq('id', widget.issueId);
   }
 
-  // Simpan notifikasi ke tabel notifications untuk teknisi, admin, dan karyawan
   Future<void> kirimNotifikasi() async {
-    // Ambil data issue: judul, siapa pelapor, siapa teknisi
     final issue = await supabase
         .from('issues')
         .select('title, reported_by, assigned_to')
@@ -85,7 +91,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     final karyawanId = issue['reported_by'] as String?;
     final teknisiId = issue['assigned_to'] as String?;
 
-    // Ambil semua admin
     final admins = await supabase
         .from('users')
         .select('id')
@@ -93,7 +98,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
 
     final List<Map<String, dynamic>> notifList = [];
 
-    // Notifikasi untuk karyawan pelapor
     if (karyawanId != null) {
       notifList.add({
         'user_id': karyawanId,
@@ -104,7 +108,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
       });
     }
 
-    // Notifikasi untuk teknisi
     if (teknisiId != null) {
       notifList.add({
         'user_id': teknisiId,
@@ -115,7 +118,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
       });
     }
 
-    // Notifikasi untuk semua admin
     for (final admin in admins) {
       notifList.add({
         'user_id': admin['id'],
@@ -312,6 +314,7 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
               child: ElevatedButton(
                 onPressed: () async {
                   try {
+                    await updateStatuss();
                    await selesai();
                    await kirimNotifikasi();
                   await showNotif(

@@ -43,7 +43,28 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     commentController.dispose();
     super.dispose();
   }
+Future<void> checkDeadlineAndNotify(Map<String, dynamic> issue) async {
+  if (issue['deadline'] == null) return;
 
+  final deadline = DateTime.parse(issue['deadline']);
+  final now = DateTime.now();
+
+  if (now.isAfter(deadline) && issue['status'] != 'Resolved') {
+    final users = await supabase
+        .from('users')
+        .select()
+        .inFilter('role', ['admin', 'teknisi']);
+
+    for (var user in users) {
+      await supabase.from('notifications').insert({
+        'user_id': user['id'],
+        'title': 'Deadline Terlewat',
+        'message': 'Tugas "${issue['title']}" sudah melewati deadline',
+        'type': 'new_task',
+      });
+    }
+  }
+}
   Future<void> fetchIssueDetail() async {
     try {
       final response = await supabase
@@ -154,7 +175,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
 
             Row(children: [
               _infoBox('Tanggal',
-                  _formatTanggal(issue?['created_at']?.toString())),
+                  _formatTanggal(issue?['created_at']?.toString().substring(0, 10))),
               const SizedBox(width: 12),
               _infoBox('Status', issue?['status']?.toString() ?? ''),
             ]),

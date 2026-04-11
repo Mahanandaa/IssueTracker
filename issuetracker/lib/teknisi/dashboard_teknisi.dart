@@ -174,9 +174,7 @@ Future<void> fetchIssues() async {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'All'
-                            ? Colors.blue
-                            : Colors.grey[200],
+                            color: selectedStatus == 'All' ? Colors.blue:Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("All")),
@@ -228,27 +226,21 @@ Future<void> fetchIssues() async {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'High'
-                                ? Colors.deepOrange
-                                : Colors.grey[200],
+                            color: selectedStatus == 'High'? Colors.deepOrange                       : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("Tinggi")),
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => setState(() => selectedStatus = 'Urgent'),
+                       onTap: () => setState(() => selectedStatus = 'Urgent'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'Urgent'
-                                ? Colors.red
-                                : Colors.grey[200],
+                            color: selectedStatus == 'Urgent'? Colors.red : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("Darurat")),

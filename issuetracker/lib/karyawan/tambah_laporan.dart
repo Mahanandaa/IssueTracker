@@ -22,55 +22,32 @@ class _TambahLaporanState extends State<TambahLaporan> {
   String? selectKategori;
   String? selectPrioritas;
   File? _imageFile;
-  DateTime? _selectedDeadline; // menyimpan deadline yang dipilih
+  DateTime? _selectedDeadline;
 
   final ImagePicker picker = ImagePicker();
 
-  // Membuka date picker lalu time picker
   Future<void> _pickDeadline() async {
     final now = DateTime.now();
 
-    // Pilih tanggal
     final date = await showDatePicker(
       context: context,
       initialDate: now.add(const Duration(days: 1)),
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
-      builder: (ctx, child) => Theme(
-        data: Theme.of(ctx).copyWith(
-          colorScheme: const ColorScheme.light(primary: Colors.blue),
-        ),
-        child: child!,
-      ),
     );
+
     if (date == null) return;
 
-    // Pilih jam
-    final time = await showTimePicker(
-      context: context,
-      initialTime: const TimeOfDay(hour: 17, minute: 0),
-    );
-    if (time == null) return;
-
     setState(() {
-      _selectedDeadline = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
+      _selectedDeadline = DateTime(date.year, date.month, date.day);
     });
   }
 
-  // Format DateTime ke string yang mudah dibaca
   String _formatDeadline(DateTime dt) {
     final day = dt.day.toString().padLeft(2, '0');
     final month = dt.month.toString().padLeft(2, '0');
     final year = dt.year;
-    final hour = dt.hour.toString().padLeft(2, '0');
-    final minute = dt.minute.toString().padLeft(2, '0');
-    return '$day/$month/$year  $hour:$minute';
+    return '$day/$month/$year';
   }
 
   Future<void> pickImage(ImageSource source) async {
@@ -171,21 +148,16 @@ class _TambahLaporanState extends State<TambahLaporan> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            // ── Judul ──
             const Text("Judul Masalah",
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(judul, "Masukan judul masalah"),
             const SizedBox(height: 20),
-
-            // ── Lokasi ──
             const Text("Lokasi",
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
             _inputField(lokasi, "Lokasi"),
             const SizedBox(height: 20),
-
-            // ── Deadline ──
             const Text("Tegat Waktu",
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
@@ -204,21 +176,17 @@ class _TambahLaporanState extends State<TambahLaporan> {
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.calendar_month_outlined,
-                      size: 18,
-                   color: const Color.fromARGB(255, 21, 148, 252)
-                    ),
+                    const Icon(Icons.calendar_month_outlined,
+                        size: 18, color: Color.fromARGB(255, 21, 148, 252)),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'pilih tegat waktu tugas'
+                        _selectedDeadline == null
+                            ? 'pilih tegat waktu tugas'
+                            : _formatDeadline(_selectedDeadline!),
                       ),
                     ),
-
-
-
-                   if (_selectedDeadline != null)
+                    if (_selectedDeadline != null)
                       GestureDetector(
                         onTap: () => setState(() => _selectedDeadline = null),
                         child: const Icon(Icons.close,
@@ -246,8 +214,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
               ],
             ),
             const SizedBox(height: 25),
-
-            // ── Prioritas ──
             const Text("Prioritas",
                 style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             const SizedBox(height: 12),
@@ -262,8 +228,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
               ],
             ),
             const SizedBox(height: 25),
-
-            // ── Deskripsi ──
             const Text("Deskripsi",
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
@@ -280,8 +244,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
               ),
             ),
             const SizedBox(height: 25),
-
-            // ── Foto ──
             const Text("Tambah Foto (Opsional)",
                 style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
@@ -320,8 +282,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
               ),
             ),
             const SizedBox(height: 30),
-
-            // ── Submit ──
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
@@ -337,7 +297,8 @@ class _TambahLaporanState extends State<TambahLaporan> {
                       selectPrioritas == null ||
                       judul.text.isEmpty ||
                       lokasi.text.isEmpty ||
-                      deskripsi.text.isEmpty) {
+                      deskripsi.text.isEmpty ||
+                      _selectedDeadline == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                           content: Text("Semua field wajib diisi")),
@@ -362,6 +323,7 @@ class _TambahLaporanState extends State<TambahLaporan> {
                       reportedBy:
                           Supabase.instance.client.auth.currentUser?.id ??
                               'karyawan',
+                      deadline: _selectedDeadline,
                     );
 
                     await issueService.createIssue(newIssue);
