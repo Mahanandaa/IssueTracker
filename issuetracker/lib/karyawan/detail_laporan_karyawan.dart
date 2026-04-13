@@ -6,10 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class DetailLaporanKaryawan extends StatefulWidget {
   final String issueId;
 
-  const DetailLaporanKaryawan({
-    super.key,
-    required this.issueId,
-  });
+  const DetailLaporanKaryawan({super.key, required this.issueId});
 
   @override
   State<DetailLaporanKaryawan> createState() =>
@@ -26,8 +23,6 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
   List<Map<String, dynamic>> comments = [];
   bool isLoading = true;
   bool isSendingComment = false;
-
-  // No. 4: flag apakah sudah pernah submit rating
   bool _sudahDinilai = false;
 
   String get _uid => supabase.auth.currentUser?.id ?? '';
@@ -47,26 +42,6 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     super.dispose();
   }
 
-  Future<void> checkDeadlineAndNotify(Map<String, dynamic> issue) async {
-    if (issue['deadline'] == null) return;
-    final deadline = DateTime.parse(issue['deadline']);
-    final now = DateTime.now();
-    if (now.isAfter(deadline) && issue['status'] != 'Resolved') {
-      final users = await supabase
-          .from('users')
-          .select()
-          .inFilter('role', ['admin', 'teknisi']);
-      for (var user in users) {
-        await supabase.from('notifications').insert({
-          'user_id': user['id'],
-          'title': 'Deadline Terlewat',
-          'message': 'Tugas "${issue['title']}" sudah melewati deadline',
-          'type': 'new_task',
-        });
-      }
-    }
-  }
-
   Future<void> fetchIssueDetail() async {
     try {
       final response = await supabase
@@ -79,18 +54,13 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
           issue = response;
           isLoading = false;
         });
-
-        // No. 4: cek apakah user ini sudah memberi rating pada issue ini
-        if (response != null) {
-          _cekSudahDinilai();
-        }
+        if (response != null) _cekSudahDinilai();
       }
     } catch (e) {
       if (mounted) setState(() => isLoading = false);
     }
   }
 
-  // No. 4: cek ke tabel ratings apakah sudah ada entry untuk issue_id ini
   Future<void> _cekSudahDinilai() async {
     try {
       final existing = await supabase
@@ -98,11 +68,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
           .select('id')
           .eq('issue_id', widget.issueId)
           .maybeSingle();
-      if (mounted) {
-        setState(() {
-          _sudahDinilai = existing != null;
-        });
-      }
+      if (mounted) setState(() => _sudahDinilai = existing != null);
     } catch (_) {}
   }
 
@@ -118,13 +84,12 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
           comments = List<Map<String, dynamic>>.from(response);
         });
       }
-    } catch (e) {}
+    } catch (_) {}
   }
 
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
-
     setState(() => isSendingComment = true);
     try {
       await supabase.from('comments').insert({
@@ -137,32 +102,35 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal kirim komentar: $e')),
-        );
+            SnackBar(content: Text('Gagal kirim komentar: $e')));
       }
     } finally {
       if (mounted) setState(() => isSendingComment = false);
     }
   }
 
+  // FIX 3: Kirim rating beserta technician_id agar terbaca di profil teknisi
   Future<void> kirimUlasan() async {
+    final ratingVal = int.tryParse(rate.text.trim()) ?? 0;
+    // Ambil technician_id dari issue
+    final technicianId = issue?['assigned_to'] as String?;
+
     await supabase.from('ratings').insert({
-      'rating': int.tryParse(rate.text.trim()) ?? 0,
+      'rating': ratingVal,
       'feedback': feedback.text.trim(),
       'issue_id': widget.issueId,
+      // FIX 3: Simpan technician_id agar bisa dihitung rata-rata di profil teknisi
+      if (technicianId != null) 'technician_id': technicianId,
     });
   }
 
-  // No. 1: format deadline
   String _formatDeadline(dynamic raw) {
     if (raw == null) return 'Tidak ada deadline';
     try {
       final dt = DateTime.parse(raw.toString()).toLocal();
       return '${dt.day.toString().padLeft(2, '0')}/'
           '${dt.month.toString().padLeft(2, '0')}/'
-          '${dt.year}  '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+          '${dt.year}';
     } catch (_) {
       return raw.toString();
     }
@@ -175,6 +143,51 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     } catch (_) {
       return raw;
     }
+  }
+
+  // FIX 4: Widget foto dengan label
+  Widget _fotoCard(String label, String? url) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Column(
+          children: [
+            Text(label,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            url != null && url.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      url,
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          const Text('Gagal memuat foto',
+                              style: TextStyle(color: Colors.grey)),
+                    ),
+                  )
+                : Container(
+                    height: 120,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Text('Belum ada foto',
+                        style: TextStyle(
+                            color: Colors.grey, fontSize: 12)),
+                  ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -207,7 +220,8 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             const SizedBox(height: 20),
 
             Row(children: [
-              _infoBox('Kategori', issue?['category']?.toString() ?? ''),
+              _infoBox(
+                  'Kategori', issue?['category']?.toString() ?? ''),
               const SizedBox(width: 12),
               _infoBox('Lokasi', issue?['location']?.toString() ?? ''),
             ]),
@@ -224,7 +238,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ]),
             const SizedBox(height: 14),
 
-            // No. 1: tampilkan deadline
+            // Deadline
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -244,12 +258,12 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                 ],
               ),
             ),
+            const SizedBox(height: 20),
 
-            const SizedBox(height: 24),
-
+            // Deskripsi
             const Text('Deskripsi',
-                style:
-                    TextStyle(fontWeight: FontWeight.w600, fontSize: 22)),
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 20)),
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -258,18 +272,168 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
               ),
-              child: Text(issue?['description']?.toString() ?? ''),
+              child:
+                  Text(issue?['description']?.toString() ?? ''),
             ),
 
+            const SizedBox(height: 20),
+
+            // FIX 4: Foto sebelum dan sesudah pengerjaan
+            if (status == 'Resolved' ||
+                issue?['photo_url'] != null ||
+                issue?['completion_photo_url'] != null) ...[
+              const Text('Foto Pengerjaan',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 18)),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  _fotoCard(
+                      'Sebelum', issue?['photo_url']?.toString()),
+                  const SizedBox(width: 12),
+                  _fotoCard('Sesudah',
+                      issue?['completion_photo_url']?.toString()),
+                ],
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // Resolution notes jika ada
+            if (issue?['resolution_notes'] != null &&
+                (issue!['resolution_notes'] as String)
+                    .isNotEmpty) ...[
+              const Text('Catatan Solusi',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 18)),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Text(
+                    issue!['resolution_notes'].toString()),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            // Komentar
+            const Text('Komentar',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 18)),
+            const SizedBox(height: 10),
+            ...comments.map((c) {
+              final bool isMine = c['user_id']?.toString() == _uid;
+              final userMap = c['users'] as Map<String, dynamic>?;
+              final namaUser = userMap?['name'] ?? 'Unknown';
+              final waktu =
+                  _formatTanggal(c['created_at']?.toString());
+              return Align(
+                alignment: isMine
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(12),
+                  constraints: BoxConstraints(
+                      maxWidth:
+                          MediaQuery.of(context).size.width * 0.75),
+                  decoration: BoxDecoration(
+                    color: isMine
+                        ? Colors.blue.shade100
+                        : Colors.grey.shade200,
+                    borderRadius: BorderRadius.only(
+                      topLeft: const Radius.circular(12),
+                      topRight: const Radius.circular(12),
+                      bottomLeft: isMine
+                          ? const Radius.circular(12)
+                          : Radius.zero,
+                      bottomRight: isMine
+                          ? Radius.zero
+                          : const Radius.circular(12),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: isMine
+                        ? CrossAxisAlignment.end
+                        : CrossAxisAlignment.start,
+                    children: [
+                      Text(namaUser,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isMine
+                                ? Colors.blue.shade800
+                                : Colors.grey.shade700,
+                          )),
+                      const SizedBox(height: 4),
+                      Text(c['comment']?.toString() ?? ''),
+                      const SizedBox(height: 4),
+                      Text(waktu,
+                          style: const TextStyle(
+                              fontSize: 11, color: Colors.grey)),
+                    ],
+                  ),
+                ),
+              );
+            }),
+            const SizedBox(height: 12),
+
+            // Input komentar
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: commentController,
+                    maxLines: null,
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: (_) => kirimKomentar(),
+                    decoration: InputDecoration(
+                      hintText: 'Tulis komentar...',
+                      filled: true,
+                      fillColor: Colors.grey.shade100,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                isSendingComment
+                    ? const SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2))
+                    : Material(
+                        color: Colors.blue,
+                        shape: const CircleBorder(),
+                        child: InkWell(
+                          onTap: kirimKomentar,
+                          customBorder: const CircleBorder(),
+                          child: const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Icon(Icons.send,
+                                color: Colors.white, size: 20),
+                          ),
+                        ),
+                      ),
+              ],
+            ),
             const SizedBox(height: 30),
 
+            // Form feedback/rating hanya jika Resolved
             if (status == 'Resolved') ...[
-              const Text('Feedback',
+              const Text('Feedback & Rating',
                   style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 22)),
+                      fontWeight: FontWeight.w600, fontSize: 20)),
               const SizedBox(height: 10),
-
-              // No. 4: jika sudah dinilai, tampilkan info saja
               if (_sudahDinilai) ...[
                 Container(
                   width: double.infinity,
@@ -283,18 +447,19 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                     children: [
                       Icon(Icons.check_circle, color: Colors.green),
                       SizedBox(width: 8),
-                      Text(
-                        'Anda sudah memberikan rating & feedback.',
-                        style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.w500),
+                      Expanded(
+                        child: Text(
+                          'Anda sudah memberikan rating & feedback.',
+                          style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.w500),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 30),
               ] else ...[
-                // Belum dinilai — tampilkan form
                 TextField(
                   controller: feedback,
                   maxLength: 250,
@@ -309,14 +474,11 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                         borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
-
                 const SizedBox(height: 16),
-
                 const Text('Rating (1–5)',
                     style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 22)),
+                        fontWeight: FontWeight.w600, fontSize: 18)),
                 const SizedBox(height: 10),
-
                 TextField(
                   keyboardType: TextInputType.number,
                   inputFormatters: [
@@ -326,21 +488,23 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                   maxLength: 1,
                   decoration: InputDecoration(
                     hintText: 'Contoh: 5',
-                    prefixIcon:
-                        const Icon(Icons.star, color: Colors.orange),
+                    prefixIcon: const Icon(Icons.star,
+                        color: Colors.orange),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
-
-                const SizedBox(height: 30),
-
+                const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12))),
                     onPressed: () async {
                       if (rate.text.isEmpty || feedback.text.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -350,19 +514,17 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                         );
                         return;
                       }
-
-                      final ratingVal = int.tryParse(rate.text.trim()) ?? 0;
+                      final ratingVal =
+                          int.tryParse(rate.text.trim()) ?? 0;
                       if (ratingVal < 1 || ratingVal > 5) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content:
-                                  Text('Rating harus antara 1 sampai 5')),
+                              content: Text(
+                                  'Rating harus antara 1 sampai 5')),
                         );
                         return;
                       }
-
                       await kirimUlasan();
-
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -371,14 +533,15 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const DashboardKaryawan()),
+                              builder: (_) =>
+                                  const DashboardKaryawan()),
                         );
                       }
                     },
-                    child: const Text('Selesai'),
+                    child: const Text('Kirim Penilaian',
+                        style: TextStyle(color: Colors.white)),
                   ),
                 ),
-
                 const SizedBox(height: 30),
               ],
             ],
@@ -399,9 +562,12 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label),
+            Text(label,
+                style: const TextStyle(
+                    color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 6),
-            Text(value),
+            Text(value,
+                style: const TextStyle(fontWeight: FontWeight.w500)),
           ],
         ),
       ),

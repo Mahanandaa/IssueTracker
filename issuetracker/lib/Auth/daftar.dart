@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/Auth/auth_service.dart';
+import 'package:issuetracker/Auth/login.dart';
 
-// Rename class ke kapital sesuai konvensi Dart
 class Daftar extends StatefulWidget {
   const Daftar({super.key});
 
@@ -29,7 +29,7 @@ class _DaftarState extends State<Daftar> {
     super.dispose();
   }
 
-  void signUp() async {
+  Future<void> signUp() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final nama = _namaController.text.trim();
@@ -58,12 +58,19 @@ class _DaftarState extends State<Daftar> {
 
     try {
       await authService.signUp(email, password, nomor, nama);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Pendaftaran berhasil! Silakan login.')),
         );
-        Navigator.pop(context);
+
+        await Future.delayed(const Duration(seconds: 1));
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Loginpage()),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -90,7 +97,6 @@ class _DaftarState extends State<Daftar> {
                   color: Colors.blue[900],
                   fontWeight: FontWeight.bold,
                   fontSize: 40,
-                  letterSpacing: 1,
                 ),
               ),
               const SizedBox(height: 50),
@@ -100,83 +106,59 @@ class _DaftarState extends State<Daftar> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    const BoxShadow(
-                      color: Color(0x19000000),
-                      blurRadius: 24,
-                      offset: Offset(0, 11),
-                    ),
-                  ],
                 ),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const SizedBox(height: 20),
                     const Text(
-                      'Belum punya akun?',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 20),
-                    ),
-                    Text(
-                      'Daftar Dulu',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      'Daftar Akun',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
                     ),
                     const SizedBox(height: 20),
+
                     _buildLabel('Nama Lengkap'),
-                    const SizedBox(height: 6),
                     _buildTextField(_namaController, 'Masukkan nama'),
+
                     const SizedBox(height: 14),
                     _buildLabel('Email'),
-                    const SizedBox(height: 6),
-                    _buildTextField(_emailController, 'nama@gmail.com',
-                        keyboardType: TextInputType.emailAddress),
+                    _buildTextField(_emailController, 'nama@gmail.com'),
+
                     const SizedBox(height: 14),
                     _buildLabel('Nomor Telepon'),
-                    const SizedBox(height: 6),
-                    _buildTextField(_nomorController, '08xxxxxxxxxx',
-                        keyboardType: TextInputType.phone),
+                    _buildTextField(_nomorController, '08xxxxxxxxxx'),
+
                     const SizedBox(height: 14),
                     _buildLabel('Password'),
-                    const SizedBox(height: 6),
                     _buildTextField(_passwordController, '********',
                         obscure: true),
+
                     const SizedBox(height: 14),
                     _buildLabel('Konfirmasi Password'),
-                    const SizedBox(height: 6),
                     _buildTextField(_confirmController, '********',
                         obscure: true),
+
                     const SizedBox(height: 22),
+
                     SizedBox(
-                      width: 211,
+                      width: double.infinity,
                       height: 45,
                       child: TextButton(
                         onPressed: _isLoading ? null : signUp,
                         style: TextButton.styleFrom(
-                          backgroundColor: Colors.blue[600],
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
+                          backgroundColor: Colors.blue,
                         ),
                         child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    color: Colors.white, strokeWidth: 2))
-                            : const Text('Daftar',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600)),
+                            ? const CircularProgressIndicator(
+                                color: Colors.white)
+                            : const Text(
+                                'Daftar',
+                                style: TextStyle(color: Colors.white),
+                              ),
                       ),
                     ),
-                    const SizedBox(height: 20),
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
             ],
           ),
         ),
@@ -195,15 +177,12 @@ class _DaftarState extends State<Daftar> {
     TextEditingController controller,
     String hint, {
     bool obscure = false,
-    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
-      keyboardType: keyboardType,
       decoration: InputDecoration(
         hintText: hint,
-        contentPadding: const EdgeInsets.all(12),
         border:
             OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
       ),

@@ -13,6 +13,12 @@ class KasusAdmin extends StatefulWidget {
 }
 
 class _KasusAdminState extends State<KasusAdmin> {
+  final supabase = Supabase.instance.client;
+  int _currentIndex = 1;
+  List<Map<String, dynamic>> issues = [];
+  final search = TextEditingController();
+  bool _isLoading = false;
+  String? selectedStatus = "All";
 
   int getPriorityOrder(String priority) {
     switch (priority.toLowerCase()) {
@@ -29,13 +35,6 @@ class _KasusAdminState extends State<KasusAdmin> {
     }
   }
 
-  final supabase = Supabase.instance.client;
-  int _currentIndex = 0;
-  List<Map<String, dynamic>> issues = [];
-  final search = TextEditingController();
-  bool _isloading = false;
-  String? selectedStatus = "All";
-
   @override
   void initState() {
     super.initState();
@@ -43,42 +42,51 @@ class _KasusAdminState extends State<KasusAdmin> {
   }
 
   Future<void> fetchIssues() async {
-    final response = await supabase.from('issues').select();
-    setState(() {
-      issues = List<Map<String, dynamic>>.from(response);
-    });
+    setState(() => _isLoading = true);
+    try {
+      final response = await supabase.from('issues').select();
+      setState(() {
+        issues = List<Map<String, dynamic>>.from(response);
+      });
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> fenchData([String? searchTerm]) async {
-    setState(() {
-      _isloading = true;
-    });
-
+    setState(() => _isLoading = true);
     try {
       var query = supabase.from('issues').select();
-
       if (searchTerm != null && searchTerm.isNotEmpty) {
         query = supabase
             .from('issues')
             .select()
             .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%');
       }
-
       final data = await query;
-
       setState(() {
         issues = List<Map<String, dynamic>>.from(data);
       });
     } on PostgrestException catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error : ${error.message}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error : ${error.message}')),
+        );
+      }
     } finally {
-      setState(() {
-        _isloading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
+
+  // FIX 2: Warna background card berdasarkan status
+  Color _cardColor(Map<String, dynamic> issue) {
+    final status = issue['status']?.toString();
+    if (status == 'Resolved') return Colors.green[100]!;
+    if (status == 'Rejected') return Colors.red[50]!;
+    if (issue['priority'] == 'Urgent') return const Color.fromARGB(255, 243, 77, 65);
+    return Colors.grey[100]!;
+  }
+
   @override
   Widget build(BuildContext context) {
     List<Map<String, dynamic>> filteredIssues = issues.where((issue) {
@@ -86,10 +94,9 @@ class _KasusAdminState extends State<KasusAdmin> {
       return issue['priority'] == selectedStatus;
     }).toList();
 
-    filteredIssues.sort((a, b) {
-      return getPriorityOrder(a['priority'] ?? '')
-          .compareTo(getPriorityOrder(b['priority'] ?? ''));
-    });
+    filteredIssues.sort((a, b) => getPriorityOrder(a['priority'] ?? '')
+        .compareTo(getPriorityOrder(b['priority'] ?? '')));
+
     return Scaffold(
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -108,37 +115,33 @@ class _KasusAdminState extends State<KasusAdmin> {
               icon: Icon(Icons.settings), label: 'Pengaturan'),
         ],
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-
+          setState(() => _currentIndex = index);
           if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const DashboardAdmin(),
-              ),
-            );
-          } else if (index == 1 ){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const KasusAdmin()));
-          } else if (index == 2){
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const DataAdmin()));
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const DashboardAdmin()));
+          } else if (index == 1) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const KasusAdmin()));
+          } else if (index == 2) {
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const DataAdmin()));
           } else if (index == 3) {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileAdmin()));
+            Navigator.pushReplacement(context,
+                MaterialPageRoute(builder: (_) => const ProfileAdmin()));
           }
         },
       ),
       backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
-        title: const Text("Kasus"),   
+        title: const Text("Kasus"),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(12),
           child: Column(
             children: [
-
+              // Search
               Container(
                 height: 45,
                 decoration: BoxDecoration(
@@ -153,259 +156,197 @@ class _KasusAdminState extends State<KasusAdmin> {
                     hintText: 'Cari Kasus...',
                     prefixIcon: Icon(Icons.search),
                   ),
-                  onChanged: (value) {
-                    fenchData(value);
-                  },
+                  onChanged: fenchData,
                 ),
               ),
 
               const SizedBox(height: 10),
 
+              // Filter priority
               Row(
                 children: [
-
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedStatus = 'All';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'All'
-                              ? Colors.blue
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Center(child: Text("All")),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedStatus = 'Low';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'Low'
-                              ? Colors.green
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Center(child: Text("Rendah")),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedStatus = 'Medium';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'Medium'
-                              ? Colors.orange
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Center(child: Text("Menengah")),
-                      ),
-                    ),
-                  ),
-                 const SizedBox(width: 8),
-                  Expanded(
-                  child: GestureDetector(
-                  onTap: () {
-                        setState(() {
-                          selectedStatus = 'Hard';
-                        });
-                      },
-                      child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                      color: selectedStatus == 'Hard'
-                              ? Colors.deepOrange
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Center(child: Text("Sulit")),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 8),
-
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedStatus = 'Urgent';
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          color: selectedStatus == 'Urgent'
-                              ? Colors.red
-                              : Colors.grey[200],
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: const Center(child: Text("Darurat")),
-                      ),
-                    ),
-                  ),
-
+                  _priorityBtn('All', 'All', Colors.blue),
+                  const SizedBox(width: 6),
+                  _priorityBtn('Rendah', 'Low', Colors.green),
+                  const SizedBox(width: 6),
+                  _priorityBtn('Menengah', 'Medium', Colors.orange),
+                  const SizedBox(width: 6),
+                  _priorityBtn('Tinggi', 'High', Colors.deepOrange),
+                  const SizedBox(width: 6),
+                  _priorityBtn('Darurat', 'Urgent', Colors.red),
                 ],
               ),
 
               const SizedBox(height: 12),
 
-              filteredIssues.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Tidak Ada Laporan',
-                        style: TextStyle(
-                          fontStyle: FontStyle.italic,
-                          fontSize: 20,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    )
-                  : ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: filteredIssues.length,
-                      itemBuilder: (context, index) {
+              _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : filteredIssues.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Tidak Ada Laporan',
+                            style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontSize: 20,
+                                color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: filteredIssues.length,
+                          itemBuilder: (context, index) {
+                            final issue = filteredIssues[index];
+                            final status = issue['status']?.toString();
 
-                        final issue = filteredIssues[index];
-
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DetailLaporanAdmin(
-                                  issueId: issue['id'].toString(),
+                            return GestureDetector(
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => DetailLaporanAdmin(
+                                      issueId: issue['id'].toString(),
+                                    ),
+                                  ),
+                                );
+                                fetchIssues();
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  // FIX 2: warna hijau untuk Resolved
+                                  color: _cardColor(issue),
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 6,
+                                      offset: Offset(0, 3),
+                                    )
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            issue['title'] ?? '',
+                                            overflow:
+                                                TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                        ),
+                                        // FIX 2: badge status
+                                        Container(
+                                          padding:
+                                              const EdgeInsets.symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: status == 'Resolved'
+                                                ? Colors.green[700]
+                                                : status == 'Rejected'
+                                                    ? Colors.red[700]
+                                                    : Colors.grey[300],
+                                            borderRadius:
+                                                BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            status ?? '-',
+                                            style: TextStyle(
+                                              color: (status ==
+                                                              'Resolved' ||
+                                                          status ==
+                                                              'Rejected')
+                                                  ? Colors.white
+                                                  : Colors.black87,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      issue['priority'] ?? '',
+                                      style: TextStyle(
+                                        color: {
+                                              'Urgent': Colors.red,
+                                              'High': Colors.deepOrange,
+                                              'Medium': Colors.orange.shade800,
+                                              'Low': Colors.green,
+                                            }[issue['priority']
+                                                ?.toString()] ??
+                                            Colors.black,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                        "Lokasi : ${issue['location'] ?? ''}"),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          issue['created_at'] != null
+                                              ? issue['created_at']
+                                                  .toString()
+                                                  .substring(0, 10)
+                                              : '',
+                                        ),
+                                        const Text(
+                                          "Lihat Detail",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             );
                           },
-
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: issue['priority'] == 'Urgent'
-                                  ? const Color.fromARGB(255, 243, 77, 65)
-                                  : Colors.grey[100],
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.black12,
-                                    blurRadius: 6,
-                                    offset: Offset(0, 3),
-                                )
-                              ]
-                            ),
-
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-
-                            Expanded(
-                            child: Text(
-                              issue['title'] ?? '',
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                
-                              ),
-                            ),
-                          ),
-
-                          Text(
-                            issue['priority'] ?? '',
-                            style: TextStyle(
-                              color: {
-                                'urgent': Colors.white,
-                                'high': Colors.deepOrange,
-                                'medium': Colors.orange,
-                                'low': Colors.green,
-                              }[issue['priority']?.toString().toLowerCase()] ?? Colors.black, 
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                            ),
-                          ),
-
-                                  ],
-                                ),
-
-                                const SizedBox(height: 6),
-
-                                Text(
-                                  "Lokasi : ${issue['location'] ?? ''}",
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 6),
-
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-
-                                    Text(
-                                      issue['created_at'] != null
-                                          ? issue['created_at']
-                                              .toString()
-                                              .substring(0, 10)
-                                          : '',
-                                      style: const TextStyle(
-                                        fontSize: 15,
-                                      ),
-                                    ),
-
-                                    const Text(
-                                      "Lihat Detail",
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-
-
+                        ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _priorityBtn(String label, String val, Color color) {
+    final isSelected = selectedStatus == val;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => selectedStatus = val),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? color : Colors.grey[200],
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Center(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isSelected ? Colors.white : Colors.black,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
       ),

@@ -23,12 +23,23 @@ class AuthGate extends StatelessWidget {
         final session = snapshot.data?.session;
         final event = snapshot.data?.event;
 
+      
         if (session == null || event == AuthChangeEvent.signedOut) {
-          return const Loginpage();
+         
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const Loginpage()),
+              (route) => false,
+            );
+          });
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         return FutureBuilder<String?>(
-          key: ValueKey(session.user.id),
+        
+          key: ValueKey(session.accessToken),
           future: AuthService().getUserRole(session.user.id),
           builder: (context, roleSnapshot) {
             if (roleSnapshot.connectionState == ConnectionState.waiting) {

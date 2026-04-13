@@ -5,20 +5,21 @@ import 'package:issuetracker/main.dart';
 import 'package:issuetracker/Auth/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class profilesettingkaryawan extends StatefulWidget {
-  const profilesettingkaryawan({super.key});
+class ProfileSettingKaryawan extends StatefulWidget {
+  const ProfileSettingKaryawan({super.key});
 
   @override
-  State<profilesettingkaryawan> createState() =>
-      _profilesettingkaryawanState();
+  State<ProfileSettingKaryawan> createState() =>
+      _ProfileSettingKaryawanState();
 }
 
-class _profilesettingkaryawanState extends State<profilesettingkaryawan> {
+class _ProfileSettingKaryawanState extends State<ProfileSettingKaryawan> {
   final authService = AuthService();
   final supabase = Supabase.instance.client;
 
   void logout() async {
     await authService.keluar();
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const Loginpage()),
@@ -29,129 +30,138 @@ class _profilesettingkaryawanState extends State<profilesettingkaryawan> {
   Widget build(BuildContext context) {
     final user = supabase.auth.currentUser;
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final cardColor = isDark ? Colors.grey[850]! : Colors.white;
+    final textColor = theme.textTheme.bodyMedium?.color ?? Colors.black;
+    final shadowColor =
+        isDark ? Colors.black45 : const Color.fromARGB(255, 200, 200, 200);
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.grey[200],
-        title: const Text("Profile dan Settings"),
-      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const SizedBox(height: 16),
+          FutureBuilder(
+            future:
+                supabase.from('users').select().eq('id', user!.id).single(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-        FutureBuilder(
-          
-  future: supabase.from('users').select().eq('id', user!.id).single(),
-builder: (context, snapshot) {
-  if (snapshot.connectionState == ConnectionState.waiting) {
-    return const Center(child: CircularProgressIndicator());
-  }
+              if (snapshot.hasError || !snapshot.hasData) {
+                return const Text("Terjadi error");
+              }
 
-  if (snapshot.hasError) {
-    return const Text("Terjadi error");
-  }
+              final data = snapshot.data as Map<String, dynamic>;
 
-  if (!snapshot.hasData) {
-    return const Text("Data tidak ditemukan");
-  }
-
-  final data = snapshot.data as Map<String, dynamic>;
-
-  return Column(
-    children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const CircleAvatar(
-            radius: 26,
-            child: Icon(Icons.person),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+              return Column(
                 children: [
-                  Text(
-                    data['name'] ?? 'Not Found',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(color: shadowColor, blurRadius: 6)
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundImage: data['photo_url'] != null
+                              ? NetworkImage(data['photo_url'])
+                              : null,
+                          child: data['photo_url'] == null
+                              ? const Icon(Icons.person, size: 40)
+                              : null,
+                        ),
+                        const SizedBox(height: 15),
+                        Text(
+                          data['name'] ?? '',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                            color: textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          data['email'] ?? '',
+                          style: TextStyle(color: textColor),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          data['phone'] ?? '',
+                          style: TextStyle(color: textColor),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    data['role'] ?? 'Not Found',
-                    style: const TextStyle(
-                      color: Color.fromARGB(255, 20, 121, 236),
+                  const SizedBox(height: 20),
+                  GestureDetector(
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              EditProfileKaryawan(users: data),
+                        ),
+                      );
+                      setState(() {});
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        color: cardColor,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: shadowColor,
+                            blurRadius: 24,
+                            offset: const Offset(0, 11),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Edit Profile Akun',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ],
-              ),
-              const SizedBox(height: 6),
-              Text(data['email'] ?? 'Not Found'),
-              Text(data['phone'] ?? 'Not Found'),
-            ],
+              );
+            },
           ),
-        ],
-      ),
-
-      const SizedBox(height: 28),
-
-      GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => EditProfileKaryawan(users: data),
-            ),
-          );
-        },
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 23),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: const [
-              BoxShadow(
-                color: Color.fromARGB(255, 153, 160, 167),
-                blurRadius: 5,
-              )
-            ],
-          ),
-          child: const Text(
-            'Edit Profile Akun',
-            style: TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-      ),
-    ],
-  );
-}
-),
-          const SizedBox(height: 14),
-
+          const SizedBox(height: 15),
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromARGB(255, 153, 160, 167),
-                  blurRadius: 5,
-                )
+              boxShadow: [
+                BoxShadow(color: shadowColor, blurRadius: 6)
               ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Tema Gelap',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
                 ),
                 ValueListenableBuilder(
                   valueListenable: themeNotifier,
@@ -168,34 +178,30 @@ builder: (context, snapshot) {
               ],
             ),
           ),
-
           const SizedBox(height: 15),
-
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color.fromARGB(255, 153, 160, 167),
-                  blurRadius: 5,
-                )
+              boxShadow: [
+                BoxShadow(color: shadowColor, blurRadius: 6)
               ],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Keluar',
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(
-                    Icons.exit_to_app_outlined,
-                    color: Colors.red,
-                  ),
+                  icon: const Icon(Icons.exit_to_app_outlined,
+                      color: Colors.red),
                   onPressed: logout,
                 ),
               ],

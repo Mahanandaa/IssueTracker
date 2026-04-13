@@ -122,7 +122,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           body: Center(child: CircularProgressIndicator()));
     }
 
-    // No. 2: gunakan Theme.of(context) agar warna mengikuti tema gelap/terang
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final cardColor = isDark ? Colors.grey[850]! : Colors.white;
@@ -133,7 +132,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         : const Color.fromARGB(255, 200, 200, 200);
 
     return Scaffold(
-      // No. 2: biarkan Scaffold mengambil warna dari theme (tidak hardcode)
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,

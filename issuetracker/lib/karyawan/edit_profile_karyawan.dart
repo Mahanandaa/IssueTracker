@@ -40,16 +40,32 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
       ListTile(
         leading: const Icon(Icons.camera_alt),
         title: const Text('Ambil dari kamera'),
-      )
+        onTap: () => Navigator.pop(context, ImageSource.camera),
+      ),
+      ListTile(
+        leading: const Icon(Icons.photo_library),
+        title: const Text('Ambil dari Galeri'),
+        onTap: () => Navigator.pop(context, ImageSource.gallery),
+      ),
     ],
     
-    ))
+    ),
+    ),
     );
+    if( source == null) return;
+    final picked = await _picker.pickImage(source: source, imageQuality: 80);
+    if(picked != null) {
+      setState(() {
+        _newPhoto = File(picked.path);
+      });
+    }
   }
 
   Future<void> updateProfile() async {
     final user = supabase.auth.currentUser;
     if(user == null) return;
+
+    final photoUrl = await _uploadPhoto(user.id);
 
     await supabase.auth.updateUser(
       UserAttributes(
@@ -67,8 +83,6 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
           'email': email.text,
           'phone': nomor.text,
         }).eq('id', user.id);
-
-   
   }
 
   Future<String?> _uploadPhoto(String userId) async{
@@ -148,7 +162,16 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
                 ],
               ),
             ),
-           
+
+               if (_newPhoto != null)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Center(
+                  child: Text('Foto baru dipilih ✓',
+                      style: TextStyle(color: Colors.green, fontSize: 13)),
+                ),
+              ),
+
 
             const SizedBox(height: 24),
 
