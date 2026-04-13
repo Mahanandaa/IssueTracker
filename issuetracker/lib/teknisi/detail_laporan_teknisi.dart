@@ -69,6 +69,17 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
         )
     );
   }
+
+  Future<void> updateStatus() async{
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+    await supabase.from('users').update({
+      'is_available' : true,
+    }).eq('id', userId);
+ 
+  }
+
+
 Future<void> kirimNotifikasi() async{
   final issue = await supabase.from('issues')
   .select('title, reported_by, assigned_by')
@@ -154,6 +165,8 @@ Future<void> kirimNotifikasi() async{
         ],
       ),
     );
+
+
 
     if (confirm != true) return;
 
@@ -369,7 +382,10 @@ Future<void> kirimNotifikasi() async{
                         
                         height: 48,
                         child: ElevatedButton(
-                          onPressed: tolakTugas,
+                          onPressed: () async{
+                            tolakTugas();
+                            updateStatus();
+                          },                          
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red[700],
                             shape: RoundedRectangleBorder(

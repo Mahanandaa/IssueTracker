@@ -29,14 +29,18 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
     super.initState();
     fetchIssues();
   }
-Future<void> fetchIssues() async {
+
+  Future<void> fetchIssues() async {
     if (_uid.isEmpty) return;
     setState(() => _isLoading = true);
     try {
+      // No. 8: hanya tampilkan issue yang berstatus Assigned, In Progress, atau Resolved
+      // Issue yang dikembalikan (Pending) tidak tampil di dashboard teknisi
       final response = await supabase
           .from('issues')
           .select()
           .eq('assigned_to', _uid)
+          .inFilter('status', ['Assigned', 'In Progress', 'Resolved'])
           .order('assigned_at', ascending: false);
 
       if (mounted) {
@@ -51,7 +55,6 @@ Future<void> fetchIssues() async {
     }
   }
 
-  // Cari issue berdasarkan judul atau lokasi
   Future<void> fenchData([String? searchTerm]) async {
     if (_uid.isEmpty) return;
     setState(() => _isLoading = true);
@@ -60,6 +63,7 @@ Future<void> fetchIssues() async {
           .from('issues')
           .select()
           .eq('assigned_to', _uid)
+          .inFilter('status', ['Assigned', 'In Progress', 'Resolved'])
           .or('title.ilike.%$searchTerm%,location.ilike.%$searchTerm%')
           .order('assigned_at', ascending: false);
 
@@ -76,6 +80,31 @@ Future<void> fetchIssues() async {
         );
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  // No. 1: format deadline untuk ditampilkan
+  String _formatDeadline(dynamic raw) {
+    if (raw == null) return 'Tidak ada';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      return '${dt.day.toString().padLeft(2, '0')}/'
+          '${dt.month.toString().padLeft(2, '0')}/'
+          '${dt.year} '
+          '${dt.hour.toString().padLeft(2, '0')}:'
+          '${dt.minute.toString().padLeft(2, '0')}';
+    } catch (_) {
+      return raw.toString();
+    }
+  }
+
+  // No. 1: cek apakah deadline sudah lewat
+  bool _isOverdue(dynamic raw, String? status) {
+    if (raw == null || status == 'Resolved') return false;
+    try {
+      return DateTime.parse(raw.toString()).toLocal().isBefore(DateTime.now());
+    } catch (_) {
+      return false;
     }
   }
 
@@ -107,16 +136,16 @@ Future<void> fetchIssues() async {
         ],
         onTap: (index) {
           if (index == 0) {
-            Navigator.push(context,
+            Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (context) => const DashboardTeknisi()));
           } else if (index == 1) {
-            Navigator.push(context,
+            Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (context) => const HistoryTeknisi()));
           } else if (index == 2) {
-            Navigator.push(context,
+            Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (context) => const Statistic()));
           } else if (index == 3) {
-            Navigator.push(
+            Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
                     builder: (context) => const SettingProfileTeknisi()));
@@ -127,7 +156,6 @@ Future<void> fetchIssues() async {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -146,7 +174,6 @@ Future<void> fetchIssues() async {
                     borderRadius: BorderRadius.circular(25),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-
                   child: TextField(
                     controller: SearchBar,
                     decoration: const InputDecoration(
@@ -174,16 +201,16 @@ Future<void> fetchIssues() async {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'All' ? Colors.blue:Colors.grey[200],
+                            color: selectedStatus == 'All'
+                                ? Colors.blue
+                                : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("All")),
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     Expanded(
                       child: GestureDetector(
                         onTap: () => setState(() => selectedStatus = 'Low'),
@@ -199,9 +226,7 @@ Future<void> fetchIssues() async {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     Expanded(
                       child: GestureDetector(
                         onTap: () => setState(() => selectedStatus = 'Medium'),
@@ -217,16 +242,16 @@ Future<void> fetchIssues() async {
                         ),
                       ),
                     ),
-
                     const SizedBox(width: 8),
-
                     Expanded(
                       child: GestureDetector(
                         onTap: () => setState(() => selectedStatus = 'High'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'High'? Colors.deepOrange                       : Colors.grey[200],
+                            color: selectedStatus == 'High'
+                                ? Colors.deepOrange
+                                : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("Tinggi")),
@@ -236,11 +261,13 @@ Future<void> fetchIssues() async {
                     const SizedBox(width: 8),
                     Expanded(
                       child: GestureDetector(
-                       onTap: () => setState(() => selectedStatus = 'Urgent'),
+                        onTap: () => setState(() => selectedStatus = 'Urgent'),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: selectedStatus == 'Urgent'? Colors.red : Colors.grey[200],
+                            color: selectedStatus == 'Urgent'
+                                ? Colors.red
+                                : Colors.grey[200],
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: const Center(child: Text("Darurat")),
@@ -278,6 +305,11 @@ Future<void> fetchIssues() async {
                             itemCount: filteredIssues.length,
                             itemBuilder: (context, index) {
                               final issue = filteredIssues[index];
+                              final isResolved =
+                                  issue['status'] == 'Resolved';
+                              final overdue = _isOverdue(
+                                  issue['deadline'], issue['status']);
+
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.push(
@@ -287,59 +319,127 @@ Future<void> fetchIssues() async {
                                         issueId: issue['id'].toString(),
                                       ),
                                     ),
-                                  );
+                                  ).then((_) => fetchIssues());
                                 },
-
                                 child: Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(14),
-
                                   decoration: BoxDecoration(
-                                    color: issue['priority'] == 'Urgent'
-                                        ? const Color.fromARGB(255, 243, 77, 65)
-                                        : Colors.grey[700],
+                                    color: isResolved
+                                        ? Colors.green[700]
+                                        : issue['priority'] == 'Urgent'
+                                            ? const Color.fromARGB(
+                                                255, 243, 77, 65)
+                                            : Colors.grey[700],
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            issue['title'] ?? '',
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.white,
+                                          Expanded(
+                                            child: Text(
+                                              issue['title'] ?? '',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
                                             ),
                                           ),
-
-                                          Text(
-                                            issue['priority'] ?? '',
-                                            style: TextStyle(
-                                              color: issue['priority'] == 'Urgent'
-                                                  ? Colors.white
-                                                  : issue['priority'] == 'Medium'
-                                                      ? Colors.orange
-                                                      : Colors.green,
-                                              fontWeight: FontWeight.w600,
+                                          // No. 6: badge status selesai
+                                          if (isResolved)
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white
+                                                    .withOpacity(0.25),
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: const Text(
+                                                '✓ Selesai',
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight:
+                                                        FontWeight.bold),
+                                              ),
+                                            )
+                                          else
+                                            Text(
+                                              issue['priority'] ?? '',
+                                              style: TextStyle(
+                                                color: issue['priority'] ==
+                                                        'Urgent'
+                                                    ? Colors.white
+                                                    : issue['priority'] ==
+                                                            'Medium'
+                                                        ? Colors.orange
+                                                        : Colors.green,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                             ),
-                                          ),
                                         ],
                                       ),
 
                                       const SizedBox(height: 6),
 
                                       Text(
-                                         "Lokasi : ${issue['location'] ?? 'Location Not Found'}",
-                                          style: const TextStyle(
+                                        "Lokasi : ${issue['location'] ?? 'Location Not Found'}",
+                                        style: const TextStyle(
                                           fontSize: 12,
                                           color: Colors.white,
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
+
+                                      const SizedBox(height: 4),
+
+                                      // No. 1: tampilkan deadline di card
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.access_time,
+                                            size: 12,
+                                            color: overdue
+                                                ? Colors.yellow
+                                                : Colors.white70,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Deadline: ${_formatDeadline(issue['deadline'])}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              color: overdue
+                                                  ? Colors.yellow
+                                                  : Colors.white70,
+                                              fontWeight: overdue
+                                                  ? FontWeight.bold
+                                                  : FontWeight.normal,
+                                            ),
+                                          ),
+                                          if (overdue) ...[
+                                            const SizedBox(width: 4),
+                                            const Text(
+                                              '(Terlambat)',
+                                              style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.yellow,
+                                                  fontWeight:
+                                                      FontWeight.bold),
+                                            ),
+                                          ]
+                                        ],
+                                      ),
+
+                                      const SizedBox(height: 4),
+
                                       Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
@@ -355,7 +455,6 @@ Future<void> fetchIssues() async {
                                               color: Colors.white,
                                             ),
                                           ),
-
                                           const Text(
                                             "Lihat Detail",
                                             style: TextStyle(

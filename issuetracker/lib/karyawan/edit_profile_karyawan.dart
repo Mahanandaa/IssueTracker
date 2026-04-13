@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import  'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditProfileKaryawan extends StatefulWidget {
   final Map users;
@@ -18,7 +21,9 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
   late TextEditingController email;
   late TextEditingController nomor;
   late TextEditingController password;
-
+  File? _newPhoto;
+  String? _currentPhotoUrl;
+  final ImagePicker _picker = ImagePicker();
   @override
   void initState(){
     super.initState();
@@ -26,6 +31,20 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
     email = TextEditingController(text: widget.users['email']);
     nomor = TextEditingController(text: widget.users['phone']);
     password = TextEditingController();
+  }
+
+  Future<void> _pickPhoto() async{
+    final source = await showModalBottomSheet<ImageSource>(context: context, builder: (_) =>
+    SafeArea(child: Column(mainAxisSize: MainAxisSize.min,
+    children: [
+      ListTile(
+        leading: const Icon(Icons.camera_alt),
+        title: const Text('Ambil dari kamera'),
+      )
+    ],
+    
+    ))
+    );
   }
 
   Future<void> updateProfile() async {
@@ -50,6 +69,25 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
         }).eq('id', user.id);
 
    
+  }
+
+  Future<String?> _uploadPhoto(String userId) async{
+    if(_newPhoto == null) return _currentPhotoUrl;
+    final filename = 'avatar_$userId.jpg';
+    final path = 'avatars/$filename';
+
+    try{
+      await supabase.storage.from('images').upload(path, _newPhoto!, fileOptions: const FileOptions(upsert: true) );
+      final publicUrl = supabase.storage.from('images').getPublicUrl(path);
+      return publicUrl;
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal upload : $e')
+        )
+      
+      );
+      return _currentPhotoUrl;
+    }
   }
 
   Widget _inputField(TextEditingController controller, String hint){
@@ -82,11 +120,35 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
           children: [
 
             const SizedBox(height: 12),
-
-            const CircleAvatar(
-              radius: 42,
-              child: Icon(Icons.person, size: 40),
+            Center(
+              child: Stack(
+                children: [
+                   CircleAvatar(
+              radius: 52,
+              backgroundImage: _newPhoto != null ? FileImage(_newPhoto!) as ImageProvider : (_currentPhotoUrl != null 
+              ? NetworkImage(_currentPhotoUrl!) : null), 
+              child: (_newPhoto == null && _currentPhotoUrl == null) ? const Icon(Icons.person, size: 48) : null,
             ),
+             Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _pickPhoto,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+           
 
             const SizedBox(height: 24),
 

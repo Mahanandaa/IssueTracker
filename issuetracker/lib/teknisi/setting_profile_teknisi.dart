@@ -22,7 +22,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
   Map<String, dynamic>? userData;
   bool isLoading = true;
 
-  // FIX 3: Variabel untuk menyimpan data rating & waktu pengerjaan dari DB
   double avgRating = 0.0;
   String avgDuration = '-';
 
@@ -36,29 +35,35 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    // Ambil profil user
     final response = await supabase
         .from('users')
         .select()
         .eq('id', user.id)
         .single();
 
-    // FIX 3a: Ambil rata-rata rating dari tabel ratings berdasarkan technician_id
+    // No. 3: Ambil rating dari tabel 'ratings' berdasarkan technician_id
+    // Kolom technician_id harus ada di tabel ratings — sesuai schema DB
     final ratingsResponse = await supabase
         .from('ratings')
         .select('rating')
         .eq('technician_id', user.id);
 
     double calculatedRating = 0.0;
-    if (ratingsResponse.isNotEmpty) {
-      final List ratings = ratingsResponse as List;
-      final total = ratings.fold<int>(
-          0, (sum, r) => sum + ((r['rating'] as int?) ?? 0));
-      calculatedRating = total / ratings.length;
+    if (ratingsResponse != null && (ratingsResponse as List).isNotEmpty) {
+      final List ratings = ratingsResponse;
+      // Pastikan nilai tidak null sebelum dijumlahkan
+      double total = 0;
+      int count = 0;
+      for (var r in ratings) {
+        final val = r['rating'];
+        if (val != null) {
+          total += (val as num).toDouble();
+          count++;
+        }
+      }
+      if (count > 0) calculatedRating = total / count;
     }
 
-    // FIX 3b: Ambil rata-rata waktu pengerjaan dari issues yang sudah resolved
-    // Waktu pengerjaan = resolved_at - assigned_at (dalam menit)
     final resolvedIssues = await supabase
         .from('issues')
         .select('assigned_at, resolved_at')
@@ -68,11 +73,10 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         .not('assigned_at', 'is', null);
 
     String durationStr = '-';
-    if (resolvedIssues.isNotEmpty) {
-      final List issues = resolvedIssues as List;
+    if (resolvedIssues != null && (resolvedIssues as List).isNotEmpty) {
       int totalMinutes = 0;
       int count = 0;
-      for (var issue in issues) {
+      for (var issue in resolvedIssues) {
         try {
           final assigned = DateTime.parse(issue['assigned_at']);
           final resolved = DateTime.parse(issue['resolved_at']);
@@ -88,7 +92,8 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         } else {
           final hours = avgMin ~/ 60;
           final minutes = avgMin % 60;
-          durationStr = minutes > 0 ? '$hours Jam $minutes Mnt' : '$hours Jam';
+          durationStr =
+              minutes > 0 ? '$hours Jam $minutes Mnt' : '$hours Jam';
         }
       }
     }
@@ -117,11 +122,20 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           body: Center(child: CircularProgressIndicator()));
     }
 
+    // No. 2: gunakan Theme.of(context) agar warna mengikuti tema gelap/terang
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? Colors.grey[850]! : Colors.white;
+    final borderColor = Colors.blue;
+    final textColor = theme.textTheme.bodyMedium?.color ?? Colors.black;
+    final shadowColor = isDark
+        ? Colors.black45
+        : const Color.fromARGB(255, 200, 200, 200);
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      // No. 2: biarkan Scaffold mengambil warna dari theme (tidak hardcode)
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
@@ -138,7 +152,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         onTap: (index) {
           if (index == 0) {
             Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (_) => DashboardTeknisi()));
+                MaterialPageRoute(builder: (_) => const DashboardTeknisi()));
           } else if (index == 1) {
             Navigator.pushReplacement(context,
                 MaterialPageRoute(builder: (_) => const HistoryTeknisi()));
@@ -160,16 +174,12 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color.fromARGB(255, 200, 200, 200), blurRadius: 6)
-              ],
+              boxShadow: [BoxShadow(color: shadowColor, blurRadius: 6)],
             ),
             child: Column(
               children: [
-                // FIX 3c: Tampilkan foto profil jika ada, fallback ke ikon
                 CircleAvatar(
                   radius: 40,
                   backgroundImage: userData?['photo_url'] != null
@@ -182,36 +192,44 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                 const SizedBox(height: 15),
                 Text(
                   userData?['name'] ?? '',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: textColor),
                 ),
                 const SizedBox(height: 5),
-                Text(userData?['email'] ?? ''),
+                Text(userData?['email'] ?? '',
+                    style: TextStyle(color: textColor)),
                 const SizedBox(height: 20),
               ],
             ),
           ),
           const SizedBox(height: 20),
 
-          // FIX 3: Rating & Rata-rata waktu dari database
+          // No. 3: Rating & rata-rata waktu
           Row(
             children: [
               Expanded(
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue),
+                    border: Border.all(color: borderColor),
                   ),
                   child: Column(
                     children: [
                       const Icon(Icons.star, color: Colors.amber),
                       const SizedBox(height: 6),
-                      const Text("Rating",
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text(avgRating > 0
-                          ? avgRating.toStringAsFixed(1)
-                          : 'Belum ada'),
+                      Text("Rating",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, color: textColor)),
+                      Text(
+                        avgRating > 0
+                            ? '${avgRating.toStringAsFixed(1)} / 5'
+                            : 'Belum ada',
+                        style: TextStyle(color: textColor),
+                      ),
                     ],
                   ),
                 ),
@@ -221,16 +239,19 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.blue),
+                    border: Border.all(color: borderColor),
                   ),
                   child: Column(
                     children: [
                       const Icon(Icons.timer, color: Colors.blue),
                       const SizedBox(height: 6),
-                      const Text("Rata-rata",
-                          style: TextStyle(fontWeight: FontWeight.w600)),
-                      Text(avgDuration),
+                      Text("Rata-rata",
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, color: textColor)),
+                      Text(avgDuration,
+                          style: TextStyle(color: textColor)),
                     ],
                   ),
                 ),
@@ -245,11 +266,9 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      EditProfileTeknisi(users: userData!),
+                  builder: (_) => EditProfileTeknisi(users: userData!),
                 ),
               );
-              // Refresh data setelah kembali dari edit profil
               setState(() => isLoading = true);
               await getUserData();
             },
@@ -257,45 +276,42 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: BoxDecoration(
-                boxShadow: const [
+                color: cardColor,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x19000000),
+                    color: shadowColor,
                     blurRadius: 24,
-                    offset: Offset(0, 11),
+                    offset: const Offset(0, 11),
                   ),
                 ],
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Edit Profile Akun',
                   style: TextStyle(
-                      fontWeight: FontWeight.w600, color: Colors.black),
+                      fontWeight: FontWeight.w600, color: textColor),
                 ),
               ),
             ),
           ),
           const SizedBox(height: 15),
 
-          // Toggle tema gelap
+          // No. 2: Toggle tema gelap — menggunakan cardColor agar konsisten
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color.fromARGB(255, 200, 200, 200),
-                    blurRadius: 6)
-              ],
+              boxShadow: [BoxShadow(color: shadowColor, blurRadius: 6)],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Tema Gelap',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text('Tema Gelap',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, color: textColor)),
                 ValueListenableBuilder(
                   valueListenable: themeNotifier,
                   builder: (context, ThemeMode mode, _) {
@@ -318,19 +334,16 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardColor,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color.fromARGB(255, 200, 200, 200),
-                    blurRadius: 6)
-              ],
+              boxShadow: [BoxShadow(color: shadowColor, blurRadius: 6)],
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Keluar',
-                    style: TextStyle(fontWeight: FontWeight.w600)),
+                Text('Keluar',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, color: textColor)),
                 IconButton(
                   icon: const Icon(Icons.exit_to_app_outlined,
                       color: Colors.red),

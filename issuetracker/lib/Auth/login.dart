@@ -37,7 +37,6 @@ class _LoginpageState extends State<Loginpage> {
 
     try {
       await authService.signInWithPassword(email, password);
-      // AuthGate akan otomatis handle routing berdasarkan role
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)

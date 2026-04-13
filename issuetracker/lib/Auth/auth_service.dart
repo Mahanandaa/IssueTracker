@@ -47,38 +47,56 @@ class AuthService {
         'name': nama,
         'phone': telepon,
         'role': 'karyawan',
-        'password_hash': '-', 
+        'password_hash': '-',
       });
     }
 
     return response;
   }
-
-  Future<void> tambahTeknisi({
+  Future<String?> tambahTeknisiDanKembali({
     required String email,
     required String password,
     required String nama,
     required String telepon,
     String? department,
+    required String adminEmail,
+    required String adminPassword,
   }) async {
-   
-    final response = await _supabase.auth.signUp(
-      email: email,
-      password: password,
-      data: {'nama': nama, 'telepon': telepon},
-    );
+    try {
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+        data: {'nama': nama, 'telepon': telepon},
+      );
 
-    final user = response.user;
-    if (user != null) {
-      await _supabase.from('users').insert({
-        'id': user.id,
-        'email': email,
-        'name': nama,
-        'phone': telepon,
-        'role': 'teknisi',
-        'department': department,
-        'password_hash': '-',
-      });
+      final user = response.user;
+      if (user != null) {
+        await _supabase.from('users').upsert({
+          'id': user.id,
+          'email': email,
+          'name': nama,
+          'phone': telepon,
+          'role': 'teknisi',
+          'department': department,
+          'password_hash': '-',
+          'is_available': true,
+        });
+      }
+
+      await _supabase.auth.signInWithPassword(
+        email: adminEmail,
+        password: adminPassword,
+      );
+
+      return null; 
+    } catch (e) {
+      try {
+        await _supabase.auth.signInWithPassword(
+          email: adminEmail,
+          password: adminPassword,
+        );
+      } catch (_) {}
+      return e.toString();
     }
   }
 

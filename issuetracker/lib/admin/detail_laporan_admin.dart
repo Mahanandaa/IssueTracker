@@ -163,9 +163,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     // FIX 7: Cek status laporan untuk sembunyikan tombol aksi
     final String currentStatus = issue?['status']?.toString() ?? '';
     final bool isRejected = currentStatus == 'Rejected';
-    final bool isAlreadyAssigned = currentStatus == 'Assigned' ||
-        currentStatus == 'In Progress' ||
-        currentStatus == 'Resolved';
+    final bool isAlreadyAssigned = currentStatus == 'Assigned' || currentStatus == 'In Progress' || currentStatus == 'Resolved';
 
     return Scaffold(
       backgroundColor: Colors.white,

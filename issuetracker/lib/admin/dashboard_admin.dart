@@ -22,9 +22,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
   int resolvedCount = 0;
   int progressCount = 0;
 
-  double avgRating = 0;
-  double avgTime = 0;
-
   Map<String, int> categoryCount = {};
 
   int _currentIndex = 0;
@@ -36,7 +33,10 @@ class _DashboardAdminState extends State<DashboardAdmin> {
   }
 
   Future<void> fetchIssues() async {
-    final response = await supabase.from('issues').select();
+    final response = await supabase
+        .from('issues')
+        .select()
+        .order('created_at', ascending: false);
     final data = List<Map<String, dynamic>>.from(response);
     calculateData(data);
     setState(() {
@@ -49,11 +49,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
     rejectedCount = 0;
     resolvedCount = 0;
     progressCount = 0;
-    double totalRating = 0;
-    double totalTime = 0;
-    int ratingCount = 0;
-    int timeCount = 0;
     categoryCount.clear();
+
     for (var item in data) {
       final status = item['status'];
       final category = item['category'];
@@ -61,60 +58,30 @@ class _DashboardAdminState extends State<DashboardAdmin> {
       if (status == 'Rejected') rejectedCount++;
       if (status == 'Resolved') resolvedCount++;
       if (status == 'In Progress') progressCount++;
-      if (item['rating'] != null) {
-        totalRating += (item['rating'] as num).toDouble();
-        ratingCount++;
-      }
-      if (item['actual_time'] != null) {
-        final timeStr = item['actual_time'].toString();
-        final parts = timeStr.split(":");
-        if (parts.length == 3) {
-          final hours = int.tryParse(parts[0]) ?? 0;
-          final minutes = int.tryParse(parts[1]) ?? 0;
-          final seconds = int.tryParse(parts[2]) ?? 0;
-          final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
-          totalTime += totalSeconds;
-          timeCount++;
-        }
-      }
-
       if (category != null) {
         categoryCount[category] = (categoryCount[category] ?? 0) + 1;
       }
     }
-
-    avgRating = ratingCount == 0 ? 0 : totalRating / ratingCount;
-    avgTime = timeCount == 0 ? 0 : (totalTime / timeCount) / 60;
   }
-
   List<BarChartGroupData> buildBarGroups() {
     final categories = categoryCount.keys.toList();
-
     return List.generate(categories.length, (i) {
       final value = categoryCount[categories[i]] ?? 0;
-
       return BarChartGroupData(
         x: i,
         barRods: [
-          BarChartRodData(
-            toY: value.toDouble(),
-            color: Colors.blue,
-          ),
+          BarChartRodData(toY: value.toDouble(), color: Colors.blue),
         ],
       );
     });
   }
 
-  List<String> getCategoryLabels() {
-    return categoryCount.keys.toList();
-  }
+  List<String> getCategoryLabels() => categoryCount.keys.toList();
 
   List<PieChartSectionData> buildPieSections() {
     final total =
         pendingCount + rejectedCount + resolvedCount + progressCount;
-
     if (total == 0) return [];
-
     return [
       PieChartSectionData(
         color: Colors.orange,
@@ -141,16 +108,12 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   @override
   Widget build(BuildContext context) {
-    final categories = getCategoryLabels();
-
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
-
       appBar: AppBar(
         backgroundColor: Colors.grey[200],
         title: const Text("Dashboard"),
       ),
-
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
@@ -159,7 +122,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() => _currentIndex = index);
-
           if (index == 1) {
             Navigator.pushReplacement(
               context,
@@ -180,18 +142,19 @@ class _DashboardAdminState extends State<DashboardAdmin> {
         items: const [
           BottomNavigationBarItem(
               icon: Icon(Icons.home), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.work), label: 'Kasus'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.work), label: 'Kasus'),
           BottomNavigationBarItem(
               icon: Icon(Icons.storage), label: 'Data'),
           BottomNavigationBarItem(
               icon: Icon(Icons.settings), label: 'Setting'),
         ],
       ),
-
       body: SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-      children: [
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             Row(
               children: [
                 Expanded(
@@ -216,30 +179,12 @@ class _DashboardAdminState extends State<DashboardAdmin> {
               ],
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 20),
 
-            Row(
-              children: [
-                Expanded(
-                  child: statusBox(
-                    "Rata-rata Rating",
-                    avgRating.toStringAsFixed(1),
-                    Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: statusBox(
-                    "Rata-rata Waktu",
-                    "${avgTime.toStringAsFixed(0)} menit",
-                    Colors.blue,
-                  ),
-                ),
-              ],
-            ),
 
             const SizedBox(height: 12),
-            Text(
+
+            const Text(
               'Data Kasus Kategori',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),
@@ -248,18 +193,16 @@ class _DashboardAdminState extends State<DashboardAdmin> {
               height: 300,
               padding: const EdgeInsets.all(12),
               child: BarChart(
-                BarChartData(
-                  barGroups: buildBarGroups(),
-                ),
+                BarChartData(barGroups: buildBarGroups()),
               ),
             ),
 
             const SizedBox(height: 12),
-            Text(
+            const Text(
               'Data Kasus Status',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
@@ -272,65 +215,51 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                         sections: buildPieSections().isEmpty
                             ? [
                                 PieChartSectionData(
-                                  value: 1,
-                                  color: Colors.grey,
-                                  title: "0%",
-                                )
+                                    value: 1,
+                                    color: Colors.grey,
+                                    title: "0%")
                               ]
                             : buildPieSections(),
                       ),
                     ),
                   ),
                 ),
-
                 Expanded(
                   flex: 1,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                              width: 12, height: 12, color: Colors.green),
-                          const SizedBox(width: 6),
-                          const Text("Selesai"),
-                        ],
-                      ),
+                      Row(children: [
+                        Container(width: 12, height: 12, color: Colors.green),
+                        const SizedBox(width: 6),
+                        const Text("Selesai"),
+                      ]),
                       const SizedBox(height: 8),
-
-                      Row(
-                        children: [
-                          Container(
-                              width: 12, height: 12, color: Colors.orange),
-                          const SizedBox(width: 6),
-                          const Text("Pending"),
-                        ],
-                      ),
+                      Row(children: [
+                        Container(
+                            width: 12, height: 12, color: Colors.orange),
+                        const SizedBox(width: 6),
+                        const Text("Pending"),
+                      ]),
                       const SizedBox(height: 8),
-
-                      Row(
-                        children: [
-                          Container(
-                              width: 12, height: 12, color: Colors.red),
-                          const SizedBox(width: 6),
-                          const Text("Ditolak"),
-                        ],
-                      ),
+                      Row(children: [
+                        Container(width: 12, height: 12, color: Colors.red),
+                        const SizedBox(width: 6),
+                        const Text("Ditolak"),
+                      ]),
                       const SizedBox(height: 8),
-
-                      Row(
-                        children: [
-                          Container(
-                              width: 12, height: 12, color: Colors.blue),
-                          const SizedBox(width: 6),
-                          const Text("Progress"),
-                        ],
-                      ),
+                      Row(children: [
+                        Container(width: 12, height: 12, color: Colors.blue),
+                        const SizedBox(width: 6),
+                        const Text("Progress"),
+                      ]),
                     ],
                   ),
                 ),
               ],
-            )
+            ),
+
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -348,8 +277,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
         children: [
           Text(title, style: TextStyle(color: color)),
           Text(value,
-          style:
-          TextStyle(fontWeight: FontWeight.bold, color: color)),
+              style: TextStyle(
+                  fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );

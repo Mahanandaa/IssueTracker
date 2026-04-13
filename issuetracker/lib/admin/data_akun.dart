@@ -13,8 +13,8 @@ class _DataAkunState extends State<DataAkun> {
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> karyawanList = [];
-  List<Map<String, dynamic>> adminList = [];
   List<Map<String, dynamic>> teknisiList = [];
+  Map<String, double> teknisiRatings = {};
   bool isLoading = true;
 
   @override
@@ -34,12 +34,39 @@ class _DataAkunState extends State<DataAkun> {
       final List<Map<String, dynamic>> users =
           List<Map<String, dynamic>>.from(data);
 
+      final karyawan = users.where((u) => u['role'] == 'karyawan').toList();
+      final teknisi = users.where((u) => u['role'] == 'teknisi').toList();
+
+      // Ambil rating untuk setiap teknisi dari tabel ratings
+      final Map<String, double> ratings = {};
+      for (final t in teknisi) {
+        final uid = t['id'] as String;
+        try {
+          final ratingData = await supabase
+              .from('ratings')
+              .select('rating')
+              .eq('technician_id', uid);
+
+          final List list = ratingData as List;
+          if (list.isNotEmpty) {
+            double total = 0;
+            int count = 0;
+            for (final r in list) {
+              final val = r['rating'];
+              if (val != null) {
+                total += (val as num).toDouble();
+                count++;
+              }
+            }
+            if (count > 0) ratings[uid] = total / count;
+          }
+        } catch (_) {}
+      }
+
       setState(() {
-        karyawanList =
-            users.where((u) => u['role'] == 'karyawan').toList();
-      
-        teknisiList =
-            users.where((u) => u['role'] == 'teknisi').toList();
+        karyawanList = karyawan;
+        teknisiList = teknisi;
+        teknisiRatings = ratings;
         isLoading = false;
       });
     } catch (e) {
@@ -64,8 +91,8 @@ class _DataAkunState extends State<DataAkun> {
               child: const Text('Batal')),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child:
-                  const Text('Hapus', style: TextStyle(color: Colors.red))),
+              child: const Text('Hapus',
+                  style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -128,7 +155,8 @@ class _DataAkunState extends State<DataAkun> {
                   fetchUsers();
                 },
                 child: const Text('Simpan',
-                    style: TextStyle(color: Colors.white, fontSize: 16)),
+                    style:
+                        TextStyle(color: Colors.white, fontSize: 16)),
               ),
             ),
           ],
@@ -150,7 +178,10 @@ class _DataAkunState extends State<DataAkun> {
     );
   }
 
-  Widget _buildCard(Map<String, dynamic> user) {
+  Widget _buildCard(Map<String, dynamic> user, {bool isTeknisi = false}) {
+    final uid = user['id'] as String;
+    final rating = isTeknisi ? teknisiRatings[uid] : null;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -188,6 +219,22 @@ class _DataAkunState extends State<DataAkun> {
           Text('Nomor : ${user['phone'] ?? '-'}'),
           const SizedBox(height: 4),
           Text('Role    : ${user['role'] ?? '-'}'),
+
+          // Rating hanya tampil untuk teknisi
+          if (isTeknisi) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.star, size: 16, color: Colors.amber),
+                const SizedBox(width: 4),
+                Text(
+                  'Rating  : ${rating != null ? rating.toStringAsFixed(1) : 'Belum ada'}',
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ],
+
           const SizedBox(height: 10),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -208,7 +255,8 @@ class _DataAkunState extends State<DataAkun> {
     );
   }
 
-  Widget _buildSection(String title, List<Map<String, dynamic>> list) {
+  Widget _buildSection(String title, List<Map<String, dynamic>> list,
+      {bool isTeknisi = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -223,7 +271,7 @@ class _DataAkunState extends State<DataAkun> {
                 style: TextStyle(color: Colors.grey[500])),
           )
         else
-          ...list.map(_buildCard),
+          ...list.map((u) => _buildCard(u, isTeknisi: isTeknisi)),
         const SizedBox(height: 8),
       ],
     );
@@ -240,14 +288,14 @@ class _DataAkunState extends State<DataAkun> {
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: Colors.blue,
         icon: const Icon(Icons.person_add, color: Colors.white),
-        label: const Text('Tambah Akun',
-            style: TextStyle(color: Colors.white)),
+        label:
+            const Text('Tambah Akun', style: TextStyle(color: Colors.white)),
         onPressed: () async {
           await Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const Tambahakun()),
           );
-          fetchUsers(); 
+          fetchUsers();
         },
       ),
       body: isLoading
@@ -262,8 +310,9 @@ class _DataAkunState extends State<DataAkun> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildSection('Data Karyawan', karyawanList),
-                      _buildSection('Data Teknisi', teknisiList),
-                      const SizedBox(height: 80), 
+                      _buildSection('Data Teknisi', teknisiList,
+                          isTeknisi: true),
+                      const SizedBox(height: 80),
                     ],
                   ),
                 ),

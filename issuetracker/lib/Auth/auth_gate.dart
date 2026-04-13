@@ -21,38 +21,35 @@ class AuthGate extends StatelessWidget {
         }
 
         final session = snapshot.data?.session;
+        final event = snapshot.data?.event;
 
-        if (session != null) {
-          return FutureBuilder<String?>(
-            key: ValueKey(session.user.id), 
-            future: AuthService().getUserRole(session.user.id),
-            builder: (context, roleSnapshot) {
-              if (roleSnapshot.connectionState == ConnectionState.waiting) {
-                return const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                );
-              }
-
-              if (roleSnapshot.hasError) {
-                return const DashboardKaryawan(); 
-              }
-
-              final role = roleSnapshot.data;
-
-              switch (role) {
-                case 'admin':
-                  return const DashboardAdmin();
-                case 'teknisi':
-                  return const DashboardTeknisi();
-                case 'karyawan':
-                default:
-                  return const DashboardKaryawan();
-              }
-            },
-          );
-        } else {
+        if (session == null || event == AuthChangeEvent.signedOut) {
           return const Loginpage();
         }
+
+        return FutureBuilder<String?>(
+          key: ValueKey(session.user.id),
+          future: AuthService().getUserRole(session.user.id),
+          builder: (context, roleSnapshot) {
+            if (roleSnapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
+
+            final role = roleSnapshot.data;
+
+            switch (role) {
+              case 'admin':
+                return const DashboardAdmin();
+              case 'teknisi':
+                return const DashboardTeknisi();
+              case 'karyawan':
+              default:
+                return const DashboardKaryawan();
+            }
+          },
+        );
       },
     );
   }
