@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+
 class EditDataAkun extends StatefulWidget {
   final Map users;
   const EditDataAkun({super.key, required this.users});
@@ -10,160 +13,236 @@ class EditDataAkun extends StatefulWidget {
 
 class _EditDataAkunState extends State<EditDataAkun> {
   final supabase = Supabase.instance.client;
-  List<Map<String, dynamic>> issues = [];
-  Map<String, dynamic>? issue;
-  
+
   late TextEditingController nama;
   late TextEditingController email;
-  late TextEditingController password;
   late TextEditingController nomor;
+  late TextEditingController password;
 
+  File? _newPhoto;
+  String? _currentPhotoUrl;
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
 
   @override
-  void initState(){
+  void initState() {
     super.initState();
 
-     nama = TextEditingController(text: widget.users['name']);
-     email = TextEditingController(text: widget.users['email']);
-    nomor  = TextEditingController(text: widget.users['phone']);
+    nama = TextEditingController(text: widget.users['name'] ?? '');
+    email = TextEditingController(text: widget.users['email'] ?? '');
+    nomor = TextEditingController(text: widget.users['phone'] ?? '');
     password = TextEditingController();
-       }
 
-Future<void> updateProfile() async{
-  final user = supabase.auth.currentUser;
-  if(user == null) return;
+    _currentPhotoUrl = widget.users['photo_url'];
+  }
 
-  await supabase.auth.updateUser(UserAttributes(
-    email :  email.text,
-    password: password.text.isEmpty ? null : password.text,
-    data: {
-      'name' : nama.text,
-      'phone' : nomor.text
+  Future<void> _pickPhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Kamera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo),
+              title: const Text('Galeri'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    final picked = await _picker.pickImage(source: source, imageQuality: 80);
+    if (picked != null) {
+      setState(() => _newPhoto = File(picked.path));
     }
-  ));
-    await supabase.from('users').update({
-      'name' : nama.text,
-      'email' : email.text,
-    }).eq('id', user.id);
-}
+  }
 
+  Future<String?> _uploadPhoto(String userId) async {
+    if (_newPhoto == null) return _currentPhotoUrl;
 
+    final path = 'avatars/avatar_$userId.jpg';
+
+    await supabase.storage.from('images').upload(
+          path,
+          _newPhoto!,
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    return supabase.storage.from('images').getPublicUrl(path);
+  }
+
+  Future<void> updateProfile() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final photoUrl = await _uploadPhoto(user.id);
+
+      await supabase.auth.updateUser(UserAttributes(
+        email: email.text,
+        password: password.text.isEmpty ? null : password.text,
+        data: {
+          'name': nama.text,
+          'phone': nomor.text,
+        },
+      ));
+
+      await supabase.from('users').update({
+        'name': nama.text,
+        'email': email.text,
+        'phone': nomor.text,
+        if (photoUrl != null) 'photo_url': photoUrl,
+      }).eq('id', user.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile berhasil diupdate ✓')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget inputField(TextEditingController controller, String hint,
+      {bool obscure = false}) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      decoration: InputDecoration(
+        hintText: hint,
+        contentPadding: const EdgeInsets.all(12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+  }
+
+  Widget label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 6),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w600),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final ImageProvider? image = _newPhoto != null
+        ? FileImage(_newPhoto!)
+        : (_currentPhotoUrl != null && _currentPhotoUrl!.isNotEmpty
+            ? NetworkImage(_currentPhotoUrl!)
+            : null);
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Edit Data Akun"),
         backgroundColor: Colors.grey[200],
       ),
-      body: SafeArea(child: Column(
-        children: [
-        Padding(padding: EdgeInsetsGeometry.all(12),
-        child: Container(
-          padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                
-              color: Colors.grey[100],
-            ),
-            
-          ),
-          
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Nama Lengkap', style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          TextField(
-            controller: nama,
-           decoration: InputDecoration(
-            hintText: 'Masukan Nama',
-            contentPadding: EdgeInsets.all(12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(10)
-            ),
-           ),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const SizedBox(height: 10),
 
-          ),
-                            SizedBox(height: 6),
-
-           Text(
-            'Email', style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          TextField(
-            controller: email,
-            decoration: InputDecoration(
-              hintText: 'Masukan Email',
-              contentPadding: EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              )
-            ),
-          ),
-                  SizedBox(height: 6),
-
-             Text(
-            'Nomor Telepon', style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          TextField(
-            controller: nomor,
-            decoration: InputDecoration(
-              hintText: 'Nomor Telepon',
-              contentPadding: EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              )
-            ),
-          ),
-                            SizedBox(height: 6),
-
-        Text(
-            'Password', style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
-          ),
-          TextField(
-              controller: password,
-              decoration: InputDecoration(
-              hintText: 'Password',
-              contentPadding: EdgeInsets.all(12),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              )
-            ),
-          ),
-        const SizedBox(height: 28),
-        SizedBox(                
-                child: TextButton(onPressed: updateProfile,style: TextButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  padding: EdgeInsets.all(12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadiusGeometry.circular(12),
-                  )
-
-                ), child: Text(
-                  'submit', style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundImage: image,
+                    child: image == null
+                        ? const Icon(Icons.person, size: 40)
+                        : null,
                   ),
-                ))
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: _pickPhoto,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: const BoxDecoration(
+                          color: Colors.blue,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.camera_alt,
+                            color: Colors.white, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-        ],
-      ),
-      ),
+            ),
 
+            const SizedBox(height: 20),
+
+            label('Nama'),
+            inputField(nama, 'Masukan Nama'),
+
+            label('Email'),
+            inputField(email, 'Masukan Email'),
+
+            label('Nomor Telepon'),
+            inputField(nomor, 'Nomor Telepon'),
+
+            label('Password'),
+            inputField(password, 'Password', obscure: true),
+
+            const SizedBox(height: 25),
+
+            SizedBox(
+              width: double.infinity,
+              child: TextButton(
+                onPressed: _isLoading ? null : updateProfile,
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.blue,
+                  padding: const EdgeInsets.all(14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Submit',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
-

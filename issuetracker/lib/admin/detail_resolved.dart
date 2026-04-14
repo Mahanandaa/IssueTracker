@@ -3,38 +3,130 @@ import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DetailResolved extends StatefulWidget {
-  const DetailResolved({super.key});
+  final String issueId;
+  const DetailResolved({super.key, required this.issueId});
 
   @override
   State<DetailResolved> createState() => _DetailResolvedState();
 }
 
 class _DetailResolvedState extends State<DetailResolved> {
-  
   final supabase = Supabase.instance.client;
 
-  List<Map<String, dynamic>> issues = [];
   Map<String, dynamic>? issue;
+  Map<String, dynamic>? ratingData;
+  List<Map<String, dynamic>> comments = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchIssues();
+    fetchData();
   }
 
-  Future<void> fetchIssues() async {
-    final response = await supabase.from('issues').select();
-    setState(() {
-      issues = List<Map<String, dynamic>>.from(response);
-      if (issues.isNotEmpty) {
-        issue = issues[0];
+  Future<void> fetchData() async {
+    try {
+      // FIX 2,3: Ambil semua data dari DB
+      final issueRes = await supabase
+          .from('issues')
+          .select()
+          .eq('id', widget.issueId)
+          .maybeSingle();
+
+      final ratingRes = await supabase
+          .from('ratings')
+          .select('rating, feedback')
+          .eq('issue_id', widget.issueId)
+          .maybeSingle();
+
+      final commentsRes = await supabase
+          .from('comments')
+          .select('comment, created_at, users(name)')
+          .eq('issue_id', widget.issueId)
+          .order('created_at', ascending: true);
+
+      setState(() {
+        issue = issueRes;
+        ratingData = ratingRes;
+        comments = List<Map<String, dynamic>>.from(commentsRes);
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
-    });
+    }
+  }
+
+  Widget _infoBox(String label, String value, {Color? valueColor}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE9EEF3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Text(label, style: const TextStyle(fontSize: 12)),
+            const SizedBox(height: 5),
+            Text(value,
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: valueColor ?? Colors.blue),
+                textAlign: TextAlign.center),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // FIX 2,3: Widget foto dari URL
+  Widget _fotoBox(String label, String? url) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            height: 150,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: url != null && url.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(url,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Center(
+                            child: Text('Gagal memuat',
+                                style: TextStyle(color: Colors.grey)))),
+                  )
+                : const Center(
+                    child: Text('Belum Ada Foto',
+                        style: TextStyle(color: Colors.grey))),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              style: const TextStyle(fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    
+    if (isLoading) {
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator()));
+    }
+    if (issue == null) {
+      return const Scaffold(
+          body: Center(child: Text('Data tidak ditemukan')));
+    }
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -46,117 +138,42 @@ class _DetailResolvedState extends State<DetailResolved> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(height: 10),
-            Text(
-              'Wifi Tidak Ada Internet',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 20
-              ),
-            ),
-                        SizedBox(height: 10),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9EEF3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Kategori', style: TextStyle(fontSize: 12)),
-                        const SizedBox(height: 5),
-                        Text(
-                          issue?['category'] ?? 'Facilities',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9EEF3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Lokasi', style: TextStyle(fontSize: 12)),
-                        const SizedBox(height: 5),
-                        Text(
-                          issue?['location'] ?? 'Lantai 1',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
             const SizedBox(height: 10),
 
+            // Judul
+            Text(
+              issue?['title'] ?? '-',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, fontSize: 20),
+            ),
+            const SizedBox(height: 10),
+
+            // Kategori & Lokasi
             Row(
               children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9EEF3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Tanggal', style: TextStyle(fontSize: 12)),
-                        const SizedBox(height: 5),
-                        Text(
-                          issue?['created_at']?.toString().substring(0, 10) ??
-                              '2 Februari 2026',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _infoBox('Kategori', issue?['category'] ?? '-'),
                 const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE9EEF3),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      children: [
-                        const Text('Status', style: TextStyle(fontSize: 12)),
-                        const SizedBox(height: 5),
-                        Text(
-                          issue?['status'] ?? 'Resolved',
-                          style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _infoBox('Lokasi', issue?['location'] ?? '-'),
               ],
             ),
+            const SizedBox(height: 10),
 
+            // Tanggal & Status
+            Row(
+              children: [
+                _infoBox(
+                  'Tanggal',
+                  issue?['created_at']?.toString().substring(0, 10) ??
+                      '-',
+                ),
+                const SizedBox(width: 10),
+                _infoBox('Status', issue?['status'] ?? '-',
+                    valueColor: Colors.green),
+              ],
+            ),
             const SizedBox(height: 15),
 
+            // Deskripsi
             const Text('Deskripsi',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
@@ -164,206 +181,138 @@ class _DetailResolvedState extends State<DetailResolved> {
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                issue?['description'] ??
-                    'Tidak ada koneksi internet di lantai 1 sejak tadi pagi',
-              ),
+                  color: const Color(0xFFE9EEF3),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Text(issue?['description'] ?? '-'),
             ),
-
             const SizedBox(height: 15),
 
-            const Text('Foto',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Container(
-              height: 120,
-              width: double.infinity,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                'Tidak ada foto',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-
-            const SizedBox(height: 15),
-
-            const Text('Langkah - Langkah perbaikan :',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Container(
-                            width: double.infinity,
-
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                  '1. restart kembali router\n2. selesai'),
-            ),
-
-            const SizedBox(height: 15),
-
-            const Text('Ringkasan Solusi',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            Container(
-                            width: double.infinity,
-
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                  'Lakukan restart ketika koneksi menghilang'),
-            ),
-
-            const SizedBox(height: 15),
-
-            const Text('Feedback',
+            // Langkah perbaikan (resolution_notes)
+            const Text('Langkah - Langkah Perbaikan',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text(
-                  'teknisi bekerja sangat baik dan cepat'),
+                  color: const Color(0xFFE9EEF3),
+                  borderRadius: BorderRadius.circular(10)),
+              child: Text(issue?['resolution_notes'] ??
+                  'Tidak ada catatan'),
             ),
-
             const SizedBox(height: 15),
 
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[200],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Column(
-                      children: [
-                        Text('Rating'),
-                        Text('9/10',
-                            style: TextStyle(fontWeight: FontWeight.bold))
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.orange[200],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Column(
-                      children: [
-                        Text('Waktu'),
-                        Text('01 : 23 : 55',
-                            style: TextStyle(fontWeight: FontWeight.bold))
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 15),
-
-            const Text('Perbandingan',
+            // Waktu pengerjaan
+            const Text('Waktu Pengerjaan',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-
-            Row(
-              children: [
-                Expanded(
-
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 300,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Belum Ada Foto'
-                        ),
-                      ),
-                       const Text('Sebelum'),
-
-                    ],
-                    
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-
-                    children: [
-                      Container(
-                        width: 300,
-                        height: 150,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Belum Ada Foto'
-                        ),
-                      ),
-                      const Text('Sesudah'),
-                    ],
-                  ),
-                ),
-              ],
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                  color: Colors.orange[200],
+                  borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Durasi'),
+                  Text(issue?['actual_time']?.toString() ?? '-',
+                      style:
+                          const TextStyle(fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
+            const SizedBox(height: 15),
+
+            // Feedback & Rating dari DB
+            const Text('Feedback & Rating',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            if (ratingData != null) ...[
+              Row(
+                children: [
+                  _infoBox('Rating',
+                      '${ratingData!['rating'] ?? '-'} / 5',
+                      valueColor: Colors.orange),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                          color: const Color(0xFFE9EEF3),
+                          borderRadius: BorderRadius.circular(12)),
+                      child: Column(
+                        children: [
+                          const Text('Feedback',
+                              style: TextStyle(fontSize: 12)),
+                          const SizedBox(height: 5),
+                          Text(
+                            ratingData!['feedback'] ??
+                                'Tidak ada feedback',
+                            style: const TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontSize: 12),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE9EEF3),
+                    borderRadius: BorderRadius.circular(10)),
+                child: const Text(
+                  'Belum ada rating dari karyawan',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
 
             const SizedBox(height: 15),
 
+            // FIX 3: Perbandingan foto sebelum dan sesudah dari DB
+            const Text('Perbandingan Foto',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // photo_url = foto dari karyawan (sebelum)
+                _fotoBox('Sebelum\n(Pelapor)',
+                    issue?['photo_url']?.toString()),
+                const SizedBox(width: 10),
+                // completion_photo_url = foto dari teknisi (sesudah)
+                _fotoBox('Sesudah\n(Teknisi)',
+                    issue?['completion_photo_url']?.toString()),
+              ],
+            ),
+            const SizedBox(height: 15),
+
+            // Komentar
             const Text('Komentar',
                 style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text('Admin\nSaya sudah mengirim teknisi'),
-            ),
-
-            const SizedBox(height: 8),
-
-            Container(
-                            width: double.infinity,
-
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9EEF3),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: const Text('Ahmad\nOke, terimakasih!'),
-            ),
+            if (comments.isEmpty)
+              const Text('Belum ada komentar',
+                  style: TextStyle(color: Colors.grey))
+            else
+              ...comments.map((c) {
+                final userMap =
+                    c['users'] as Map<String, dynamic>?;
+                final namaUser = userMap?['name'] ?? 'Unknown';
+                return Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFFE9EEF3),
+                      borderRadius: BorderRadius.circular(10)),
+                  child: Text('$namaUser\n${c['comment'] ?? '-'}'),
+                );
+              }),
 
             const SizedBox(height: 15),
 
@@ -377,12 +326,14 @@ class _DetailResolvedState extends State<DetailResolved> {
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => DashboardAdmin()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const DashboardAdmin()),
+                  );
                 },
-                child: const Text('Selesai', style: TextStyle(
-                  color: Colors.white
-                ),),
+                child: const Text('Selesai',
+                    style: TextStyle(color: Colors.white)),
               ),
             ),
           ],
