@@ -109,17 +109,14 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     }
   }
 
-  // FIX 3: Kirim rating beserta technician_id agar terbaca di profil teknisi
   Future<void> kirimUlasan() async {
     final ratingVal = int.tryParse(rate.text.trim()) ?? 0;
-    // Ambil technician_id dari issue
     final technicianId = issue?['assigned_to'] as String?;
 
     await supabase.from('ratings').insert({
       'rating': ratingVal,
       'feedback': feedback.text.trim(),
       'issue_id': widget.issueId,
-      // FIX 3: Simpan technician_id agar bisa dihitung rata-rata di profil teknisi
       if (technicianId != null) 'technician_id': technicianId,
     });
   }
@@ -145,7 +142,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     }
   }
 
-  // FIX 4: Widget foto dengan label
+  // Widget foto dengan label — selalu tampil (kosong jika null)
   Widget _fotoCard(String label, String? url) {
     return Expanded(
       child: Container(
@@ -272,36 +269,29 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
               ),
-              child:
-                  Text(issue?['description']?.toString() ?? ''),
+              child: Text(issue?['description']?.toString() ?? ''),
             ),
 
             const SizedBox(height: 20),
 
-            // FIX 4: Foto sebelum dan sesudah pengerjaan
-            if (status == 'Resolved' ||
-                issue?['photo_url'] != null ||
-                issue?['completion_photo_url'] != null) ...[
-              const Text('Foto Pengerjaan',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 18)),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  _fotoCard(
-                      'Sebelum', issue?['photo_url']?.toString()),
-                  const SizedBox(width: 12),
-                  _fotoCard('Sesudah',
-                      issue?['completion_photo_url']?.toString()),
-                ],
-              ),
-              const SizedBox(height: 20),
-            ],
+            // Foto sebelum dan sesudah — SELALU tampil
+            const Text('Foto Pengerjaan',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 18)),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                _fotoCard('Sebelum', issue?['photo_url']?.toString()),
+                const SizedBox(width: 12),
+                _fotoCard('Sesudah',
+                    issue?['completion_photo_url']?.toString()),
+              ],
+            ),
+            const SizedBox(height: 20),
 
             // Resolution notes jika ada
             if (issue?['resolution_notes'] != null &&
-                (issue!['resolution_notes'] as String)
-                    .isNotEmpty) ...[
+                (issue!['resolution_notes'] as String).isNotEmpty) ...[
               const Text('Catatan Solusi',
                   style: TextStyle(
                       fontWeight: FontWeight.w600, fontSize: 18)),
@@ -314,8 +304,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.green.shade200),
                 ),
-                child: Text(
-                    issue!['resolution_notes'].toString()),
+                child: Text(issue!['resolution_notes'].toString()),
               ),
               const SizedBox(height: 20),
             ],
@@ -409,8 +398,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                     ? const SizedBox(
                         width: 44,
                         height: 44,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : Material(
                         color: Colors.blue,
                         shape: const CircleBorder(),
@@ -488,8 +476,8 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                   maxLength: 1,
                   decoration: InputDecoration(
                     hintText: 'Contoh: 5',
-                    prefixIcon: const Icon(Icons.star,
-                        color: Colors.orange),
+                    prefixIcon:
+                        const Icon(Icons.star, color: Colors.orange),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(

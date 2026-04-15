@@ -5,20 +5,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// FIX 5: Instance notifikasi lokal — init di main.dart atau di sini
 final FlutterLocalNotificationsPlugin notificationPlugin =
     FlutterLocalNotificationsPlugin();
 
 class SelesaiTeknis extends StatefulWidget {
   final String issueId;
 
-  // FIX 4: Terima URL foto sebelum dari ProgressTeknisi
-  final String? photoBeforeUrl;
-
   const SelesaiTeknis({
     super.key,
     required this.issueId,
-    this.photoBeforeUrl,
   });
 
   @override
@@ -26,10 +21,14 @@ class SelesaiTeknis extends StatefulWidget {
 }
 
 class _SelesaiTeknisState extends State<SelesaiTeknis> {
-  // FIX 4: Foto sebelum dari progress, foto sesudah diambil di halaman ini
+  // Foto sesudah dipilih teknisi
   XFile? imageAfter;
   String? _uploadedAfterUrl;
   bool _isUploading = false;
+
+  // Foto sebelum diambil dari DB (photo_url yang diupload karyawan)
+  String? _photoBeforeUrl;
+  bool _isLoadingBefore = true;
 
   final ImagePicker picker = ImagePicker();
   final solusiController = TextEditingController();
@@ -41,6 +40,7 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
   void initState() {
     super.initState();
     _initNotification();
+    _fetchPhotoBefore();
   }
 
   @override
@@ -50,17 +50,32 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     super.dispose();
   }
 
-  // FIX 5: Inisialisasi flutter_local_notifications
+  // Ambil foto sebelum (photo_url) dari tabel issues
+  Future<void> _fetchPhotoBefore() async {
+    try {
+      final data = await supabase
+          .from('issues')
+          .select('photo_url')
+          .eq('id', widget.issueId)
+          .maybeSingle();
+      if (mounted) {
+        setState(() {
+          _photoBeforeUrl = data?['photo_url'] as String?;
+          _isLoadingBefore = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingBefore = false);
+    }
+  }
+
   Future<void> _initNotification() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
     const initSettings = InitializationSettings(android: androidSettings);
-await notificationPlugin.initialize(
-  settings: initSettings,
-);
+    await notificationPlugin.initialize(settings: initSettings);
   }
 
-  // FIX 5: Tampilkan notifikasi pop-up lokal
   Future<void> _showLocalNotif({
     int id = 0,
     required String title,
@@ -76,12 +91,13 @@ await notificationPlugin.initialize(
         showWhen: true,
       ),
     );
-await notificationPlugin.show(
-  id: id,
-  title: title,
-  body: body,
-  notificationDetails: details,
-);  }
+    await notificationPlugin.show(
+      id: id,
+      title: title,
+      body: body,
+      notificationDetails: details,
+    );
+  }
 
   Future<void> _updateStatus() async {
     final userId = supabase.auth.currentUser?.id;
@@ -95,15 +111,12 @@ await notificationPlugin.show(
     await supabase.from('issues').update({
       'status': 'Resolved',
       'resolved_at': DateTime.now().toIso8601String(),
-      // FIX 4: Simpan ringkasan solusi ke resolution_notes
       'resolution_notes': solusiController.text.trim(),
-      // FIX 4: Simpan URL foto sesudah ke completion_photo_url
       if (_uploadedAfterUrl != null)
         'completion_photo_url': _uploadedAfterUrl,
     }).eq('id', widget.issueId);
   }
 
-  // FIX 5: Kirim notifikasi ke database (in-app) + pop-up lokal
   Future<void> _kirimNotifikasi() async {
     final issue = await supabase
         .from('issues')
@@ -144,8 +157,7 @@ await notificationPlugin.show(
       notifList.add({
         'user_id': admin['id'],
         'title': 'Laporan Diselesaikan',
-        'message':
-            'Laporan "$judulIssue" telah diselesaikan oleh teknisi.',
+        'message': 'Laporan "$judulIssue" telah diselesaikan oleh teknisi.',
         'type': 'issue_resolved',
         'is_read': false,
       });
@@ -169,7 +181,6 @@ await notificationPlugin.show(
     }
   }
 
-  // FIX 4: Upload foto sesudah dan simpan URL ke issues.completion_photo_url
   Future<void> _uploadFotoSesudah() async {
     if (imageAfter == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -195,7 +206,7 @@ await notificationPlugin.show(
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto sesudah berhasil diupload')));
+            const SnackBar(content: Text('Foto sesudah berhasil diupload ✓')));
       }
     } catch (e) {
       if (mounted) {
@@ -227,29 +238,42 @@ await notificationPlugin.show(
                 style: TextStyle(
                     fontWeight: FontWeight.bold, color: Colors.blue)),
             const SizedBox(height: 10),
-            // FIX 4: Tampilkan foto sebelum dari ProgressTeknisi
-            widget.photoBeforeUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.network(
-                      widget.photoBeforeUrl!,
-                      height: 140,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Text('Gagal memuat foto'),
-                    ),
-                  )
-                : Container(
+            if (_isLoadingBefore)
+              const SizedBox(
+                height: 140,
+                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+              )
+            else if (_photoBeforeUrl != null)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  _photoBeforeUrl!,
+                  height: 140,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
                     height: 140,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(12)),
-                    child: const Text("Belum ada foto sebelum",
+                    child: const Text("Gagal memuat foto",
                         style: TextStyle(color: Colors.black54),
                         textAlign: TextAlign.center),
                   ),
+                ),
+              )
+            else
+              Container(
+                height: 140,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12)),
+                child: const Text("Belum ada foto sebelum",
+                    style: TextStyle(color: Colors.black54),
+                    textAlign: TextAlign.center),
+              ),
           ],
         ),
       ),
@@ -298,8 +322,7 @@ await notificationPlugin.show(
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () =>
-                        pickImageAfter(ImageSource.camera),
+                    onPressed: () => pickImageAfter(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt, size: 16),
                     label: const Text("Camera"),
                     style: ElevatedButton.styleFrom(
@@ -309,8 +332,7 @@ await notificationPlugin.show(
                 const SizedBox(width: 6),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () =>
-                        pickImageAfter(ImageSource.gallery),
+                    onPressed: () => pickImageAfter(ImageSource.gallery),
                     icon: const Icon(Icons.image, size: 16),
                     label: const Text("Gallery"),
                     style: ElevatedButton.styleFrom(
@@ -342,12 +364,10 @@ await notificationPlugin.show(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_circle,
-                        color: Colors.green, size: 14),
+                    Icon(Icons.check_circle, color: Colors.green, size: 14),
                     SizedBox(width: 4),
-                    Text('Terupload',
-                        style: TextStyle(
-                            color: Colors.green, fontSize: 11)),
+                    Text('Terupload ✓',
+                        style: TextStyle(color: Colors.green, fontSize: 11)),
                   ],
                 ),
               ),
@@ -387,7 +407,7 @@ await notificationPlugin.show(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // FIX 4: Dua panel foto (sebelum dari props, sesudah upload di sini)
+            // Dua panel foto: sebelum (dari DB) dan sesudah (upload teknisi)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -409,8 +429,7 @@ await notificationPlugin.show(
             TextField(
               controller: solusiController,
               maxLines: 4,
-              decoration:
-                  inputStyle("Jelaskan solusi yang dilakukan..."),
+              decoration: inputStyle("Jelaskan solusi yang dilakukan..."),
             ),
 
             const SizedBox(height: 20),
@@ -425,8 +444,7 @@ await notificationPlugin.show(
             TextField(
               controller: sparepartController,
               maxLines: 3,
-              decoration:
-                  inputStyle("Spare parts yang digunakan..."),
+              decoration: inputStyle("Spare parts yang digunakan..."),
             ),
 
             const SizedBox(height: 30),
@@ -440,7 +458,6 @@ await notificationPlugin.show(
                     await _updateStatus();
                     await _selesai();
                     await _kirimNotifikasi();
-
                     await _showLocalNotif(
                       title: 'Tugas Selesai',
                       body: 'Laporan berhasil diselesaikan!',
@@ -449,8 +466,7 @@ await notificationPlugin.show(
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content:
-                                Text("Pekerjaan berhasil diselesaikan")),
+                            content: Text("Pekerjaan berhasil diselesaikan")),
                       );
                       Navigator.pushReplacement(
                         context,

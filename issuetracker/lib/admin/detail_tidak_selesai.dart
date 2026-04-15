@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
-import 'package:issuetracker/teknisi/dashboard_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DetailTidakSelesai extends StatefulWidget {
-  final String issueId; // ✅ simpan id
+  final String issueId;
 
   const DetailTidakSelesai({
     super.key,
@@ -12,12 +11,10 @@ class DetailTidakSelesai extends StatefulWidget {
   });
 
   @override
-  State<DetailTidakSelesai> createState() =>
-      _DetailTidakSelesaiState();
+  State<DetailTidakSelesai> createState() => _DetailTidakSelesaiState();
 }
 
-class _DetailTidakSelesaiState
-    extends State<DetailTidakSelesai> {
+class _DetailTidakSelesaiState extends State<DetailTidakSelesai> {
   final supabase = Supabase.instance.client;
 
   Map<String, dynamic>? issue;
@@ -35,7 +32,7 @@ class _DetailTidakSelesaiState
           .from('issues')
           .select()
           .eq('id', widget.issueId)
-          .maybeSingle(); 
+          .maybeSingle();
       setState(() {
         issue = response;
         isLoading = false;
@@ -44,7 +41,6 @@ class _DetailTidakSelesaiState
       setState(() {
         isLoading = false;
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -55,12 +51,10 @@ class _DetailTidakSelesaiState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       appBar: AppBar(
         title: const Text("Detail Tidak Selesai"),
         backgroundColor: Colors.grey[200],
       ),
-
       body: SafeArea(
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -69,10 +63,9 @@ class _DetailTidakSelesaiState
                 : SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
                     child: Column(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    Text(
+                        Text(
                           issue?['title'] ?? 'No Title',
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
@@ -83,16 +76,12 @@ class _DetailTidakSelesaiState
                         const SizedBox(height: 16),
 
                         const Text(
-                          'Alasan',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          'Alasan Tidak Selesai',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),
-
                         _box(
-                          issue?['not_completed_reason']
-                                  ?.toString() ??
+                          issue?['not_completed_reason']?.toString() ??
                               'Tidak ada alasan',
                         ),
 
@@ -100,78 +89,58 @@ class _DetailTidakSelesaiState
 
                         const Text(
                           'Lokasi',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),
-
                         _box(
-                          issue?['location']
-                                  ?.toString() ??
-                              '-',
+                          issue?['location']?.toString() ?? '-',
                         ),
 
                         const SizedBox(height: 16),
 
+                        // Foto sebelum (dari karyawan)
                         const Text(
-                          'Foto Terakhir',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                          ),
+                          'Foto Sebelum',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 6),
+                        _fotoContainer(issue?['photo_url']?.toString()),
 
-                        Container(
-                          width: double.infinity,
-                          height: 150,
-                          decoration: BoxDecoration(
-                            borderRadius:
-                                BorderRadius.circular(12),
-                            border: Border.all(
-                              color: Colors.grey,
-                            ),
-                          ),
-                          child: issue?['photo_url'] != null
-                              ? Image.network(
-                                  issue!['photo_url'],
-                                  fit: BoxFit.cover,
-                                )
-                              : const Center(
-                                  child: Text(
-                                      'Tidak ada foto'),
-                                ),
+                        const SizedBox(height: 16),
+
+                        // Foto saat tidak selesai (diupload teknisi)
+                        const Text(
+                          'Foto Saat Tidak Selesai',
+                          style: TextStyle(fontWeight: FontWeight.w600),
                         ),
+                        const SizedBox(height: 6),
+                        _fotoContainer(
+                            issue?['completion_photo_url']?.toString()),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 24),
 
                         GestureDetector(
                           onTap: () {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    DashboardAdmin(),
+                                builder: (_) => DashboardAdmin(),
                               ),
                             );
                           },
                           child: Container(
                             width: double.infinity,
-                            padding:
-                                const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: Colors.blue,
-                              borderRadius:
-                                  BorderRadius.circular(
-                                      12),
+                              borderRadius: BorderRadius.circular(12),
                             ),
                             child: const Center(
                               child: Text(
                                 'Kembali ke Dashboard',
                                 style: TextStyle(
                                   color: Colors.white,
-                                  fontWeight:
-                                      FontWeight.w600,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ),
@@ -184,6 +153,37 @@ class _DetailTidakSelesaiState
     );
   }
 
+  Widget _fotoContainer(String? url) {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.grey.shade100,
+      ),
+      child: url != null && url.isNotEmpty
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const Center(
+                  child: Text('Gagal memuat foto',
+                      style: TextStyle(color: Colors.grey)),
+                ),
+              ),
+            )
+          : const Center(
+              child: Text(
+                'Tidak ada foto',
+                style: TextStyle(
+                    color: Colors.grey, fontStyle: FontStyle.italic),
+              ),
+            ),
+    );
+  }
+
   Widget _box(String text) {
     return Container(
       width: double.infinity,
@@ -191,7 +191,7 @@ class _DetailTidakSelesaiState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Text(text),
     );
