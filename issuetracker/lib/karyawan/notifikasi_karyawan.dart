@@ -20,9 +20,7 @@ class _NotifikasiKaryawanState extends State<NotifikasiKaryawan> {
     super.initState();
     fetchNotifications();
   }
-
-  // FIX 5: Ambil notifikasi dari tabel notifications berdasarkan user_id
-  Future<void> fetchNotifications() async {
+ Future<void> fetchNotifications() async {
     if (_uid.isEmpty) return;
     try {
       final response = await supabase
@@ -36,7 +34,6 @@ class _NotifikasiKaryawanState extends State<NotifikasiKaryawan> {
         isLoading = false;
       });
 
-      // FIX 5: Tandai semua notifikasi sebagai sudah dibaca
       await supabase
           .from('notifications')
           .update({'is_read': true})
@@ -51,7 +48,6 @@ class _NotifikasiKaryawanState extends State<NotifikasiKaryawan> {
     }
   }
 
-  // Warna icon berdasarkan tipe notifikasi
   Color _iconColor(String? type) {
     switch (type) {
       case 'issue_resolved':

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/teknisi/detail_laporan_teknisi.dart';
 import 'package:issuetracker/teknisi/history_teknisi.dart';
+import 'package:issuetracker/teknisi/notifikasi_teknisi.dart';
 import 'package:issuetracker/teknisi/setting_profile_teknisi.dart';
 import 'package:issuetracker/teknisi/statistic_teknisi.dart';
+import 'package:path/path.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DashboardTeknisi extends StatefulWidget {
@@ -58,7 +60,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
   Future<void> fenchData([String? searchTerm]) async {
     if (_uid.isEmpty) return;
     setState(() => _isLoading = true);
-    try {
+   
       var response = await supabase
           .from('issues')
           .select()
@@ -73,15 +75,10 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
           _isLoading = false;
         });
       }
-    } on PostgrestException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${error.message}')),
-        );
-        setState(() => _isLoading = false);
-      }
+    
+
     }
-  }
+  
 
   // No. 1: format deadline untuk ditampilkan
   String _formatDeadline(dynamic raw) {
@@ -160,11 +157,20 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "Selamat Datang.",
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
-                ),
-
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Selamat Datang', style: TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 20
+                  ),
+                  ),
+                IconButton(onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => NotifikasiTeknisi()));
+                }, icon:const Icon( Icons.notifications,  size: 28,)
+                )
+                ],
+              ),
+               
                 const SizedBox(height: 14),
 
                 Container(

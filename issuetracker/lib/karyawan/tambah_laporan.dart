@@ -111,7 +111,18 @@ class _TambahLaporanState extends State<TambahLaporan> {
 
     setState(() => _isSubmitting = true);
     try {
-      // FIX 2: Insert langsung ke Supabase dengan photo_url yang sudah ada
+      // Jika ada foto yang dipilih tapi belum diupload, upload dulu otomatis
+      if (_imageFile != null && _uploadedPhotoUrl == null) {
+        setState(() => _isUploading = true);
+        final fileName = 'issue_${DateTime.now().microsecondsSinceEpoch}.jpg';
+        final path = 'uploads/$fileName';
+        await supabase.storage
+            .from('images')
+            .upload(path, _imageFile!, fileOptions: const FileOptions(upsert: true));
+        _uploadedPhotoUrl = supabase.storage.from('images').getPublicUrl(path);
+        setState(() => _isUploading = false);
+      }
+
       await supabase.from('issues').insert({
         'title': judul.text.trim(),
         'description': deskripsi.text.trim(),
@@ -121,7 +132,6 @@ class _TambahLaporanState extends State<TambahLaporan> {
         'status': 'Pending',
         'reported_by': supabase.auth.currentUser?.id,
         'deadline': _selectedDeadline!.toIso8601String(),
-        // FIX 2: Simpan URL foto langsung — tidak null jika sudah diupload
         if (_uploadedPhotoUrl != null) 'photo_url': _uploadedPhotoUrl,
       });
 

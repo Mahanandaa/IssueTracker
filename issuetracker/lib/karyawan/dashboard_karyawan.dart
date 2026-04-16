@@ -153,7 +153,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
-  // FIX 2: Tentukan warna background container berdasarkan status
   Color _cardColor(String? status) {
     switch (status) {
       case 'Resolved':
@@ -167,7 +166,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
-  // FIX 2: Warna teks status badge
   Color _statusColor(String? status) {
     switch (status) {
       case 'Resolved':

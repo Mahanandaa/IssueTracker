@@ -2,9 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
+import 'package:issuetracker/admin/notifikasi_admin.dart';
 import 'package:issuetracker/admin/profile_admin.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
 class DashboardAdmin extends StatefulWidget {
   const DashboardAdmin({super.key});
 
@@ -153,8 +153,24 @@ class _DashboardAdminState extends State<DashboardAdmin> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(12),
         child: Column(
+          
           crossAxisAlignment: CrossAxisAlignment.start,
+          
           children: [
+            Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Selamat Datang', style: TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 20
+                  ),
+                  ),
+                IconButton(onPressed: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => NotifikasiAdmin()));
+                }, icon:const Icon( Icons.notifications,  size: 28,)
+                )
+                ],
+              ),
+            SizedBox(height: 10),
             Row(
               children: [
                 Expanded(

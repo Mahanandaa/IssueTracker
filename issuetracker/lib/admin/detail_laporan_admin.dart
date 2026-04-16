@@ -95,7 +95,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
-  /// FIX 7: Tolak laporan dan update state lokal agar tombol hilang tanpa reload
   Future<void> _tolakLaporan() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -124,7 +123,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
           .update({'status': 'Rejected'}).eq('id', widget.issueId);
 
       if (mounted) {
-        // FIX 7: Update state lokal → tombol langsung hilang
         setState(() {
           issue = {...?issue, 'status': 'Rejected'};
         });
@@ -160,7 +158,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
           body: Center(child: Text("Data tidak ditemukan")));
     }
 
-    // FIX 7: Cek status laporan untuk sembunyikan tombol aksi
     final String currentStatus = issue?['status']?.toString() ?? '';
     final bool isRejected = currentStatus == 'Rejected';
     final bool isAlreadyAssigned = currentStatus == 'Assigned' || currentStatus == 'In Progress' || currentStatus == 'Resolved';
@@ -221,36 +218,18 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 20),
 
-            // Foto
-            const Text('Foto',
+            // Foto Sebelum & Sesudah
+            const Text('Foto Pengerjaan',
                 style: TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
-            Container(
-              width: double.infinity,
-              height: 150,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: issue?['photo_url'] != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: Image.network(
-                        issue!['photo_url'].toString(),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Center(
-                          child: Text('Gagal memuat foto',
-                              style: TextStyle(color: Colors.grey)),
-                        ),
-                      ),
-                    )
-                  : const Center(
-                      child: Text('Belum Ada Foto',
-                          style: TextStyle(
-                              color: Colors.grey,
-                              fontStyle: FontStyle.italic))),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _fotoCard('Sebelum\n(Pelapor)', issue?['photo_url']?.toString()),
+                const SizedBox(width: 12),
+                _fotoCard('Sesudah\n(Teknisi)', issue?['completion_photo_url']?.toString()),
+              ],
             ),
             const SizedBox(height: 20),
 
@@ -500,6 +479,60 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
               ),
 
             const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _fotoCard(String label, String? url) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Column(
+          children: [
+            Text(label,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 8),
+            url != null && url.isNotEmpty
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      url,
+                      height: 130,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 130,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(10)),
+                        child: const Text('Gagal memuat',
+                            style: TextStyle(
+                                color: Colors.grey, fontSize: 12)),
+                      ),
+                    ),
+                  )
+                : Container(
+                    height: 130,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(10)),
+                    child: const Text('Belum ada foto',
+                        style: TextStyle(
+                            color: Colors.grey,
+                            fontStyle: FontStyle.italic,
+                            fontSize: 12)),
+                  ),
           ],
         ),
       ),

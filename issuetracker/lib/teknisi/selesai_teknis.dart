@@ -50,7 +50,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     super.dispose();
   }
 
-  // Ambil foto sebelum (photo_url) dari tabel issues
   Future<void> _fetchPhotoBefore() async {
     try {
       final data = await supabase
@@ -115,6 +114,15 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
       if (_uploadedAfterUrl != null)
         'completion_photo_url': _uploadedAfterUrl,
     }).eq('id', widget.issueId);
+
+    final sparePart = sparepartController.text.trim();
+    if (sparePart.isNotEmpty) {
+      await supabase.from('spare_parts').insert({
+        'issue_id': widget.issueId,
+        'part_name': sparePart,
+        'quantity': 1,
+      });
+    }
   }
 
   Future<void> _kirimNotifikasi() async {
@@ -407,7 +415,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            // Dua panel foto: sebelum (dari DB) dan sesudah (upload teknisi)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -454,6 +461,14 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
+                  // Validasi: solusi wajib diisi
+                  if (solusiController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ringkasan solusi wajib diisi')),
+                    );
+                    return;
+                  }
+                 
                   try {
                     await _updateStatus();
                     await _selesai();

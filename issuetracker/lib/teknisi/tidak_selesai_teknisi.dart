@@ -43,6 +43,8 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
       if (_uploadedPhotoUrl != null)
         'completion_photo_url': _uploadedPhotoUrl,
       'assigned_at': null,
+      'assigned_to': null, // FIX: reset assigned_to agar bisa di-assign ulang
+      'started_at': null,
     }).eq('id', widget.issueId);
   }
 
