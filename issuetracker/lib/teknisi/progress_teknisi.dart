@@ -66,12 +66,13 @@ class _ProgressTeknisiState extends State<ProgressTeknisi> {
 
   @override
   Widget build(BuildContext context) {
+    
     final hours = twoDigits(duration.inHours);
     final minutes = twoDigits(duration.inMinutes.remainder(60));
     final seconds = twoDigits(duration.inSeconds.remainder(60));
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Progress Pengerjaan"),
         backgroundColor: Colors.grey[300],
@@ -108,7 +109,6 @@ class _ProgressTeknisiState extends State<ProgressTeknisi> {
 
             const SizedBox(height: 25),
 
-            // FIX 1: Seksi foto dihapus — foto sebelum = foto dari karyawan (photo_url)
             const Text("Langkah Langkah Perbaikan",
                 style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
             const SizedBox(height: 10),

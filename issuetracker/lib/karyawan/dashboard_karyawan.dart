@@ -347,8 +347,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               ),
 
             const SizedBox(height: 10),
-
-            // Filter status buttons
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
@@ -369,8 +367,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
             ),
 
             const SizedBox(height: 12),
-
-            // Issue list
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -407,7 +403,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                                 );
                                 fetchIssues();
                               },
-                              // FIX 2: Warna background berdasarkan status
                               child: Container(
                                 margin: const EdgeInsets.only(
                                     bottom: 16),

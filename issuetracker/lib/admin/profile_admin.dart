@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:issuetracker/Auth/auth_service.dart';
 import 'package:issuetracker/Auth/login.dart';
+import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/edit_data_akun.dart';
+import 'package:issuetracker/admin/kasus_admin.dart';
 import 'package:issuetracker/main.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -17,6 +19,7 @@ class ProfileAdmin extends StatefulWidget {
 class _ProfileAdminState extends State<ProfileAdmin> {
   final authService = AuthService();
   final supabase = Supabase.instance.client;
+  int _currentIndex = 0;
 
   Map<String, dynamic>? data;
   bool isLoading = true;
@@ -152,8 +155,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
     final ImageProvider? avatarImage = _newPhoto != null
         ? FileImage(_newPhoto!)
         : (photoUrl is String && photoUrl.isNotEmpty
-            ? NetworkImage(photoUrl)
-            : null);
+            ? NetworkImage(photoUrl) : null);
 
     if (isLoading) {
       return const Scaffold(
@@ -162,6 +164,43 @@ class _ProfileAdminState extends State<ProfileAdmin> {
     }
 
     return Scaffold(
+       bottomNavigationBar: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.grey[200],
+        selectedItemColor: Colors.blue,
+        unselectedItemColor: Colors.grey,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+          if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => KasusAdmin()),
+            );
+          } else if (index == 2) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => DataAdmin()),
+            );
+          } else if (index == 3) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileAdmin()),
+            );
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home), label: 'Dashboard'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.work), label: 'Kasus'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.storage), label: 'Data'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Setting'),
+        ],
+      ),
+      backgroundColor: Colors.white,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [

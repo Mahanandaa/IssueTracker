@@ -28,6 +28,7 @@ class _ProfileSettingKaryawanState extends State<ProfileSettingKaryawan> {
 
   @override
   Widget build(BuildContext context) {
+  
     final user = supabase.auth.currentUser;
 
     final theme = Theme.of(context);
@@ -39,8 +40,10 @@ class _ProfileSettingKaryawanState extends State<ProfileSettingKaryawan> {
         isDark ? Colors.black45 : const Color.fromARGB(255, 200, 200, 200);
 
     return Scaffold(
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: ListView(
+ padding: const EdgeInsets.all(20),
         children: [
           FutureBuilder(
             future:
@@ -59,6 +62,7 @@ class _ProfileSettingKaryawanState extends State<ProfileSettingKaryawan> {
               return Column(
                 children: [
                   Container(
+                    width: double.infinity,
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       color: cardColor,
@@ -120,11 +124,7 @@ class _ProfileSettingKaryawanState extends State<ProfileSettingKaryawan> {
                         color: cardColor,
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
-                          BoxShadow(
-                            color: shadowColor,
-                            blurRadius: 24,
-                            offset: const Offset(0, 11),
-                          ),
+                        BoxShadow(color: shadowColor, blurRadius: 6)
                         ],
                       ),
                       child: Center(
@@ -208,6 +208,8 @@ class _ProfileSettingKaryawanState extends State<ProfileSettingKaryawan> {
             ),
           ),
         ],
+        ),
+       
       ),
     );
   }

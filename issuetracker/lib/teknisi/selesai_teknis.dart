@@ -21,12 +21,10 @@ class SelesaiTeknis extends StatefulWidget {
 }
 
 class _SelesaiTeknisState extends State<SelesaiTeknis> {
-  // Foto sesudah dipilih teknisi
   XFile? imageAfter;
   String? _uploadedAfterUrl;
   bool _isUploading = false;
 
-  // Foto sebelum diambil dari DB (photo_url yang diupload karyawan)
   String? _photoBeforeUrl;
   bool _isLoadingBefore = true;
 
@@ -51,32 +49,27 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
   }
 
   Future<void> _fetchPhotoBefore() async {
-    try {
-      final data = await supabase
-          .from('issues')
-          .select('photo_url')
-          .eq('id', widget.issueId)
-          .maybeSingle();
-      if (mounted) {
-        setState(() {
-          _photoBeforeUrl = data?['photo_url'] as String?;
-          _isLoadingBefore = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _isLoadingBefore = false);
-    }
+    final data = await supabase
+        .from('issues')
+        .select('photo_url')
+        .eq('id', widget.issueId)
+        .maybeSingle();
+
+    setState(() {
+      _photoBeforeUrl = data?['photo_url'];
+      _isLoadingBefore = false;
+    });
   }
 
   Future<void> _initNotification() async {
     const androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
+
     const initSettings = InitializationSettings(android: androidSettings);
-    await notificationPlugin.initialize(settings: initSettings);
+
   }
 
   Future<void> _showLocalNotif({
-    int id = 0,
     required String title,
     required String body,
   }) async {
@@ -84,23 +77,17 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
       android: AndroidNotificationDetails(
         'issue_channel',
         'Issue Tracker',
-        channelDescription: 'Notifikasi status laporan',
         importance: Importance.max,
         priority: Priority.high,
-        showWhen: true,
       ),
     );
-    await notificationPlugin.show(
-      id: id,
-      title: title,
-      body: body,
-      notificationDetails: details,
-    );
+
   }
 
   Future<void> _updateStatus() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
+
     await supabase
         .from('users')
         .update({'is_available': true}).eq('id', userId);
@@ -115,270 +102,121 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
         'completion_photo_url': _uploadedAfterUrl,
     }).eq('id', widget.issueId);
 
-    final sparePart = sparepartController.text.trim();
-    if (sparePart.isNotEmpty) {
+    if (sparepartController.text.trim().isNotEmpty) {
       await supabase.from('spare_parts').insert({
         'issue_id': widget.issueId,
-        'part_name': sparePart,
+        'part_name': sparepartController.text.trim(),
         'quantity': 1,
       });
     }
   }
 
-  Future<void> _kirimNotifikasi() async {
-    final issue = await supabase
-        .from('issues')
-        .select('title, reported_by, assigned_to')
-        .eq('id', widget.issueId)
-        .single();
-
-    final judulIssue = issue['title'] ?? 'Laporan';
-    final karyawanId = issue['reported_by'] as String?;
-    final teknisiId = issue['assigned_to'] as String?;
-
-    final admins =
-        await supabase.from('users').select('id').eq('role', 'admin');
-
-    final List<Map<String, dynamic>> notifList = [];
-
-    if (karyawanId != null) {
-      notifList.add({
-        'user_id': karyawanId,
-        'title': 'Laporan Selesai',
-        'message': 'Laporan "$judulIssue" telah selesai ditangani.',
-        'type': 'issue_resolved',
-        'is_read': false,
-      });
-    }
-
-    if (teknisiId != null) {
-      notifList.add({
-        'user_id': teknisiId,
-        'title': 'Tugas Selesai',
-        'message': 'Kamu telah menyelesaikan laporan "$judulIssue".',
-        'type': 'task_completed',
-        'is_read': false,
-      });
-    }
-
-    for (final admin in admins) {
-      notifList.add({
-        'user_id': admin['id'],
-        'title': 'Laporan Diselesaikan',
-        'message': 'Laporan "$judulIssue" telah diselesaikan oleh teknisi.',
-        'type': 'issue_resolved',
-        'is_read': false,
-      });
-    }
-
-    if (notifList.isNotEmpty) {
-      await supabase.from('notifications').insert(notifList);
-    }
-  }
-
   Future<void> pickImageAfter(ImageSource source) async {
-    try {
-      final image = await picker.pickImage(
-          source: source, imageQuality: 80, maxWidth: 1080);
-      if (image != null) setState(() => imageAfter = image);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal buka galeri/kamera: $e')));
-      }
+    final image =
+        await picker.pickImage(source: source, imageQuality: 80);
+
+    if (image != null) {
+      setState(() => imageAfter = image);
     }
   }
 
   Future<void> _uploadFotoSesudah() async {
-    if (imageAfter == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pilih foto sesudah terlebih dahulu')));
-      return;
-    }
+    if (imageAfter == null) return;
+
     setState(() => _isUploading = true);
-    try {
-      final fileName =
-          '${widget.issueId}_after_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final path = 'uploads/$fileName';
 
-      await supabase.storage.from('images').upload(
-            path,
-            File(imageAfter!.path),
-            fileOptions: const FileOptions(upsert: true),
-          );
+    final fileName =
+        '${widget.issueId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
 
-      final publicUrl =
-          supabase.storage.from('images').getPublicUrl(path);
+    await supabase.storage
+        .from('images')
+        .upload('uploads/$fileName', File(imageAfter!.path));
 
-      setState(() => _uploadedAfterUrl = publicUrl);
+    final url = supabase.storage
+        .from('images')
+        .getPublicUrl('uploads/$fileName');
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Foto sesudah berhasil diupload ✓')));
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Gagal upload: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isUploading = false);
-    }
+    setState(() {
+      _uploadedAfterUrl = url;
+      _isUploading = false;
+    });
   }
 
-  Widget _buildFotoSebelum() {
+  Widget card({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6),
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Widget fotoSebelum() {
+    
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.blue.shade100,
-                blurRadius: 8,
-                offset: const Offset(0, 3))
-          ],
-        ),
+      child: card(
         child: Column(
           children: [
             const Text("Sebelum",
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.blue)),
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
-            if (_isLoadingBefore)
-              const SizedBox(
-                height: 140,
-                child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
-              )
-            else if (_photoBeforeUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  _photoBeforeUrl!,
-                  height: 140,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    height: 140,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: const Text("Gagal memuat foto",
-                        style: TextStyle(color: Colors.black54),
-                        textAlign: TextAlign.center),
-                  ),
-                ),
-              )
-            else
-              Container(
-                height: 140,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12)),
-                child: const Text("Belum ada foto sebelum",
-                    style: TextStyle(color: Colors.black54),
-                    textAlign: TextAlign.center),
-              ),
+            _isLoadingBefore
+                ? const CircularProgressIndicator()
+                : _photoBeforeUrl != null
+                    ? Image.network(
+                        _photoBeforeUrl!,
+                        height: 140,
+                        fit: BoxFit.cover,
+                      )
+                    : const Text("Tidak ada foto"),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildFotoSesudah() {
+  Widget fotoSesudah() {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.blue.shade100,
-                blurRadius: 8,
-                offset: const Offset(0, 3))
-          ],
-        ),
+      child: card(
         child: Column(
           children: [
             const Text("Sesudah",
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.blue)),
+                style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 10),
             imageAfter != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Image.file(File(imageAfter!.path),
-                        height: 140,
-                        width: double.infinity,
-                        fit: BoxFit.cover),
-                  )
-                : Container(
+                ? Image.file(
+                    File(imageAfter!.path),
                     height: 140,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(12)),
-                    child: const Text("Belum ada gambar",
-                        style: TextStyle(color: Colors.black54)),
-                  ),
+                    fit: BoxFit.cover,
+                  )
+                : const Text("Belum ada gambar"),
             const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => pickImageAfter(ImageSource.camera),
-                    icon: const Icon(Icons.camera_alt, size: 16),
-                    label: const Text("Camera"),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue),
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        pickImageAfter(ImageSource.camera),
+                    child: const Icon(Icons.camera_alt_outlined),
                   ),
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => pickImageAfter(ImageSource.gallery),
-                    icon: const Icon(Icons.image, size: 16),
-                    label: const Text("Gallery"),
-                    style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.lightBlue),
+                  child: ElevatedButton(
+                    onPressed: () =>
+                        pickImageAfter(ImageSource.gallery),
+                    child: const Icon(Icons.image),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isUploading ? null : _uploadFotoSesudah,
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700]),
-                child: _isUploading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Text('Upload',
-                        style: TextStyle(color: Colors.white)),
-              ),
-            ),
-            if (_uploadedAfterUrl != null)
-              const Padding(
-                padding: EdgeInsets.only(top: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green, size: 14),
-                    SizedBox(width: 4),
-                    Text('Terupload ✓',
-                        style: TextStyle(color: Colors.green, fontSize: 11)),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 6),
+          
           ],
         ),
       ),
@@ -389,15 +227,9 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     return InputDecoration(
       hintText: hint,
       filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.all(12),
+      fillColor: Colors.grey[100],
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade100),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.blue.shade100),
       ),
     );
   }
@@ -405,108 +237,87 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("Selesaikan Pekerjaan"),
-        backgroundColor: Colors.lightBlue,
+        backgroundColor: Colors.grey[200],
+        foregroundColor: Colors.black,
         elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildFotoSebelum(),
-                const SizedBox(width: 12),
-                _buildFotoSesudah(),
+                fotoSebelum(),
+                const SizedBox(width: 10),
+                fotoSesudah(),
               ],
             ),
-
-            const SizedBox(height: 25),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Ringkasan Solusi",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.blue)),
+            const SizedBox(height: 20),
+            Text(
+              'Ringkasan Solusi', 
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+              ),
+              
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 20),
             TextField(
               controller: solusiController,
-              maxLines: 4,
-              decoration: inputStyle("Jelaskan solusi yang dilakukan..."),
+              maxLines: 3,
+              decoration: inputStyle("Ringkasan solusi"),
             ),
-
-            const SizedBox(height: 20),
-
-            const Align(
-              alignment: Alignment.centerLeft,
-              child: Text("Spare Parts",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, color: Colors.blue)),
+              const SizedBox(height: 20),
+            Text(
+              'Spare parts', 
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 20,
+              ),
+              
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 20),
             TextField(
               controller: sparepartController,
-              maxLines: 3,
-              decoration: inputStyle("Spare parts yang digunakan..."),
+              maxLines: 2,
+              decoration: inputStyle("Spare parts"),
             ),
-
-            const SizedBox(height: 30),
-
+            const SizedBox(height: 16),
             SizedBox(
-              width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
-                  // Validasi: solusi wajib diisi
-                  if (solusiController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Ringkasan solusi wajib diisi')),
-                    );
-                    return;
-                  }
-                 
-                  try {
-                    await _updateStatus();
-                    await _selesai();
-                    await _kirimNotifikasi();
-                    await _showLocalNotif(
-                      title: 'Tugas Selesai',
-                      body: 'Laporan berhasil diselesaikan!',
-                    );
+                  if (solusiController.text.isEmpty) return;
 
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text("Pekerjaan berhasil diselesaikan")),
-                      );
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const DashboardTeknisi()),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Error: $e")));
-                    }
-                  }
+                  await _updateStatus();
+                  await _selesai();
+                  await _uploadFotoSesudah();
+                  await _showLocalNotif(
+                    title: 'Selesai',
+                    body: 'Berhasil diselesaikan',
+                  );
+
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const DashboardTeknisi(),
+                    ),
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
+                  foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  elevation: 3,
+                    borderRadius:
+                        BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text(
-                  "Selesaikan Pekerjaan",
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold, fontSize: 16),
-                ),
+                child: const Text("Selesaikan"),
               ),
             ),
           ],

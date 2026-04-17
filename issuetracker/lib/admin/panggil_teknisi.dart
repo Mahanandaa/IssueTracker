@@ -219,6 +219,22 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                                         color: Colors.grey[600]),
                                   ),
                                   const SizedBox(height: 4),
+                                      Row(
+                                    children: [
+                                      const Icon(Icons.star,
+                                          size: 13, color: Colors.amber),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        teknisiRatings[teknisi['id']] != null ? teknisiRatings[teknisi['id']]!.toStringAsFixed(1)
+                                            : 'Belum ada',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                           const SizedBox(height: 4),
+
                                   Container(
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 2),
@@ -245,24 +261,7 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                                       ),
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  // Tampilkan rating
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.star,
-                                          size: 13, color: Colors.amber),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        teknisiRatings[teknisi['id']] != null
-                                            ? teknisiRatings[teknisi['id']]!
-                                                .toStringAsFixed(1)
-                                            : 'Belum ada',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            color: Colors.grey[600]),
-                                      ),
-                                    ],
-                                  ),
+                              
                                 ],
                               ),
                             ),

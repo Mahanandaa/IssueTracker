@@ -52,17 +52,29 @@ List comments = [];
   }
   
   Future<void> kirimKomentar() async {
-    if (commentController.text.isEmpty) return;
+    final text = commentController.text.trim();
+    if (text.isEmpty) return;
 
-    await supabase.from('comments').insert({
-      'issue_id': widget.issueId,
-      'user_id': _uid,
-      'comment': commentController.text,
-    });
-   commentController.clear();
+    setState(() => isSendingComment = true);
+    try {
+      await supabase.from('comments').insert({
+        'issue_id': widget.issueId,
+        'user_id': _uid,
+        'comment': text,
+      });
+      commentController.clear();
+      // Hanya gunakan fetchComments() yang sudah join ke tabel users(name, role)
+      // JANGAN panggil fetchData() — query itu tidak join users sehingga nama jadi Unknown
       await fetchComments();
-    commentController.clear();
-    fetchData();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal kirim komentar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isSendingComment = false);
+    }
   }
 
   Future<void> fetchDetail() async {
@@ -177,7 +189,7 @@ List comments = [];
     }
 
     if (notifList.isNotEmpty) {
-      await supabase.from('notifications').insert(notifList); // FIX: typo 'noticisations'
+      await supabase.from('notifications').insert(notifList);
     }
   }
 
@@ -579,7 +591,7 @@ SizedBox(height: 20),
                           horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: Colors.grey.shade200)
                       ),
                     ),
                   ),

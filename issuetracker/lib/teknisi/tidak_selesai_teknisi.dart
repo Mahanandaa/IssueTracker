@@ -16,8 +16,7 @@ class TidakSelesaiTeknisi extends StatefulWidget {
   });
 
   @override
-  State<TidakSelesaiTeknisi> createState() =>
-      _TidakSelesaiTeknisiState();
+  State<TidakSelesaiTeknisi> createState() => _TidakSelesaiTeknisiState();
 }
 
 class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
@@ -35,15 +34,59 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
     super.dispose();
   }
 
-  // ✅ FIX UPDATE ISSUE
-  Future<void> tidakSelesai() async {
+  Widget card(Widget child) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: const [
+          BoxShadow(color: Colors.black12, blurRadius: 6)
+        ],
+      ),
+      child: child,
+    );
+  }
+
+  Future<String?> uploadImageDanAmbilUrl() async {
+    if (_imageFile == null) return null;
+
+    setState(() => _isUploading = true);
+
+    try {
+      final fileName =
+          '${widget.issueId}_reject_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = 'uploads/$fileName';
+
+      await supabase.storage.from('images').upload(
+            path,
+            _imageFile!,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      final publicUrl = supabase.storage.from('images').getPublicUrl(path);
+      setState(() => _uploadedPhotoUrl = publicUrl);
+      return publicUrl;
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error upload: $e')),
+        );
+      }
+      return null;
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
+
+  // Terima photoUrl langsung agar tidak bergantung pada state yang belum terupdate
+  Future<void> tidakSelesai(String? photoUrl) async {
     await supabase.from('issues').update({
-      'status': 'Pending',
+      'status': 'Escalated',
       'resolution_notes': reject.text.trim(),
-      if (_uploadedPhotoUrl != null)
-        'completion_photo_url': _uploadedPhotoUrl,
+      if (photoUrl != null) 'completion_photo_url': photoUrl,
       'assigned_at': null,
-      'assigned_to': null, // FIX: reset assigned_to agar bisa di-assign ulang
+      'assigned_to': null,
       'started_at': null,
     }).eq('id', widget.issueId);
   }
@@ -67,7 +110,6 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
         id: id, title: title, body: body, notificationDetails: details);
   }
 
-  // ✅ FIX NOTIF ENUM
   Future<void> kirimNotifikasi() async {
     final issue = await supabase
         .from('issues')
@@ -88,7 +130,7 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
         'user_id': karyawanId,
         'title': 'Laporan Tidak Selesai',
         'message': 'Laporan $judulIssue tidak selesai',
-        'type': 'issue_resolved', // ✅ ENUM VALID
+        'type': 'issue_resolved',
         'is_read': false,
       });
     }
@@ -123,45 +165,7 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
     }
   }
 
-  Future<void> uploadImage() async {
-    if (_imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih foto dulu')),
-      );
-      return;
-    }
-
-    setState(() => _isUploading = true);
-
-    try {
-      final fileName =
-          '${widget.issueId}_reject_${DateTime.now().millisecondsSinceEpoch}.jpg';
-      final path = 'uploads/$fileName';
-
-      await supabase.storage.from('images').upload(
-            path,
-            _imageFile!,
-            fileOptions: const FileOptions(upsert: true),
-          );
-
-      final publicUrl =
-          supabase.storage.from('images').getPublicUrl(path);
-
-      setState(() => _uploadedPhotoUrl = publicUrl);
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Upload berhasil ✓')),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error upload: $e')),
-      );
-    } finally {
-      setState(() => _isUploading = false);
-    }
-  }
-
-  Future<void> updataeStatus() async {
+  Future<void> updateStatus() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
 
@@ -173,84 +177,160 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 250, 246, 246),
+      backgroundColor: const Color(0xfff5f6fa),
       appBar: AppBar(
         title: const Text("Tidak Selesai"),
-        backgroundColor: Colors.grey[200],
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Alasan",
-                style: TextStyle(fontWeight: FontWeight.bold)),
-
-            const SizedBox(height: 8),
-
-            TextField(
-              controller: reject,
-              maxLines: 3,
-              decoration: InputDecoration(
-                hintText: "Masukkan alasan...",
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10)),
+            card(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Alasan",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 20)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: reject,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: "Masukkan alasan...",
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 25),
+            const SizedBox(height: 16),
 
-            const Text("Upload Foto",
-                style: TextStyle(fontWeight: FontWeight.bold)),
+            card(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("Upload Foto",
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 20)),
+                  const SizedBox(height: 10),
 
-            const SizedBox(height: 10),
+                  _imageFile != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: Image.file(
+                            _imageFile!,
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Container(
+                          height: 150,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Text("Belum ada gambar"),
+                        ),
 
-            _imageFile != null
-                ? Image.file(_imageFile!, height: 150)
-                : const Text("Belum ada gambar"),
+                  const SizedBox(height: 10),
 
-            Row(
-              children: [
-                ElevatedButton(
-                    onPressed: () => pickImage(ImageSource.camera),
-                    child: const Text("Camera")),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                    onPressed: () => pickImage(ImageSource.gallery),
-                    child: const Text("Gallery")),
-              ],
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => pickImage(ImageSource.camera),
+                          icon: const Icon(Icons.camera_alt,
+                              color: Colors.black),
+                          label: const Text("Camera",
+                              style: TextStyle(color: Colors.black)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => pickImage(ImageSource.gallery),
+                          icon: const Icon(Icons.image,
+                              color: Colors.black),
+                          label: const Text("Gallery",
+                              style: TextStyle(color: Colors.black)),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
 
-            ElevatedButton(
-                onPressed: _isUploading ? null : uploadImage,
-                child: const Text("Upload")),
+            const SizedBox(height: 20),
 
-            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                onPressed: _isUploading
+                    ? null
+                    : () async {
+                        if (reject.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                                content: Text('Alasan wajib diisi')),
+                          );
+                          return;
+                        }
 
-            ElevatedButton(
-              onPressed: () async {
-                if (reject.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Alasan wajib diisi')));
-                  return;
-                }
+                        // 1. Upload foto dulu, ambil URL-nya
+                        final photoUrl = await uploadImageDanAmbilUrl();
 
-                await kirimNotifikasi();
-                await showNotif(
-                    title: "Laporan Tidak Selesai",
-                    body: "Tugas tidak selesai");
-                await tidakSelesai();
-                await updataeStatus();
+                        // 2. Simpan ke DB dengan URL foto yang sudah pasti ada
+                        await tidakSelesai(photoUrl);
 
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const DashboardTeknisi()),
-                );
-              },
-              child: const Text("Re-assign"),
+                        // 3. Kirim notifikasi & update status teknisi
+                        await kirimNotifikasi();
+                        await showNotif(
+                          title: "Laporan Tidak Selesai",
+                          body: "Tugas tidak selesai",
+                        );
+                        await updateStatus();
+
+                        if (mounted) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const DashboardTeknisi()),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: _isUploading
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text(
+                        "Re-Assign",
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
             )
           ],
         ),

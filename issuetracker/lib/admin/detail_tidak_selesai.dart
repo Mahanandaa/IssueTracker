@@ -81,7 +81,7 @@ class _DetailTidakSelesaiState extends State<DetailTidakSelesai> {
                         ),
                         const SizedBox(height: 6),
                         _box(
-                          issue?['not_completed_reason']?.toString() ??
+                          issue?['resolution_notes']?.toString() ??
                               'Tidak ada alasan',
                         ),
 
@@ -98,24 +98,43 @@ class _DetailTidakSelesaiState extends State<DetailTidakSelesai> {
 
                         const SizedBox(height: 16),
 
-                        // Foto sebelum (dari karyawan)
-                        const Text(
-                          'Foto Sebelum',
-                          style: TextStyle(fontWeight: FontWeight.w600),
+                        // Foto dalam Row: kiri = karyawan, kanan = teknisi
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Foto Sebelum',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _fotoContainer(
+                                    issue?['photo_url']?.toString(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Foto Tidak Selesai',
+                                    style: TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  _fotoContainer(
+                                    issue?['completion_photo_url']?.toString(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 6),
-                        _fotoContainer(issue?['photo_url']?.toString()),
-
-                        const SizedBox(height: 16),
-
-                        // Foto saat tidak selesai (diupload teknisi)
-                        const Text(
-                          'Foto Saat Tidak Selesai',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 6),
-                        _fotoContainer(
-                            issue?['completion_photo_url']?.toString()),
 
                         const SizedBox(height: 24),
 
@@ -156,7 +175,7 @@ class _DetailTidakSelesaiState extends State<DetailTidakSelesai> {
   Widget _fotoContainer(String? url) {
     return Container(
       width: double.infinity,
-      height: 180,
+      height: 160,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade300),
@@ -169,8 +188,11 @@ class _DetailTidakSelesaiState extends State<DetailTidakSelesai> {
                 url,
                 fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => const Center(
-                  child: Text('Gagal memuat foto',
-                      style: TextStyle(color: Colors.grey)),
+                  child: Text(
+                    'Gagal memuat foto',
+                    style: TextStyle(color: Colors.grey),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             )
@@ -179,6 +201,7 @@ class _DetailTidakSelesaiState extends State<DetailTidakSelesai> {
                 'Tidak ada foto',
                 style: TextStyle(
                     color: Colors.grey, fontStyle: FontStyle.italic),
+                textAlign: TextAlign.center,
               ),
             ),
     );

@@ -26,7 +26,7 @@ class _TidakSelesaiState extends State<TidakSelesai> {
     final response = await supabase
         .from('issues')
         .select()
-        .eq('status', 'Assigned');
+          .eq('status', 'Escalated');
 
     if (response != null) {
       setState(() {

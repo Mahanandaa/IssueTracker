@@ -135,6 +135,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         : const Color.fromARGB(255, 200, 200, 200);
 
     return Scaffold(
+      backgroundColor: Colors.white,
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         selectedItemColor: Colors.blue,

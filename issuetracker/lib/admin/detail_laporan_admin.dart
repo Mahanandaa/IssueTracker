@@ -218,7 +218,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 20),
 
-            // Foto Sebelum & Sesudah
             const Text('Foto Pengerjaan',
                 style: TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 18)),
@@ -294,6 +293,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             const SizedBox(height: 10),
 
             ...comments.map((c) {
+              
               final bool isMine = c['user_id']?.toString() == _uid;
               final userMap =
                   c['users'] as Map<String, dynamic>?;
