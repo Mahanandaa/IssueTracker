@@ -106,7 +106,6 @@ class _TambahakunState extends State<Tambahakun> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Info banner
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
@@ -118,13 +117,7 @@ class _TambahakunState extends State<Tambahakun> {
                   children: [
                     Icon(Icons.info_outline, color: Colors.blue, size: 18),
                     SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Akun teknisi akan langsung bisa login setelah dibuat. '
-                        'Pastikan konfirmasi email sudah dimatikan di Supabase.',
-                        style: TextStyle(fontSize: 12, color: Colors.blue),
-                      ),
-                    ),
+                   
                   ],
                 ),
               ),
@@ -182,33 +175,6 @@ class _TambahakunState extends State<Tambahakun> {
               const SizedBox(height: 20),
               const Divider(),
               const SizedBox(height: 8),
-              _buildLabel('Password Admin (untuk verifikasi) *'),
-              const SizedBox(height: 4),
-              Text(
-                'Diperlukan agar sesi admin tidak keluar saat membuat akun teknisi.',
-                style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _adminPasswordCtrl,
-                obscureText: _obscureAdminPassword,
-                decoration: InputDecoration(
-                  hintText: 'Masukkan password admin Anda',
-                  contentPadding: const EdgeInsets.all(12),
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  filled: true,
-                  fillColor: Colors.white,
-                  suffixIcon: IconButton(
-                    icon: Icon(_obscureAdminPassword
-                        ? Icons.visibility_off
-                        : Icons.visibility),
-                    onPressed: () => setState(() =>
-                        _obscureAdminPassword = !_obscureAdminPassword),
-                  ),
-                ),
-              ),
-
               const SizedBox(height: 28),
 
               SizedBox(

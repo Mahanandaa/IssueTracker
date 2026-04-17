@@ -158,10 +158,10 @@ class _DashboardAdminState extends State<DashboardAdmin> {
           
           children: [
             Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                 children: [
                   Text('Selamat Datang', style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 20
+                  fontWeight: FontWeight.w600, fontSize: 25
                   ),
                   ),
                 IconButton(onPressed: () {
@@ -194,13 +194,8 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                         "Progress", progressCount.toString(), Colors.blue)),
               ],
             ),
-
-            const SizedBox(height: 20),
-
-
-            const SizedBox(height: 12),
-
-            const Text(
+           const SizedBox(height: 20),
+           const Text(
               'Data Kasus Kategori',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
             ),

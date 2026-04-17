@@ -61,12 +61,10 @@ class _DaftarState extends State<Daftar> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Pendaftaran berhasil! Silakan login.')),
+          const SnackBar(content: Text('Pendaftaran berhasil! Silakan login.')),
         );
 
-        await Future.delayed(const Duration(seconds: 1));
-
+        // Langsung pindah ke halaman login tanpa delay
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const Loginpage()),
@@ -74,8 +72,10 @@ class _DaftarState extends State<Daftar> {
       }
     } catch (e) {
       if (mounted) {
+        // Tampilkan pesan error yang lebih bersih (tanpa prefix "Exception:")
+        final msg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Gagal daftar: $e')));
+            .showSnackBar(SnackBar(content: Text('Gagal daftar: $msg')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -103,6 +103,7 @@ class _DaftarState extends State<Daftar> {
               Container(
                 padding: const EdgeInsets.all(20),
                 width: 354,
+                height: 600,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -156,6 +157,21 @@ class _DaftarState extends State<Daftar> {
                               ),
                       ),
                     ),
+                    const SizedBox(height: 20),
+                    GestureDetector(
+                      child: Text(
+                        'Sudah Punya Akun? Login',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade600),
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const Loginpage()));
+                      },
+                    )
                   ],
                 ),
               ),

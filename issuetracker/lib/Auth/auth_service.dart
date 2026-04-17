@@ -30,6 +30,16 @@ class AuthService {
 
   Future<AuthResponse> signUp(
       String email, String password, String telepon, String nama) async {
+    final existing = await _supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+    if (existing != null) {
+      throw Exception('Email sudah terdaftar. Silakan login.');
+    }
+
     final response = await _supabase.auth.signUp(
       email: email,
       password: password,
@@ -41,7 +51,7 @@ class AuthService {
 
     final user = response.user;
     if (user != null) {
-      await _supabase.from('users').insert({
+      await _supabase.from('users').upsert({
         'id': user.id,
         'email': email,
         'name': nama,
@@ -53,6 +63,7 @@ class AuthService {
 
     return response;
   }
+
   Future<String?> tambahTeknisiDanKembali({
     required String email,
     required String password,
@@ -88,7 +99,7 @@ class AuthService {
         password: adminPassword,
       );
 
-      return null; 
+      return null;
     } catch (e) {
       try {
         await _supabase.auth.signInWithPassword(

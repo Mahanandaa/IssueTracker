@@ -28,7 +28,8 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
   @override
   void initState() {
     super.initState();
-    getUserData();
+    getUserData()
+    ;
   }
 
   Future<void> getUserData() async {
@@ -41,27 +42,29 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         .eq('id', user.id)
         .single();
 
-    // No. 3: Ambil rating dari tabel 'ratings' berdasarkan technician_id
-    // Kolom technician_id harus ada di tabel ratings — sesuai schema DB
     final ratingsResponse = await supabase
         .from('ratings')
         .select('rating')
         .eq('technician_id', user.id);
 
+    // Hitung jumlah tugas selesai untuk pembagi
+    final resolvedCount = await supabase
+        .from('issues')
+        .select('id')
+        .eq('assigned_to', user.id)
+        .eq('status', 'Resolved');
+    final int jumlahSelesai = (resolvedCount as List).length;
+
     double calculatedRating = 0.0;
-    if (ratingsResponse != null && (ratingsResponse as List).isNotEmpty) {
+    if (ratingsResponse != null && (ratingsResponse as List).isNotEmpty && jumlahSelesai > 0) {
       final List ratings = ratingsResponse;
-      // Pastikan nilai tidak null sebelum dijumlahkan
       double total = 0;
-      int count = 0;
       for (var r in ratings) {
         final val = r['rating'];
-        if (val != null) {
-          total += (val as num).toDouble();
-          count++;
-        }
+        if (val != null) total += (val as num).toDouble();
       }
-      if (count > 0) calculatedRating = total / count;
+      // Rumus: total rating / jumlah tugas selesai
+      calculatedRating = total / jumlahSelesai;
     }
 
     final resolvedIssues = await supabase
@@ -90,7 +93,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         if (avgMin < 60) {
           durationStr = '$avgMin Menit';
         } else {
-          final hours = avgMin ~/ 60;
+          final hours = avgMin / 60;
           final minutes = avgMin % 60;
           durationStr =
               minutes > 0 ? '$hours Jam $minutes Mnt' : '$hours Jam';
@@ -204,7 +207,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           ),
           const SizedBox(height: 20),
 
-          // No. 3: Rating & rata-rata waktu
           Row(
             children: [
               Expanded(

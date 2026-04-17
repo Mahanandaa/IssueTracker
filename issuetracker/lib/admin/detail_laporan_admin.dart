@@ -354,10 +354,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                 ),
               );
             }),
-
             const SizedBox(height: 12),
-
-            // Input komentar
             Row(
               children: [
                 Expanded(
@@ -375,7 +372,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
-                      ),
+                    ),
                     ),
                   ),
                 ),
@@ -403,8 +400,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             ),
             const SizedBox(height: 30),
 
-            // FIX 7: Tombol aksi hanya tampil jika status BUKAN Rejected
-            // dan belum di-assign
             if (!isRejected && !isAlreadyAssigned) ...[
               SizedBox(
                 width: double.infinity,

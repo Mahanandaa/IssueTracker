@@ -13,6 +13,7 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> teknisiList = [];
+  Map<String, double> teknisiRatings = {}; // simpan rating per teknisi
   bool isLoading = true;
 
   @override
@@ -31,8 +32,44 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
           .eq('role', 'teknisi')
           .order('is_available', ascending: false);
 
+      final List<Map<String, dynamic>> list =
+          List<Map<String, dynamic>>.from(response);
+
+      // Hitung rating per teknisi: sum(rating) / jumlah tugas selesai
+      final Map<String, double> ratings = {};
+      for (final t in list) {
+        final uid = t['id'] as String;
+        try {
+          // Ambil semua rating untuk teknisi ini
+          final ratingData = await supabase
+              .from('ratings')
+              .select('rating')
+              .eq('technician_id', uid);
+          final List rList = ratingData as List;
+
+          // Hitung jumlah tugas selesai
+          final resolvedData = await supabase
+              .from('issues')
+              .select('id')
+              .eq('assigned_to', uid)
+              .eq('status', 'Resolved');
+          final int resolvedCount = (resolvedData as List).length;
+
+          if (rList.isNotEmpty && resolvedCount > 0) {
+            double total = 0;
+            for (final r in rList) {
+              final val = r['rating'];
+              if (val != null) total += (val as num).toDouble();
+            }
+            // Rumus: total rating / jumlah tugas selesai
+            ratings[uid] = total / resolvedCount;
+          }
+        } catch (_) {}
+      }
+
       setState(() {
-        teknisiList = List<Map<String, dynamic>>.from(response);
+        teknisiList = list;
+        teknisiRatings = ratings;
         isLoading = false;
       });
     } catch (e) {
@@ -207,6 +244,24 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  // Tampilkan rating
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.star,
+                                          size: 13, color: Colors.amber),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        teknisiRatings[teknisi['id']] != null
+                                            ? teknisiRatings[teknisi['id']]!
+                                                .toStringAsFixed(1)
+                                            : 'Belum ada',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.grey[600]),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

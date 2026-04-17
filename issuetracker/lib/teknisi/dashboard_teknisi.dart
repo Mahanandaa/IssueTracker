@@ -36,8 +36,6 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
     if (_uid.isEmpty) return;
     setState(() => _isLoading = true);
     try {
-      // No. 8: hanya tampilkan issue yang berstatus Assigned, In Progress, atau Resolved
-      // Issue yang dikembalikan (Pending) tidak tampil di dashboard teknisi
       final response = await supabase
           .from('issues')
           .select()
@@ -78,10 +76,8 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
     
 
     }
-  
-
-  // No. 1: format deadline untuk ditampilkan
-  String _formatDeadline(dynamic raw) {
+ 
+ String _formatDeadline(dynamic raw) {
     if (raw == null) return 'Tidak ada';
     try {
       final dt = DateTime.parse(raw.toString()).toLocal();
@@ -95,7 +91,6 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
     }
   }
 
-  // No. 1: cek apakah deadline sudah lewat
   bool _isOverdue(dynamic raw, String? status) {
     if (raw == null || status == 'Resolved') return false;
     try {
@@ -356,7 +351,6 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                                               ),
                                             ),
                                           ),
-                                          // No. 6: badge status selesai
                                           if (isResolved)
                                             Container(
                                               padding:

@@ -1,60 +1,65 @@
 import 'package:flutter/material.dart';
-import 'package:issuetracker/Auth/auth_service.dart';
-import 'package:issuetracker/Auth/auth_gate.dart';
-import 'package:issuetracker/Auth/daftar.dart';
-import 'package:issuetracker/Auth/forgot.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:issuetracker/Auth/ganti_password.dart';
 
-class Loginpage extends StatefulWidget {
-  const Loginpage({super.key});
+class LupaPassword extends StatefulWidget {
+  const LupaPassword({super.key});
 
   @override
-  State<Loginpage> createState() => _LoginpageState();
+  State<LupaPassword> createState() => _LupaPasswordState();
 }
 
-class _LoginpageState extends State<Loginpage> {
+class _LupaPasswordState extends State<LupaPassword> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final authService = AuthService();
+  final _oldPasswordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscureOld = true;
+
+  final _supabase = Supabase.instance.client;
 
   @override
   void dispose() {
     _emailController.dispose();
-    _passwordController.dispose();
+    _oldPasswordController.dispose();
     super.dispose();
   }
 
-  void login() async {
+  Future<void> _verifikasiAkun() async {
     final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final oldPassword = _oldPasswordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email & password wajib diisi')),
-      );
+    if (email.isEmpty || oldPassword.isEmpty) {
+      _showSnackBar('Email dan password lama wajib diisi');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      await authService.signInWithPassword(email, password);
-      
+      // Verifikasi dengan mencoba login menggunakan email + password lama
+      await _supabase.auth.signInWithPassword(
+        email: email,
+        password: oldPassword,
+      );
+
       if (mounted) {
-        // Navigasi langsung ke AuthGate setelah login berhasil
+        // Kirim oldPassword ke halaman ganti password untuk validasi
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AuthGate()),
+          MaterialPageRoute(
+            builder: (_) => GantiPassword(oldPassword: oldPassword),
+          ),
         );
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Login gagal: $e')));
-      }
-    } finally {
+    } catch(e) {
+      _showSnackBar('Password atau Email anda salah Coba Lagi!');
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSnackBar(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
   }
 
   @override
@@ -67,17 +72,17 @@ class _LoginpageState extends State<Loginpage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                'IssueTracker.',
+                'IssueTrack.',
                 style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 40,
-                    color: Colors.blue[900]),
+                  color: Colors.blue[900],
+                  fontWeight: FontWeight.bold,
+                  fontSize: 40,
+                ),
               ),
               const SizedBox(height: 50),
               Container(
                 padding: const EdgeInsets.all(22),
                 width: 362,
-                height: 440,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -93,16 +98,22 @@ class _LoginpageState extends State<Loginpage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Center(
-                        child: Text('Selamat Datang',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w600))),
+                      child: Text(
+                        'Lupa Password',
+                        style: TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.w600),
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Center(
-                        child: Text(
-                            'Masuk ke akun IssueTrack sekarang !',
-                            style: TextStyle(
-                                fontSize: 14, color: Colors.grey[600]))),
+                      child: Text(
+                        'Masukkan email dan password lama Anda',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                     const SizedBox(height: 28),
+
                     const Text('Email',
                         style: TextStyle(fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
@@ -110,91 +121,80 @@ class _LoginpageState extends State<Loginpage> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
-                        hintText: 'Masukkan email',
+                        hintText: 'nama@gmail.com',
                         contentPadding: const EdgeInsets.all(12),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
+
                     const SizedBox(height: 20),
-                    const Text('Password',
+                    const Text('Password Lama',
                         style: TextStyle(fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     TextField(
-                      controller: _passwordController,
-                      obscureText: true,
+                      controller: _oldPasswordController,
+                      obscureText: _obscureOld,
                       decoration: InputDecoration(
-                        hintText: 'Masukkan password',
+                        hintText: 'Masukkan password lama',
                         contentPadding: const EdgeInsets.all(12),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10)),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureOld
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () =>
+                              setState(() => _obscureOld = !_obscureOld),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+
+                    const SizedBox(height: 28),
                     Center(
                       child: SizedBox(
                         width: 220,
-                        height: 40,
+                        height: 44,
                         child: TextButton(
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.blue[600],
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                           ),
-                          onPressed: _isLoading ? null : login,
+                          onPressed: _isLoading ? null : _verifikasiAkun,
                           child: _isLoading
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                       color: Colors.white, strokeWidth: 2))
-                              : const Text('Masuk',
+                              : const Text(
+                                  'Verifikasi',
                                   style: TextStyle(
                                       color: Colors.white,
-                                      fontWeight: FontWeight.w600)),
+                                      fontWeight: FontWeight.w600),
+                                ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                 
-                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
- GestureDetector(
-                      onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const Daftar()));
-                      },
-                      child: Center(
-                        child: Text('Daftar Akun ',
-                            style: TextStyle(
-                                color: Colors.blue[400],
-                                fontWeight: FontWeight.w500)),
-                      ),
-                    ),
-                  
-                          Text(' |  ',
-                            style: TextStyle(
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500)),
 
-                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const LupaPassword()));
-                      },
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
                       child: Center(
-                        child: Text('Lupa Password?',
-                            style: TextStyle(
-                                color: Colors.blue[400],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13)),
+                        child: Text(
+                          'Kembali ke Login',
+                          style: TextStyle(
+                              color: Colors.blue[400],
+                              fontWeight: FontWeight.w500,
+                              fontSize: 13),
+                        ),
                       ),
                     ),
-                    ],
-                   ),
-                    const SizedBox(height: 10),
-                   
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),

@@ -37,7 +37,7 @@ class _DataAkunState extends State<DataAkun> {
       final karyawan = users.where((u) => u['role'] == 'karyawan').toList();
       final teknisi = users.where((u) => u['role'] == 'teknisi').toList();
 
-      // Ambil rating untuk setiap teknisi dari tabel ratings
+      // Hitung rating untuk setiap teknisi: total rating / jumlah tugas selesai
       final Map<String, double> ratings = {};
       for (final t in teknisi) {
         final uid = t['id'] as String;
@@ -46,19 +46,23 @@ class _DataAkunState extends State<DataAkun> {
               .from('ratings')
               .select('rating')
               .eq('technician_id', uid);
+          final List rList = ratingData as List;
 
-          final List list = ratingData as List;
-          if (list.isNotEmpty) {
+          final resolvedData = await supabase
+              .from('issues')
+              .select('id')
+              .eq('assigned_to', uid)
+              .eq('status', 'Resolved');
+          final int resolvedCount = (resolvedData as List).length;
+
+          if (rList.isNotEmpty && resolvedCount > 0) {
             double total = 0;
-            int count = 0;
-            for (final r in list) {
+            for (final r in rList) {
               final val = r['rating'];
-              if (val != null) {
-                total += (val as num).toDouble();
-                count++;
-              }
+              if (val != null) total += (val as num).toDouble();
             }
-            if (count > 0) ratings[uid] = total / count;
+            // Rumus: total rating / jumlah tugas selesai
+            ratings[uid] = total / resolvedCount;
           }
         } catch (_) {}
       }
