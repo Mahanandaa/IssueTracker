@@ -59,7 +59,6 @@ class _LaporanKasusState extends State<LaporanKasus> {
   }
 
   Widget buildCard(Map<String, dynamic> item) {
-    // FIX 4: Ambil nama pelapor dari hasil join
     final reporterData = item['reporter'] as Map<String, dynamic>?;
     final reporterName = reporterData?['name'] ?? item['reported_by'] ?? '-';
 
@@ -86,10 +85,8 @@ class _LaporanKasusState extends State<LaporanKasus> {
           Text('Lokasi: ${item['location'] ?? '-'}'),
           Text('Kategori: ${item['category'] ?? '-'}'),
           Text('Prioritas: ${item['priority'] ?? '-'}'),
-          // FIX 4: Tampilkan nama pelapor, bukan UUID
           Text('Pelapor: $reporterName'),
           Text('Status: ${item['status'] ?? '-'}'),
-          Text('Sparepart: ${item['sparepart'] ?? '-'}'),
         ],
       ),
     );

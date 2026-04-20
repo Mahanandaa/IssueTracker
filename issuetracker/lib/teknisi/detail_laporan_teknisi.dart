@@ -63,8 +63,6 @@ List comments = [];
         'comment': text,
       });
       commentController.clear();
-      // Hanya gunakan fetchComments() yang sudah join ke tabel users(name, role)
-      // JANGAN panggil fetchData() — query itu tidak join users sehingga nama jadi Unknown
       await fetchComments();
     } catch (e) {
       if (mounted) {
@@ -75,6 +73,28 @@ List comments = [];
     } finally {
       if (mounted) setState(() => isSendingComment = false);
     }
+  }
+
+  Future<void> hapusKomentar(String commentId) async {
+    final konfirmasi = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Komentar'),
+        content: const Text('Yakin ingin menghapus komentar ini?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Hapus',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (konfirmasi != true) return;
+    await supabase.from('comments').delete().eq('id', commentId);
+    await fetchComments();
   }
 
   Future<void> fetchDetail() async {
@@ -525,52 +545,57 @@ SizedBox(height: 20),
   return Align(
     alignment:
         isMine ? Alignment.centerRight : Alignment.centerLeft,
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      constraints: BoxConstraints(
-        maxWidth: MediaQuery.of(context).size.width * 0.75,
-      ),
-      decoration: BoxDecoration(
-        color: isMine
-            ? Colors.blue.shade100
-            : Colors.grey.shade200,
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(12),
-          topRight: const Radius.circular(12),
-          bottomLeft:
-              isMine ? const Radius.circular(12) : Radius.zero,
-          bottomRight:
-              isMine ? Radius.zero : const Radius.circular(12),
+    child: GestureDetector(
+      onLongPress: isMine
+          ? () => hapusKomentar(c['id'].toString())
+          : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: isMine
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          Text(
-            namaUser,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isMine
-                  ? Colors.blue.shade800
-                  : Colors.grey.shade700,
+        decoration: BoxDecoration(
+          color: isMine
+              ? Colors.blue.shade100
+              : Colors.grey.shade200,
+          borderRadius: BorderRadius.only(
+            topLeft: const Radius.circular(12),
+            topRight: const Radius.circular(12),
+            bottomLeft:
+                isMine ? const Radius.circular(12) : Radius.zero,
+            bottomRight:
+                isMine ? Radius.zero : const Radius.circular(12),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: isMine
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Text(
+              namaUser,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isMine
+                    ? Colors.blue.shade800
+                    : Colors.grey.shade700,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            c['comment']?.toString() ?? '',
-            style: const TextStyle(fontSize: 15),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            waktu,
-            style: const TextStyle(
-                fontSize: 11, color: Colors.grey),
-          ),
-        ],
+            const SizedBox(height: 4),
+            Text(
+              c['comment']?.toString() ?? '',
+              style: const TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              waktu,
+              style: const TextStyle(
+                  fontSize: 11, color: Colors.grey),
+            ),
+          ],
+        ),
       ),
     ),
   );

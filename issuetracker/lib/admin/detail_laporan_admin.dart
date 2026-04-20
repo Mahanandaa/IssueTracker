@@ -71,6 +71,28 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
+  Future<void> hapusKomentar(String commentId) async {
+    final konfirmasi = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Hapus Komentar'),
+        content: const Text('Yakin ingin menghapus komentar ini?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal')),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Hapus',
+                  style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+    if (konfirmasi != true) return;
+    await supabase.from('comments').delete().eq('id', commentId);
+    await fetchComments();
+  }
+
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
@@ -141,7 +163,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   String _formatTanggal(String? raw) {
     if (raw == null) return '';
     try {
-      return raw.substring(0, 16).replaceAll('T', ' ');
+      return raw.substring(0,16).replaceAll('T', ' ');
     } catch (_) {
       return raw;
     }
@@ -305,7 +327,11 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                 alignment: isMine
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
-                child: Container(
+                child: GestureDetector(
+                  onLongPress: isMine
+                      ? () => hapusKomentar(c['id'].toString())
+                      : null,
+                  child: Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(12),
                   constraints: BoxConstraints(
@@ -351,6 +377,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                               fontSize: 11, color: Colors.grey)),
                     ],
                   ),
+                ),
                 ),
               );
             }),

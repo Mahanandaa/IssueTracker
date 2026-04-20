@@ -298,39 +298,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           ),
           const SizedBox(height: 15),
 
-          // No. 2: Toggle tema gelap — menggunakan cardColor agar konsisten
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            decoration: BoxDecoration(
-              color: cardColor,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [BoxShadow(color: shadowColor, blurRadius: 6)],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Tema Gelap',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, color: textColor)),
-                ValueListenableBuilder(
-                  valueListenable: themeNotifier,
-                  builder: (context, ThemeMode mode, _) {
-                    return Switch(
-                      value: mode == ThemeMode.dark,
-                      onChanged: (val) {
-                        themeNotifier.value =
-                            val ? ThemeMode.dark : ThemeMode.light;
-                      },
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 15),
-
-          // Tombol keluar
+      
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

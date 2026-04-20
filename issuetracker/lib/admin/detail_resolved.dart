@@ -16,6 +16,7 @@ class _DetailResolvedState extends State<DetailResolved> {
   Map<String, dynamic>? issue;
   Map<String, dynamic>? ratingData;
   List<Map<String, dynamic>> comments = [];
+  List<Map<String, dynamic>> spareParts = [];
   bool isLoading = true;
 
   @override
@@ -45,10 +46,17 @@ class _DetailResolvedState extends State<DetailResolved> {
           .eq('issue_id', widget.issueId)
           .order('created_at', ascending: true);
 
+      final sparePartsRes = await supabase
+          .from('spare_parts')
+          .select('part_name, quantity, notes')
+          .eq('issue_id', widget.issueId)
+          .order('created_at', ascending: true);
+
       setState(() {
         issue = issueRes;
         ratingData = ratingRes;
         comments = List<Map<String, dynamic>>.from(commentsRes);
+        spareParts = List<Map<String, dynamic>>.from(sparePartsRes);
         isLoading = false;
       });
     } catch (e) {
@@ -289,6 +297,58 @@ class _DetailResolvedState extends State<DetailResolved> {
                     issue?['completion_photo_url']?.toString()),
               ],
             ),
+            const SizedBox(height: 15),
+
+            // Spare Parts
+            const Text('Spare Parts',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            if (spareParts.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                    color: const Color(0xFFE9EEF3),
+                    borderRadius: BorderRadius.circular(10)),
+                child: const Text('Tidak ada spare parts',
+                    style: TextStyle(color: Colors.grey)),
+              )
+            else
+              ...spareParts.map((sp) => Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                        color: const Color(0xFFE9EEF3),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.build_outlined,
+                            size: 16, color: Colors.blueGrey),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            sp['part_name'] ?? '-',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                              color: Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Text('x${sp['quantity'] ?? 1}',
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                  )),
+
             const SizedBox(height: 15),
 
             // Komentar
