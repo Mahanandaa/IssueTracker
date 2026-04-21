@@ -79,8 +79,8 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
     }
   }
 
-  // Terima photoUrl langsung agar tidak bergantung pada state yang belum terupdate
   Future<void> tidakSelesai(String? photoUrl) async {
+    
     await supabase.from('issues').update({
       'status': 'Escalated',
       'resolution_notes': reject.text.trim(),
@@ -291,13 +291,10 @@ class _TidakSelesaiTeknisiState extends State<TidakSelesaiTeknisi> {
                           return;
                         }
 
-                        // 1. Upload foto dulu, ambil URL-nya
                         final photoUrl = await uploadImageDanAmbilUrl();
 
-                        // 2. Simpan ke DB dengan URL foto yang sudah pasti ada
                         await tidakSelesai(photoUrl);
 
-                        // 3. Kirim notifikasi & update status teknisi
                         await kirimNotifikasi();
                         await showNotif(
                           title: "Laporan Tidak Selesai",

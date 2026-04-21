@@ -170,8 +170,7 @@ class _ProgressTeknisiState extends State<ProgressTeknisi> {
                               const SnackBar(
                                   content: Text("Data berhasil disimpan")),
                             );
-                            // FIX 1&3: Tidak ada photoBeforeUrl dari sini
-                            // foto sebelum diambil dari DB (photo_url) di SelesaiTeknis
+                        
                             Navigator.push(
                               context,
                               MaterialPageRoute(

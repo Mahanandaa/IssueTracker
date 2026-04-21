@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:issuetracker/Auth/auth_service.dart';
 import 'package:issuetracker/Auth/login.dart';
+import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/admin/data_admin.dart';
 import 'package:issuetracker/admin/edit_data_akun.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
@@ -60,76 +61,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
     }
   }
 
-  Future<void> _changePhoto() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Ambil dari Kamera'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Pilih dari Galeri'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    final picked = await _picker.pickImage(source: source, imageQuality: 80);
-    if (picked == null) return;
-
-    setState(() {
-      _newPhoto = File(picked.path);
-      _isUploadingPhoto = true;
-    });
-
-    try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final path = 'avatars/avatar_$userId.jpg';
-
-      await supabase.storage.from('images').upload(
-            path,
-            _newPhoto!,
-            fileOptions: const FileOptions(upsert: true),
-          );
-
-      final publicUrl =
-          supabase.storage.from('images').getPublicUrl(path);
-
-      await supabase
-          .from('users')
-          .update({'photo_url': publicUrl}).eq('id', userId);
-
-      await fetchUser();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Foto profil berhasil diperbarui ✓')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal upload foto: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isUploadingPhoto = false);
-    }
-  }
+ 
 
   void logout() async {
     await authService.keluar();
@@ -186,6 +118,8 @@ class _ProfileAdminState extends State<ProfileAdmin> {
               context,
               MaterialPageRoute(builder: (_) => const ProfileAdmin()),
             );
+          } else {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardAdmin()));
           }
         },
         items: const [
@@ -221,29 +155,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
                           ? const Icon(Icons.person, size: 40)
                           : null,
                     ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _isUploadingPhoto ? null : _changePhoto,
-                        child: Container(
-                          padding: const EdgeInsets.all(5),
-                          decoration: const BoxDecoration(
-                            color: Colors.blue,
-                            shape: BoxShape.circle,
-                          ),
-                          child: _isUploadingPhoto
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2),
-                                )
-                              : const Icon(Icons.camera_alt,
-                                  color: Colors.white, size: 16),
-                        ),
-                      ),
-                    ),
+                 
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -290,7 +202,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
                   BoxShadow(
                     color: shadowColor,
                     blurRadius: 24,
-                    offset: const Offset(0, 11),
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
@@ -306,7 +218,6 @@ class _ProfileAdminState extends State<ProfileAdmin> {
 
           const SizedBox(height: 15),
 
-                const SizedBox(height: 15),
 
           Container(
             padding:

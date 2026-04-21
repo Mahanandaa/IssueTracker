@@ -215,14 +215,28 @@ class ChartWeek extends StatelessWidget {
   Widget build(BuildContext context) {
     return BarChart(
       BarChartData(
+        gridData: FlGridData(show: true),
+        borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: true, reservedSize: 28),
+          ),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 32,
               getTitlesWidget: (value, meta) {
-                const weeks = ['M1', 'M2', 'M3', 'M4'];
+                const weeks = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'];
                 if (value.toInt() >= 0 && value.toInt() < weeks.length) {
-                  return Text(weeks[value.toInt()]);
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      weeks[value.toInt()],
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
                 }
                 return const Text('');
               },
@@ -233,7 +247,12 @@ class ChartWeek extends StatelessWidget {
           return BarChartGroupData(
             x: i,
             barRods: [
-              BarChartRodData(toY: data[i], color: Colors.blue),
+              BarChartRodData(
+                toY: data[i],
+                color: Colors.blue,
+                width: 18,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ],
           );
         }),
@@ -250,17 +269,31 @@ class ChartMonth extends StatelessWidget {
   Widget build(BuildContext context) {
     return BarChart(
       BarChartData(
+        gridData: FlGridData(show: true),
+        borderData: FlBorderData(show: false),
         titlesData: FlTitlesData(
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(showTitles: true, reservedSize: 28),
+          ),
+          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 32,
               getTitlesWidget: (value, meta) {
                 const months = [
-                  '1', '2', '3', '4', '5', '6',
-                  '7', '8', '9', '10', '11', '12'
+                  'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+                  'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
                 ];
                 if (value.toInt() >= 0 && value.toInt() < months.length) {
-                  return Text(months[value.toInt()]);
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      months[value.toInt()],
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                  );
                 }
                 return const Text('');
               },
@@ -271,7 +304,12 @@ class ChartMonth extends StatelessWidget {
           return BarChartGroupData(
             x: i,
             barRods: [
-              BarChartRodData(toY: data[i], color: Colors.blue),
+              BarChartRodData(
+                toY: data[i],
+                color: Colors.blue,
+                width: 14,
+                borderRadius: BorderRadius.circular(4),
+              ),
             ],
           );
         }),

@@ -112,7 +112,6 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
     setState(() => _isUploading = true);
 
     try {
-      // Upload foto dulu jika ada yang baru
       final photoUrl = await _uploadPhoto(user.id);
 
       await supabase.auth.updateUser(
@@ -179,7 +178,6 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
           children: [
             const SizedBox(height: 12),
 
-            // FIX 4: Avatar yang bisa diklik untuk ganti foto
             Center(
               child: Stack(
                 children: [

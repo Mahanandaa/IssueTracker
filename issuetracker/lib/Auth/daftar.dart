@@ -15,7 +15,10 @@ class _DaftarState extends State<Daftar> {
   final _namaController = TextEditingController();
   final _nomorController = TextEditingController();
   final _confirmController = TextEditingController();
+
   bool _isLoading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   final authService = AuthService();
 
@@ -63,8 +66,6 @@ class _DaftarState extends State<Daftar> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Pendaftaran berhasil! Silakan login.')),
         );
-
-        // Langsung pindah ke halaman login tanpa delay
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const Loginpage()),
@@ -72,7 +73,6 @@ class _DaftarState extends State<Daftar> {
       }
     } catch (e) {
       if (mounted) {
-        // Tampilkan pesan error yang lebih bersih (tanpa prefix "Exception:")
         final msg = e.toString().replaceFirst('Exception: ', '');
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Gagal daftar: $msg')));
@@ -103,7 +103,6 @@ class _DaftarState extends State<Daftar> {
               Container(
                 padding: const EdgeInsets.all(20),
                 width: 354,
-                height: 600,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
@@ -112,8 +111,8 @@ class _DaftarState extends State<Daftar> {
                   children: [
                     const Text(
                       'Daftar Akun',
-                      style:
-                          TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 20),
                     ),
                     const SizedBox(height: 20),
 
@@ -122,21 +121,33 @@ class _DaftarState extends State<Daftar> {
 
                     const SizedBox(height: 14),
                     _buildLabel('Email'),
-                    _buildTextField(_emailController, 'nama@gmail.com'),
+                    _buildTextField(_emailController, 'nama@gmail.com',
+                        keyboardType: TextInputType.emailAddress),
 
                     const SizedBox(height: 14),
                     _buildLabel('Nomor Telepon'),
-                    _buildTextField(_nomorController, '08xxxxxxxxxx'),
+                    _buildTextField(_nomorController, '08xxxxxxxxxx',
+                        keyboardType: TextInputType.phone),
 
                     const SizedBox(height: 14),
                     _buildLabel('Password'),
-                    _buildTextField(_passwordController, '********',
-                        obscure: true),
+                    _buildPasswordField(
+                      controller: _passwordController,
+                      hint: '********',
+                      obscure: _obscurePassword,
+                      onToggle: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
+                    ),
 
                     const SizedBox(height: 14),
                     _buildLabel('Konfirmasi Password'),
-                    _buildTextField(_confirmController, '********',
-                        obscure: true),
+                    _buildPasswordField(
+                      controller: _confirmController,
+                      hint: '********',
+                      obscure: _obscureConfirm,
+                      onToggle: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
+                    ),
 
                     const SizedBox(height: 22),
 
@@ -159,19 +170,20 @@ class _DaftarState extends State<Daftar> {
                     ),
                     const SizedBox(height: 20),
                     GestureDetector(
-                      child: Text(
-                        'Sudah Punya Akun? Login',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: Colors.blue.shade600),
-                      ),
                       onTap: () {
                         Navigator.push(
                             context,
                             MaterialPageRoute(
                                 builder: (_) => const Loginpage()));
                       },
-                    )
+                      child: Text(
+                        'Sudah Punya Akun? Login',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade600),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                   ],
                 ),
               ),
@@ -192,15 +204,37 @@ class _DaftarState extends State<Daftar> {
   Widget _buildTextField(
     TextEditingController controller,
     String hint, {
-    bool obscure = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String hint,
+    required bool obscure,
+    required VoidCallback onToggle,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscure,
       decoration: InputDecoration(
         hintText: hint,
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        suffixIcon: IconButton(
+          icon: Icon(
+            obscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey,
+          ),
+          onPressed: onToggle,
+        ),
       ),
     );
   }

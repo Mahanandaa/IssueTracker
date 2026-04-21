@@ -283,7 +283,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                   BoxShadow(
                     color: shadowColor,
                     blurRadius: 24,
-                    offset: const Offset(0, 11),
+                    offset: const Offset(0, 5),
                   ),
                 ],
               ),

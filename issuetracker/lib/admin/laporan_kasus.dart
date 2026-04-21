@@ -87,6 +87,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
           Text('Prioritas: ${item['priority'] ?? '-'}'),
           Text('Pelapor: $reporterName'),
           Text('Status: ${item['status'] ?? '-'}'),
+          Text('Tools : ${item['spearparts'] ?? '-'}')
         ],
       ),
     );

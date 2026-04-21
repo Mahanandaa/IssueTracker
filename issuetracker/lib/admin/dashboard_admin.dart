@@ -70,7 +70,12 @@ class _DashboardAdminState extends State<DashboardAdmin> {
       return BarChartGroupData(
         x: i,
         barRods: [
-          BarChartRodData(toY: value.toDouble(), color: Colors.blue),
+          BarChartRodData(
+            toY: value.toDouble(),
+            color: Colors.blue,
+            width: 20,
+            borderRadius: BorderRadius.circular(4),
+          ),
         ],
       );
     });
@@ -203,8 +208,62 @@ class _DashboardAdminState extends State<DashboardAdmin> {
             Container(
               height: 300,
               padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
               child: BarChart(
-                BarChartData(barGroups: buildBarGroups()),
+                BarChartData(
+                  gridData: FlGridData(show: true),
+                  borderData: FlBorderData(show: false),
+                  barGroups: buildBarGroups(),
+                  titlesData: FlTitlesData(
+                    rightTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    topTitles: AxisTitles(
+                        sideTitles: SideTitles(showTitles: false)),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 28,
+                        getTitlesWidget: (value, meta) => Text(
+                          value.toInt().toString(),
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                    ),
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(
+                        showTitles: true,
+                        reservedSize: 38,
+                        getTitlesWidget: (value, meta) {
+                          final categories = categoryCount.keys.toList();
+                          final i = value.toInt();
+                          if (i < 0 || i >= categories.length) {
+                            return const Text('');
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Text(
+                              categories[i],
+                              style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500),
+                              textAlign: TextAlign.center,
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 

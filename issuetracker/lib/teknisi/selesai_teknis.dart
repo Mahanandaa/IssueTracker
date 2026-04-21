@@ -62,14 +62,15 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
   }
 
   Future<void> _initNotification() async {
-    const androidSettings =
+    const initSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const initSettings = InitializationSettings(android: androidSettings);
-
+    const initSettings = InitializationSettings(android: initSettingsAndroid);
+    await notificationPlugin.initialize(settings: initSettings);
   }
 
   Future<void> _showLocalNotif({
+    int id = 0,
     required String title,
     required String body,
   }) async {
@@ -80,8 +81,10 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
         importance: Importance.max,
         priority: Priority.high,
       ),
-    );
 
+    );
+      await notificationPlugin.show(
+        id: id, title: title, body: body, notificationDetails: details);
   }
 
   Future<void> _updateStatus() async {
@@ -124,22 +127,29 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     if (imageAfter == null) return;
 
     setState(() => _isUploading = true);
+    try {
+      final fileName =
+          '${widget.issueId}_after_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = 'uploads/$fileName';
 
-    final fileName =
-        '${widget.issueId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      // Pakai upload (bukan update) dengan upsert: true
+      await supabase.storage.from('images').upload(
+            path,
+            File(imageAfter!.path),
+            fileOptions: const FileOptions(upsert: true),
+          );
 
-    await supabase.storage
-        .from('images')
-        .upload('uploads/$fileName', File(imageAfter!.path));
+      final url = supabase.storage.from('images').getPublicUrl(path);
 
-    final url = supabase.storage
-        .from('images')
-        .getPublicUrl('uploads/$fileName');
-
-    setState(() {
-      _uploadedAfterUrl = url;
-      _isUploading = false;
-    });
+      setState(() => _uploadedAfterUrl = url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal upload foto: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
   }
 
   Widget card({required Widget child}) {
@@ -291,23 +301,30 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
               height: 50,
               child: ElevatedButton(
                 onPressed: () async {
-                  if (solusiController.text.isEmpty) return;
+                  if (solusiController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ringkasan solusi wajib diisi')),
+                    );
+                    return;
+                  }
 
+                  // Upload foto DULU agar URL sudah tersedia saat _selesai()
+                  await _uploadFotoSesudah();
                   await _updateStatus();
                   await _selesai();
-                  await _uploadFotoSesudah();
                   await _showLocalNotif(
                     title: 'Selesai',
                     body: 'Berhasil diselesaikan',
                   );
 
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const DashboardTeknisi(),
-                    ),
-                  );
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const DashboardTeknisi(),
+                      ),
+                    );
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:issuetracker/Auth/ganti_password.dart';
 
 class LupaPassword extends StatefulWidget {
   const LupaPassword({super.key});
@@ -10,56 +9,90 @@ class LupaPassword extends StatefulWidget {
 }
 
 class _LupaPasswordState extends State<LupaPassword> {
-  final _emailController = TextEditingController();
-  final _oldPasswordController = TextEditingController();
-  bool _isLoading = false;
-  bool _obscureOld = true;
+  final _email = TextEditingController();
+  final _otp = TextEditingController();
+  final _newPass = TextEditingController();
+  final _confirmPass = TextEditingController();
 
-  final _supabase = Supabase.instance.client;
+  bool _isLoading = false;
+  bool _isOtpSent = false;
+  bool _ob1 = true;
+  bool _ob2 = true;
+
+  final supabase = Supabase.instance.client;
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _oldPasswordController.dispose();
+    _email.dispose();
+    _otp.dispose();
+    _newPass.dispose();
+    _confirmPass.dispose();
     super.dispose();
   }
 
-  Future<void> _verifikasiAkun() async {
-    final email = _emailController.text.trim();
-    final oldPassword = _oldPasswordController.text.trim();
+  void snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
 
-    if (email.isEmpty || oldPassword.isEmpty) {
-      _showSnackBar('Email dan password lama wajib diisi');
+  Future<void> kirimOtp() async {
+    if (_email.text.isEmpty) {
+      snack('Email wajib');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Verifikasi dengan mencoba login menggunakan email + password lama
-      await _supabase.auth.signInWithPassword(
-        email: email,
-        password: oldPassword,
-      );
-
-      if (mounted) {
-        // Kirim oldPassword ke halaman ganti password untuk validasi
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => GantiPassword(oldPassword: oldPassword),
-          ),
-        );
-      }
-    } catch(e) {
-      _showSnackBar('Password atau Email anda salah Coba Lagi!');
-      if (mounted) setState(() => _isLoading = false);
+      await supabase.auth.signInWithOtp(email: _email.text.trim());
+      setState(() => _isOtpSent = true);
+      snack('OTP dikirim');
+    } catch (e) {
+      snack('Gagal kirim OTP');
     }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
-  void _showSnackBar(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  Future<void> verifikasiDanGanti() async {
+    if (_otp.text.isEmpty ||
+        _newPass.text.isEmpty ||
+        _confirmPass.text.isEmpty) {
+      snack('Lengkapi semua field');
+      return;
+    }
+
+    if (_newPass.text != _confirmPass.text) {
+      snack('Password tidak sama');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final res = await supabase.auth.verifyOTP(
+        type: OtpType.email,
+        email: _email.text.trim(),
+        token: _otp.text.trim(),
+      );
+
+      if (res.session == null) {
+        snack('OTP salah');
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      await supabase.auth.updateUser(
+        UserAttributes(password: _newPass.text.trim()),
+      );
+
+      snack('Password berhasil diubah');
+      Navigator.pop(context);
+    } catch (e) {
+      snack('Gagal proses');
+    }
+
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -68,137 +101,123 @@ class _LupaPasswordState extends State<LupaPassword> {
       backgroundColor: Colors.blue[100],
       body: Center(
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'IssueTrack.',
-                style: TextStyle(
-                  color: Colors.blue[900],
-                  fontWeight: FontWeight.bold,
-                  fontSize: 40,
+          child: Container(
+            padding: const EdgeInsets.all(22),
+            width: 362,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Reset Password OTP',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                 ),
-              ),
-              const SizedBox(height: 50),
-              Container(
-                padding: const EdgeInsets.all(22),
-                width: 362,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color.fromARGB(24, 150, 148, 148),
-                      blurRadius: 24,
-                      offset: const Offset(0, 11),
-                    ),
-                  ],
+                const SizedBox(height: 20),
+                TextField(
+                  controller: _email,
+                  decoration: InputDecoration(
+                    hintText: 'Email',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Center(
-                      child: Text(
-                        'Lupa Password',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Center(
-                      child: Text(
-                        'Masukkan email dan password lama Anda',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-
-                    const Text('Email',
-                        style: TextStyle(fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'nama@gmail.com',
-                        contentPadding: const EdgeInsets.all(12),
-                        border: OutlineInputBorder(
+                const SizedBox(height: 16),
+                if (!_isOtpSent)
+                  SizedBox(
+                    width: 220,
+                    height: 44,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.blue[600],
+                        shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
                       ),
+                      onPressed: _isLoading ? null : kirimOtp,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Text(
+                              'Kirim OTP',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
+                            ),
                     ),
-
-                    const SizedBox(height: 20),
-                    const Text('Password Lama',
-                        style: TextStyle(fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: _oldPasswordController,
-                      obscureText: _obscureOld,
-                      decoration: InputDecoration(
-                        hintText: 'Masukkan password lama',
-                        contentPadding: const EdgeInsets.all(12),
-                        border: OutlineInputBorder(
+                  ),
+                if (_isOtpSent) ...[
+                  TextField(
+                    controller: _otp,
+                    decoration: InputDecoration(
+                      hintText: 'OTP',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _newPass,
+                    obscureText: _ob1,
+                    decoration: InputDecoration(
+                      hintText: 'Password Baru',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      suffixIcon: IconButton(
+                        icon: Icon(_ob1
+                            ? Icons.visibility_off
+                            : Icons.visibility),
+                        onPressed: () => setState(() => _ob1 = !_ob1),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _confirmPass,
+                    obscureText: _ob2,
+                    decoration: InputDecoration(
+                      hintText: 'Konfirmasi Password',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      suffixIcon: IconButton(
+                        icon: Icon(_ob2
+                            ? Icons.visibility_off
+                            : Icons.visibility),
+                        onPressed: () => setState(() => _ob2 = !_ob2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: 220,
+                    height: 44,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        backgroundColor: Colors.blue[600],
+                        shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10)),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureOld
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.grey,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscureOld = !_obscureOld),
-                        ),
                       ),
+                      onPressed: _isLoading ? null : verifikasiDanGanti,
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2))
+                          : const Text(
+                              'Simpan',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600),
+                            ),
                     ),
-
-                    const SizedBox(height: 28),
-                    Center(
-                      child: SizedBox(
-                        width: 220,
-                        height: 44,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: Colors.blue[600],
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: _isLoading ? null : _verifikasiAkun,
-                          child: _isLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2))
-                              : const Text(
-                                  'Verifikasi',
-                                  style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: Center(
-                        child: Text(
-                          'Kembali ke Login',
-                          style: TextStyle(
-                              color: Colors.blue[400],
-                              fontWeight: FontWeight.w500,
-                              fontSize: 13),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),

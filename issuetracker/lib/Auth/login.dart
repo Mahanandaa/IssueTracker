@@ -16,6 +16,7 @@ class _LoginpageState extends State<Loginpage> {
   final _passwordController = TextEditingController();
   final authService = AuthService();
   bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -39,9 +40,8 @@ class _LoginpageState extends State<Loginpage> {
 
     try {
       await authService.signInWithPassword(email, password);
-      
+
       if (mounted) {
-        // Navigasi langsung ke AuthGate setelah login berhasil
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AuthGate()),
@@ -49,8 +49,9 @@ class _LoginpageState extends State<Loginpage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Login gagal: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Login gagal: Password Atau Email Salah!')),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -77,15 +78,14 @@ class _LoginpageState extends State<Loginpage> {
               Container(
                 padding: const EdgeInsets.all(22),
                 width: 362,
-                height: 440,
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: const Color.fromARGB(24, 150, 148, 148),
+                      color: Color.fromARGB(24, 150, 148, 148),
                       blurRadius: 24,
-                      offset: const Offset(0, 11),
+                      offset: Offset(0, 11),
                     ),
                   ],
                 ),
@@ -93,16 +93,20 @@ class _LoginpageState extends State<Loginpage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Center(
-                        child: Text('Selamat Datang',
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w600))),
+                      child: Text('Selamat Datang',
+                          style: TextStyle(
+                              fontSize: 20, fontWeight: FontWeight.w600)),
+                    ),
                     const SizedBox(height: 6),
                     Center(
-                        child: Text(
-                            'Masuk ke akun IssueTrack sekarang !',
-                            style: TextStyle(
-                                fontSize: 14, color: Colors.grey[600]))),
+                      child: Text(
+                        'Masuk ke akun IssueTrack sekarang !',
+                        style:
+                            TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                    ),
                     const SizedBox(height: 28),
+
                     const Text('Email',
                         style: TextStyle(fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
@@ -116,20 +120,32 @@ class _LoginpageState extends State<Loginpage> {
                             borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
+
                     const SizedBox(height: 20),
                     const Text('Password',
                         style: TextStyle(fontWeight: FontWeight.w500)),
                     const SizedBox(height: 10),
                     TextField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: _obscurePassword,
                       decoration: InputDecoration(
                         hintText: 'Masukkan password',
                         contentPadding: const EdgeInsets.all(12),
                         border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10)),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off
+                                : Icons.visibility,
+                            color: Colors.grey,
+                          ),
+                          onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
+                        ),
                       ),
                     ),
+
                     const SizedBox(height: 24),
                     Center(
                       child: SizedBox(
@@ -155,46 +171,43 @@ class _LoginpageState extends State<Loginpage> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: 20),
-                 
-                   Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
- GestureDetector(
-                      onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const Daftar()));
-                      },
-                      child: Center(
-                        child: Text('Daftar Akun ',
-                            style: TextStyle(
-                                color: Colors.blue[400],
-                                fontWeight: FontWeight.w500)),
-                      ),
-                    ),
-                  
-                          Text(' |  ',
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const Daftar()));
+                          },
+                          child: Text('Daftar Akun ',
+                              style: TextStyle(
+                                  color: Colors.blue[400],
+                                  fontWeight: FontWeight.w500)),
+                        ),
+                        Text(' |  ',
                             style: TextStyle(
                                 color: Colors.grey[600],
                                 fontWeight: FontWeight.w500)),
-
-                     GestureDetector(
-                      onTap: () {
-                        Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const LupaPassword()));
-                      },
-                      child: Center(
-                        child: Text('Lupa Password?',
-                            style: TextStyle(
-                                color: Colors.blue[400],
-                                fontWeight: FontWeight.w500,
-                                fontSize: 13)),
-                      ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const LupaPassword()));
+                          },
+                          child: Text('Lupa Password?',
+                              style: TextStyle(
+                                  color: Colors.blue[400],
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13)),
+                        ),
+                      ],
                     ),
-                    ],
-                   ),
                     const SizedBox(height: 10),
-                   
                   ],
                 ),
               ),
