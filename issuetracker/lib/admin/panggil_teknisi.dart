@@ -13,7 +13,8 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
   final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> teknisiList = [];
-  Map<String, double> teknisiRatings = {}; // simpan rating per teknisi
+  Map<String, double> teknisiRatings = {}; 
+
   bool isLoading = true;
 
   @override
@@ -35,19 +36,16 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
       final List<Map<String, dynamic>> list =
           List<Map<String, dynamic>>.from(response);
 
-      // Hitung rating per teknisi: sum(rating) / jumlah tugas selesai
       final Map<String, double> ratings = {};
       for (final t in list) {
         final uid = t['id'] as String;
         try {
-          // Ambil semua rating untuk teknisi ini
           final ratingData = await supabase
               .from('ratings')
               .select('rating')
               .eq('technician_id', uid);
           final List rList = ratingData as List;
 
-          // Hitung jumlah tugas selesai
           final resolvedData = await supabase
               .from('issues')
               .select('id')
@@ -61,7 +59,6 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
               final val = r['rating'];
               if (val != null) total += (val as num).toDouble();
             }
-            // Rumus: total rating / jumlah tugas selesai
             ratings[uid] = total / resolvedCount;
           }
         } catch (_) {}
@@ -105,14 +102,12 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
     if (confirm != true) return;
 
     try {
-      // 1. Update issues: set assigned_to, status Assigned, assigned_at
       await supabase.from('issues').update({
         'assigned_to': teknisi['id'],
         'status': 'Assigned',
         'assigned_at': DateTime.now().toIso8601String(),
       }).eq('id', widget.issueId);
 
-      // 2. Set teknisi is_available = false
       await supabase
           .from('users')
           .update({'is_available': false})
@@ -178,7 +173,6 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                         ),
                         child: Row(
                           children: [
-                            // Avatar inisial
                             CircleAvatar(
                               radius: 24,
                               backgroundColor: isAvailable
@@ -199,7 +193,6 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
 
                             const SizedBox(width: 12),
 
-                            // Info teknisi
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +206,7 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    teknisi['department'] ?? 'Teknisi',
+                                    teknisi['department'] ?? 'Other',
                                     style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey[600]),
@@ -266,7 +259,6 @@ class _PanggilTeknisiState extends State<PanggilTeknisi> {
                               ),
                             ),
 
-                            // Tombol Call
                             GestureDetector(
                               onTap: isAvailable
                                   ? () => panggilTeknisi(teknisi)

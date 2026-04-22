@@ -9,8 +9,7 @@ class DetailLaporanKaryawan extends StatefulWidget {
   const DetailLaporanKaryawan({super.key, required this.issueId});
 
   @override
-  State<DetailLaporanKaryawan> createState() =>
-      _DetailLaporanKaryawanState();
+  State<DetailLaporanKaryawan> createState() => _DetailLaporanKaryawanState();
 }
 
 class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
@@ -21,10 +20,10 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
 
   Map<String, dynamic>? issue;
   List<Map<String, dynamic>> comments = [];
+  List<Map<String, dynamic>> spareParts = [];
   bool isLoading = true;
   bool isSendingComment = false;
   bool _sudahDinilai = false;
-  int _selectedRating = 0; // 0 = belum pilih, 1-5 = nilai bintang
 
   String get _uid => supabase.auth.currentUser?.id ?? '';
 
@@ -33,6 +32,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     super.initState();
     fetchIssueDetail();
     fetchComments();
+    fetchSpareParts();
   }
 
   @override
@@ -88,6 +88,21 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     } catch (_) {}
   }
 
+  Future<void> fetchSpareParts() async {
+    try {
+      final response = await supabase
+          .from('spare_parts')
+          .select('part_name, quantity, notes')
+          .eq('issue_id', widget.issueId)
+          .order('created_at', ascending: true);
+      if (mounted) {
+        setState(() {
+          spareParts = List<Map<String, dynamic>>.from(response);
+        });
+      }
+    } catch (_) {}
+  }
+
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
@@ -132,25 +147,19 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
     await fetchComments();
   }
 
- Future<void> kirimUlasan() async {
-  final technicianId = issue?['assigned_to'] as String?;
-
-  final nilai = int.tryParse(rate.text);
-
-  if (nilai == null || nilai < 1 || nilai > 5) {
-    throw Exception('Rating tidak valid');
+  Future<void> kirimUlasan() async {
+    final technicianId = issue?['assigned_to'] as String?;
+    final nilai = int.tryParse(rate.text);
+    if (nilai == null || nilai < 1 || nilai > 5) {
+      throw Exception('Rating tidak valid');
+    }
+    await supabase.from('ratings').insert({
+      'rating': nilai,
+      'feedback': feedback.text.trim(),
+      'issue_id': widget.issueId,
+      if (technicianId != null) 'technician_id': technicianId,
+    });
   }
-
-  await supabase.from('ratings').insert({
-    'rating': nilai,
-    'feedback': feedback.text.trim(),
-    'issue_id': widget.issueId,
-    if (technicianId != null) 'technician_id': technicianId,
-  });
-}
-
-
-
 
   String _formatDeadline(dynamic raw) {
     if (raw == null) return 'Tidak ada deadline';
@@ -196,9 +205,9 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          const Text('Gagal memuat foto',
-                              style: TextStyle(color: Colors.grey)),
+                      errorBuilder: (_, __, ___) => const Text(
+                          'Gagal memuat foto',
+                          style: TextStyle(color: Colors.grey)),
                     ),
                   )
                 : Container(
@@ -208,8 +217,8 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(10)),
                     child: const Text('Belum ada foto',
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: 12)),
+                        style:
+                            TextStyle(color: Colors.grey, fontSize: 12)),
                   ),
           ],
         ),
@@ -220,15 +229,15 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (issue == null) {
-      return const Scaffold(
-          body: Center(child: Text("Data tidak ditemukan")));
+      return const Scaffold(body: Center(child: Text("Data tidak ditemukan")));
     }
 
     final status = issue?['status']?.toString();
+    final resolutionNotes = issue?['resolution_notes']?.toString() ?? '';
+    final hasResolution = resolutionNotes.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -247,25 +256,20 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             const SizedBox(height: 20),
 
             Row(children: [
-              _infoBox(
-                  'Kategori', issue?['category']?.toString() ?? ''),
+              _infoBox('Kategori', issue?['category']?.toString() ?? ''),
               const SizedBox(width: 12),
               _infoBox('Lokasi', issue?['location']?.toString() ?? ''),
             ]),
             const SizedBox(height: 14),
 
             Row(children: [
-              _infoBox(
-                  'Tanggal',
-                  _formatTanggal(issue?['created_at']
-                      ?.toString()
-                      .substring(0, 10))),
+              _infoBox('Tanggal',
+                  _formatTanggal(issue?['created_at']?.toString().substring(0, 10))),
               const SizedBox(width: 12),
               _infoBox('Status', issue?['status']?.toString() ?? ''),
             ]),
             const SizedBox(height: 14),
 
-            // Deadline
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
@@ -275,8 +279,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.access_time,
-                      size: 16, color: Colors.blueGrey),
+                  const Icon(Icons.access_time, size: 16, color: Colors.blueGrey),
                   const SizedBox(width: 6),
                   Text(
                     'Deadline: ${_formatDeadline(issue?['deadline'])}',
@@ -289,8 +292,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
 
             // Deskripsi
             const Text('Deskripsi',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 20)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -301,54 +303,53 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
               ),
               child: Text(issue?['description']?.toString() ?? ''),
             ),
-
             const SizedBox(height: 20),
 
+            // Foto
             const Text('Foto Pengerjaan',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 18)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
             Row(
               children: [
                 _fotoCard('Sebelum', issue?['photo_url']?.toString()),
                 const SizedBox(width: 12),
-                _fotoCard('Sesudah',
-                    issue?['completion_photo_url']?.toString()),
+                _fotoCard('Sesudah', issue?['completion_photo_url']?.toString()),
               ],
             ),
             const SizedBox(height: 20),
-            if (issue?['resolution_notes'] != null &&
-                (issue!['resolution_notes'] as String).isNotEmpty) ...[
-              const Text('Catatan Solusi',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 18)),
+
+            // ── Langkah Perbaikan ──────────────────────────────────
+            if (hasResolution) ...[
+              const Text('Langkah Perbaikan',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.green[50],
+                  color: Colors.blue[50],
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.shade200),
+                  border: Border.all(color: Colors.blue.shade200),
                 ),
-                child: Text(issue!['resolution_notes'].toString()),
+                child: Text(resolutionNotes,
+                    style: const TextStyle(fontSize: 14)),
               ),
               const SizedBox(height: 20),
             ],
+
+           
+            // Komentar
             const Text('Komentar',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 18)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
             ...comments.map((c) {
               final bool isMine = c['user_id']?.toString() == _uid;
               final userMap = c['users'] as Map<String, dynamic>?;
               final namaUser = userMap?['name'] ?? 'Unknown';
-              final waktu =
-                  _formatTanggal(c['created_at']?.toString());
+              final waktu = _formatTanggal(c['created_at']?.toString());
               return Align(
-                alignment: isMine
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                alignment:
+                    isMine ? Alignment.centerRight : Alignment.centerLeft,
                 child: GestureDetector(
                   onLongPress: isMine
                       ? () => hapusKomentar(c['id'].toString())
@@ -357,8 +358,7 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     constraints: BoxConstraints(
-                        maxWidth:
-                            MediaQuery.of(context).size.width * 0.75),
+                        maxWidth: MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
                       color: isMine
                           ? Colors.blue.shade100
@@ -401,7 +401,6 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             }),
             const SizedBox(height: 12),
 
-            // Input komentar
             Row(
               children: [
                 Expanded(
@@ -446,13 +445,12 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
             ),
             const SizedBox(height: 30),
 
-            // Form feedback/rating hanya jika Resolved
+            // Rating hanya jika Resolved
             if (status == 'Resolved') ...[
               const Text('Feedback & Rating',
-                  style: TextStyle(
-                      fontWeight: FontWeight.w600, fontSize: 20)),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
               const SizedBox(height: 10),
-              if (_sudahDinilai) ...[
+              if (_sudahDinilai)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
@@ -475,9 +473,8 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 30),
-              ] else ...[
+                )
+              else ...[
                 TextField(
                   controller: feedback,
                   maxLength: 250,
@@ -493,80 +490,64 @@ class _DetailLaporanKaryawanState extends State<DetailLaporanKaryawan> {
                   ),
                 ),
                 const SizedBox(height: 16),
-// HANYA BAGIAN YANG DIUBAH
-
-// HAPUS INI
-// int _selectedRating = 0;
-
-// =======================
-// GANTI BAGIAN INI:
-// =======================
-
-const Text('Rating (1–5)',
-    style: TextStyle(
-        fontWeight: FontWeight.w600, fontSize: 18)),
-const SizedBox(height: 10),
-
-TextField(
-  controller: rate,
-  keyboardType: TextInputType.number,
-  inputFormatters: [
-    FilteringTextInputFormatter.digitsOnly,
-    LengthLimitingTextInputFormatter(1),
-  ],
-  decoration: InputDecoration(
-    hintText: 'Masukkan rating 1 - 5',
-    prefixIcon: const Icon(Icons.star, color: Colors.orange),
-    filled: true,
-    fillColor: Colors.white,
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(14),
-    ),
-  ),
-),
-
-const SizedBox(height: 20),
-
-SizedBox(
-  width: double.infinity,
-  height: 50,
-  child: ElevatedButton(
-    style: ElevatedButton.styleFrom(
-      backgroundColor: Colors.blue,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-    ),
-    onPressed: () async {
-      final nilai = int.tryParse(rate.text);
-
-      if (nilai == null || nilai < 1 || nilai > 5 || feedback.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rating harus 1-5 dan isi feedback'),
-          ),
-        );
-        return;
-      }
-
-      await kirimUlasan();
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Berhasil Terkirim!')),
-        );
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const DashboardKaryawan(),
-          ),
-        );
-      }
-    },
-    child: const Text('Kirim Penilaian',
-        style: TextStyle(color: Colors.white)),
-  ),
-),
+                const Text('Rating (1–5)',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 18)),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: rate,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(1),
+                  ],
+                  decoration: InputDecoration(
+                    hintText: 'Masukkan rating 1 - 5',
+                    prefixIcon: const Icon(Icons.star, color: Colors.orange),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onPressed: () async {
+                      final nilai = int.tryParse(rate.text);
+                      if (nilai == null ||
+                          nilai < 1 ||
+                          nilai > 5 ||
+                          feedback.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content: Text('Rating harus 1-5 dan isi feedback')),
+                        );
+                        return;
+                      }
+                      await kirimUlasan();
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Berhasil Terkirim!')),
+                        );
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const DashboardKaryawan()),
+                        );
+                      }
+                    },
+                    child: const Text('Kirim Penilaian',
+                        style: TextStyle(color: Colors.white)),
+                  ),
+                ),
                 const SizedBox(height: 30),
               ],
             ],
@@ -588,8 +569,8 @@ SizedBox(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(label,
-                style: const TextStyle(
-                    color: Colors.grey, fontSize: 12)),
+                style:
+                    const TextStyle(color: Colors.grey, fontSize: 12)),
             const SizedBox(height: 6),
             Text(value,
                 style: const TextStyle(fontWeight: FontWeight.w500)),

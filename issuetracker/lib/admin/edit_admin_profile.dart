@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EditAdminProfile extends StatefulWidget {
@@ -15,6 +16,7 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
 
   late TextEditingController nama;
   late TextEditingController email;
+  late TextEditingController nomor;
   late TextEditingController password;
 
   @override
@@ -29,7 +31,20 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
       text: widget.users['email']?.toString() ?? '',
     );
 
+    nomor = TextEditingController(
+      text: widget.users['phone']?.toString() ?? '',
+    );
+
     password = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    nama.dispose();
+    email.dispose();
+    nomor.dispose();
+    password.dispose();
+    super.dispose();
   }
 
   Future<void> updateProfile() async {
@@ -42,6 +57,7 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
         password: password.text.isEmpty ? null : password.text,
         data: {
           'name': nama.text,
+          'phone': nomor.text,
         },
       ),
     );
@@ -49,6 +65,7 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
     await supabase.from('users').update({
       'name': nama.text,
       'email': email.text,
+      'phone': nomor.text,
     }).eq('id', user.id);
 
     if (mounted) {
@@ -86,6 +103,13 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
             TextField(
               controller: email,
               decoration: inputStyle("Masukan email baru"),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nomor,
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              decoration: inputStyle("Masukan nomor telepon baru"),
             ),
             const SizedBox(height: 12),
             TextField(

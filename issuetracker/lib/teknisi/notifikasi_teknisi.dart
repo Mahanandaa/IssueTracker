@@ -35,7 +35,6 @@ class _NotifikasiTeknisiState extends State<NotifikasiTeknisi> {
         isLoading = false;
       });
 
-      // Tandai semua sebagai sudah dibaca
       await supabase
           .from('notifications')
           .update({'is_read': true})

@@ -24,7 +24,6 @@ class _LaporanKasusState extends State<LaporanKasus> {
 
   Future<void> fetchIssues() async {
     try {
-      // FIX 4: Join dengan tabel users untuk mendapatkan nama pelapor
       final response = await supabase
           .from('issues')
           .select('*, reporter:users!reported_by(name, email, phone)');
@@ -76,6 +75,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
         ],
       ),
       child: Column(
+        
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Kasus: ${item['title'] ?? '-'}',
@@ -87,7 +87,6 @@ class _LaporanKasusState extends State<LaporanKasus> {
           Text('Prioritas: ${item['priority'] ?? '-'}'),
           Text('Pelapor: $reporterName'),
           Text('Status: ${item['status'] ?? '-'}'),
-          Text('Tools : ${item['spearparts'] ?? '-'}')
         ],
       ),
     );

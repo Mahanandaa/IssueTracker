@@ -18,11 +18,13 @@ class DetailLaporanTeknisi extends StatefulWidget {
 class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
   final supabase = Supabase.instance.client;
 
-Map<String, dynamic>? issue;
-bool isSendingComment= false;
-bool isLoading = true;
-final commentController = TextEditingController();
-List comments = [];
+  Map<String, dynamic>? issue;
+  bool isSendingComment = false;
+  bool isLoading = true;
+  final commentController = TextEditingController();
+  List<Map<String, dynamic>> comments = [];
+  List<Map<String, dynamic>> spareParts = [];
+
   String get _uid => supabase.auth.currentUser?.id ?? '';
 
   @override
@@ -30,27 +32,66 @@ List comments = [];
     super.initState();
     fetchDetail();
     fetchComments();
+    fetchSpareParts();
   }
 
-
-  Future<void> fetchData() async {
-    final i = await supabase
-        .from('issues')
-        .select()
-        .eq('id', widget.issueId)
-        .single();
-
-    final c = await supabase
-        .from('comments')
-        .select()
-        .eq('issue_id', widget.issueId);
-
-    setState(() {
-      issue = i;
-      comments = c;
-    });
+  @override
+  void dispose() {
+    commentController.dispose();
+    super.dispose();
   }
-  
+
+  Future<void> fetchDetail() async {
+    setState(() => isLoading = true);
+    try {
+      final data = await supabase
+          .from('issues')
+          .select()
+          .eq('id', widget.issueId)
+          .maybeSingle();
+      setState(() {
+        issue = data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> fetchComments() async {
+    try {
+      final response = await supabase
+          .from('comments')
+          .select('id, comment, created_at, user_id, users(name, role)')
+          .eq('issue_id', widget.issueId)
+          .order('created_at', ascending: true);
+      if (mounted) {
+        setState(() {
+          comments = List<Map<String, dynamic>>.from(response);
+        });
+      }
+    } catch (e) {
+      debugPrint('fetchComments error: $e');
+    }
+  }
+
+  Future<void> fetchSpareParts() async {
+    try {
+      final response = await supabase
+          .from('spare_parts')
+          .select('part_name, quantity, notes')
+          .eq('issue_id', widget.issueId)
+          .order('created_at', ascending: true);
+      if (mounted) {
+        setState(() {
+          spareParts = List<Map<String, dynamic>>.from(response);
+        });
+      }
+    } catch (e) {
+      debugPrint('fetchSpareParts error: $e');
+    }
+  }
+
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
@@ -97,51 +138,11 @@ List comments = [];
     await fetchComments();
   }
 
-  Future<void> fetchDetail() async {
-    setState(() => isLoading = true);
-    try {
-      final data = await supabase
-          .from('issues')
-          .select()
-          .eq('id', widget.issueId)
-          .maybeSingle();
-
-      setState(() {
-        issue = data;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() => isLoading = false);
-    }
-  }
-   Future<void> fetchComments() async {
-    try {
-      final response = await supabase
-          .from('comments')
-          .select('id, comment, created_at, user_id, users(name, role)')
-          .eq('issue_id', widget.issueId)
-          .order('created_at', ascending: true);
-      if (mounted) {
-        setState(() {
-          comments = List<Map<String, dynamic>>.from(response);
-        });
-      }
-    } catch (e) {
-      debugPrint('fetchComments error: $e');
-    }
-  }
-
-  Future<void> initNotification() async {
-    const initSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initSettings = InitializationSettings(android: initSettingsAndroid);
-    await notificationPlugin.initialize(settings: initSettings);
-  }
-
-  Future<void> showNotif(
-      {int id = 0,
-      required String title,
-      required String body}) async {
+  Future<void> showNotif({
+    int id = 0,
+    required String title,
+    required String body,
+  }) async {
     const details = NotificationDetails(
       android: AndroidNotificationDetails(
         'issue_channel',
@@ -158,15 +159,15 @@ List comments = [];
   Future<void> updateStatus() async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
-    await supabase.from('users').update({
-      'is_available': true,
-    }).eq('id', userId);
+    await supabase
+        .from('users')
+        .update({'is_available': true}).eq('id', userId);
   }
 
   Future<void> kirimNotifikasi() async {
     final issueData = await supabase
         .from('issues')
-        .select('title, reported_by, assigned_to') 
+        .select('title, reported_by, assigned_to')
         .eq('id', widget.issueId)
         .single();
 
@@ -219,7 +220,10 @@ List comments = [];
       MaterialPageRoute(
         builder: (_) => ProgressTeknisi(issueId: widget.issueId),
       ),
-    ).then((_) => fetchDetail());
+    ).then((_) {
+      fetchDetail();
+      fetchSpareParts();
+    });
   }
 
   void tolakTugas() {
@@ -231,64 +235,15 @@ List comments = [];
     ).then((_) => fetchDetail());
   }
 
-  Future<void> selesaikanTugas() async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Selesaikan Tugas'),
-        content: const Text('Tandai tugas ini sebagai selesai?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Batal'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Selesai',
-                style: TextStyle(color: Colors.green)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await supabase.from('issues').update({
-        'status': 'Resolved',
-        'resolved_at': DateTime.now().toIso8601String(),
-      }).eq('id', widget.issueId);
-
-      await supabase
-          .from('users')
-          .update({'is_available': true}).eq('id', _uid);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Tugas berhasil diselesaikan!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        fetchDetail();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Gagal: $e')));
-      }
-    }
-  }
-
   Color _priorityColor(String? p) {
     switch (p) {
-    case 'Urgent':
+      case 'Urgent':
         return Colors.red;
-    case 'High':
+      case 'High':
         return Colors.deepOrange;
-    case 'Medium':
+      case 'Medium':
         return Colors.orange;
-    default:
+      default:
         return Colors.green;
     }
   }
@@ -324,7 +279,7 @@ List comments = [];
             Text(label,
                 style: const TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 13)),
-                     const SizedBox(height: 8),
+            const SizedBox(height: 8),
             url != null && url.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(10),
@@ -345,8 +300,8 @@ List comments = [];
                         color: Colors.grey[100],
                         borderRadius: BorderRadius.circular(10)),
                     child: const Text('Belum ada foto',
-                        style: TextStyle(
-                            color: Colors.grey, fontSize: 12)),
+                        style:
+                            TextStyle(color: Colors.grey, fontSize: 12)),
                   ),
           ],
         ),
@@ -357,8 +312,7 @@ List comments = [];
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (issue == null) {
       return Scaffold(
@@ -369,6 +323,8 @@ List comments = [];
 
     final status = issue!['status'] as String?;
     final isAssignedToMe = issue!['assigned_to'] == _uid;
+    final resolutionNotes = issue?['resolution_notes']?.toString() ?? '';
+    final hasResolution = resolutionNotes.isNotEmpty;
 
     return Scaffold(
       backgroundColor: const Color(0xfff4f4f4),
@@ -383,7 +339,7 @@ List comments = [];
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Card judul + status + prioritas
+              // Judul + prioritas + status
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -406,8 +362,7 @@ List comments = [];
                           child: Text(
                             issue!['title'] ?? '-',
                             style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold),
+                                fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                         ),
                         Container(
@@ -418,8 +373,7 @@ List comments = [];
                                 .withOpacity(0.1),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color:
-                                    _priorityColor(issue!['priority'])),
+                                color: _priorityColor(issue!['priority'])),
                           ),
                           child: Text(
                             issue!['priority'] ?? '-',
@@ -439,8 +393,7 @@ List comments = [];
                       decoration: BoxDecoration(
                         color: _statusColor(status).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
-                        border:
-                            Border.all(color: _statusColor(status)),
+                        border: Border.all(color: _statusColor(status)),
                       ),
                       child: Text(
                         status ?? '-',
@@ -457,7 +410,7 @@ List comments = [];
 
               const SizedBox(height: 14),
 
-              // Card info detail
+              // Info detail
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
@@ -485,9 +438,7 @@ List comments = [];
                       Icons.calendar_today_outlined,
                       'Dilaporkan',
                       issue!['created_at'] != null
-                          ? issue!['created_at']
-                              .toString()
-                              .substring(0, 10)
+                          ? issue!['created_at'].toString().substring(0, 10)
                           : '-',
                     ),
                   ],
@@ -496,6 +447,7 @@ List comments = [];
 
               const SizedBox(height: 14),
 
+              // Foto
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
@@ -517,8 +469,7 @@ List comments = [];
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _fotoCard(
-                            'Sebelum', issue!['photo_url']?.toString()),
+                        _fotoCard('Sebelum', issue!['photo_url']?.toString()),
                         const SizedBox(width: 10),
                         _fotoCard('Sesudah',
                             issue!['completion_photo_url']?.toString()),
@@ -527,124 +478,166 @@ List comments = [];
                   ],
                 ),
               ),
-              SizedBox(height: 25),
-Text(
-  'Komentar' , 
-  style: TextStyle(
-    fontWeight: FontWeight.w600,
-    fontSize: 25,
-  ),
-),
-SizedBox(height: 20),
-  ...comments.map((c) {
-  final bool isMine = c['user_id']?.toString() == _uid;
-  final userMap = c['users'] as Map<String, dynamic>?;
-  final namaUser = userMap?['name'] ?? 'Unknown';
-  final waktu = c['created_at']?.toString().substring(0, 16) ?? '';
 
-  return Align(
-    alignment:
-        isMine ? Alignment.centerRight : Alignment.centerLeft,
-    child: GestureDetector(
-      onLongPress: isMine
-          ? () => hapusKomentar(c['id'].toString())
-          : null,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.75,
-        ),
-        decoration: BoxDecoration(
-          color: isMine
-              ? Colors.blue.shade100
-              : Colors.grey.shade200,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(12),
-            topRight: const Radius.circular(12),
-            bottomLeft:
-                isMine ? const Radius.circular(12) : Radius.zero,
-            bottomRight:
-                isMine ? Radius.zero : const Radius.circular(12),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: isMine
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
-          children: [
-            Text(
-              namaUser,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isMine
-                    ? Colors.blue.shade800
-                    : Colors.grey.shade700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              c['comment']?.toString() ?? '',
-              style: const TextStyle(fontSize: 15),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              waktu,
-              style: const TextStyle(
-                  fontSize: 11, color: Colors.grey),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}),
-                Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: commentController,
-                    maxLines: null,
-                    textInputAction: TextInputAction.send,
-                    onSubmitted: (_) => kirimKomentar(),
-                    decoration: InputDecoration(
-                      hintText: 'Tulis komentar...',
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide(color: Colors.grey.shade200)
+              const SizedBox(height: 14),
+
+              // ── Langkah Perbaikan ──────────────────────────────────
+              if (hasResolution) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withOpacity(0.06),
+                          blurRadius: 8)
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Langkah Perbaikan',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w600, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Text(resolutionNotes,
+                            style: const TextStyle(fontSize: 14)),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+                      const SizedBox(height: 25),
+
+              // Komentar
+              const Text('Komentar',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 25)),
+              const SizedBox(height: 20),
+              ...comments.map((c) {
+                final bool isMine = c['user_id']?.toString() == _uid;
+                final userMap = c['users'] as Map<String, dynamic>?;
+                final namaUser = userMap?['name'] ?? 'Unknown';
+                final waktu =
+                    c['created_at']?.toString().substring(0, 16) ?? '';
+
+                return Align(
+                  alignment: isMine
+                      ? Alignment.centerRight
+                      : Alignment.centerLeft,
+                  child: GestureDetector(
+                    onLongPress: isMine
+                        ? () => hapusKomentar(c['id'].toString())
+                        : null,
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      constraints: BoxConstraints(
+                          maxWidth:
+                              MediaQuery.of(context).size.width * 0.75),
+                      decoration: BoxDecoration(
+                        color: isMine
+                            ? Colors.blue.shade100
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(12),
+                          topRight: const Radius.circular(12),
+                          bottomLeft: isMine
+                              ? const Radius.circular(12)
+                              : Radius.zero,
+                          bottomRight: isMine
+                              ? Radius.zero
+                              : const Radius.circular(12),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: isMine
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            namaUser,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isMine
+                                  ? Colors.blue.shade800
+                                  : Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(c['comment']?.toString() ?? '',
+                              style: const TextStyle(fontSize: 15)),
+                          const SizedBox(height: 4),
+                          Text(waktu,
+                              style: const TextStyle(
+                                  fontSize: 11, color: Colors.grey)),
+                        ],
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                isSendingComment
-                    ? const SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2))
-                    : Material(
-                        color: Colors.blue,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          onTap: kirimKomentar,
-                          customBorder: const CircleBorder(),
-                          child: const Padding(
-                            padding: EdgeInsets.all(12),
-                            child: Icon(Icons.send,
-                                color: Colors.white, size: 20),
-                          ),
+                );
+              }),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: commentController,
+                      maxLines: null,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => kirimKomentar(),
+                      decoration: InputDecoration(
+                        hintText: 'Tulis komentar...',
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade200),
                         ),
                       ),
-              ],
-            ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  isSendingComment
+                      ? const SizedBox(
+                          width: 44,
+                          height: 44,
+                          child:
+                              CircularProgressIndicator(strokeWidth: 2))
+                      : Material(
+                          color: Colors.blue,
+                          shape: const CircleBorder(),
+                          child: InkWell(
+                            onTap: kirimKomentar,
+                            customBorder: const CircleBorder(),
+                            child: const Padding(
+                              padding: EdgeInsets.all(12),
+                              child: Icon(Icons.send,
+                                  color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ),
+                ],
+              ),
               const SizedBox(height: 24),
 
+              // Tombol aksi
               if (isAssignedToMe && status == 'Assigned')
                 Row(
                   children: [
@@ -657,21 +650,18 @@ SizedBox(height: 20),
                             terimaTugas();
                             await showNotif(
                                 title: 'Laporan Sedang Dikerjakan',
-                                body:
-                                    'Laporan sedang dikerjakan oleh teknisi');
+                                body: 'Laporan sedang dikerjakan oleh teknisi');
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue[700],
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text(
-                            'Terima Tugas',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15),
-                          ),
+                          child: const Text('Terima Tugas',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15)),
                         ),
                       ),
                     ),
@@ -689,38 +679,15 @@ SizedBox(height: 20),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Text(
-                            'Tolak Tugas',
-                            style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15),
-                          ),
+                          child: const Text('Tolak Tugas',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15)),
                         ),
                       ),
                     ),
                   ],
-                ),
-
-              if (isAssignedToMe && status == 'In Progress')
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: selesaikanTugas,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: const Text(
-                      'Tandai Selesai',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16),
-                    ),
-                  ),
                 ),
 
               if (status == 'Resolved')
@@ -737,12 +704,10 @@ SizedBox(height: 20),
                     children: [
                       Icon(Icons.check_circle, color: Colors.green),
                       SizedBox(width: 8),
-                      Text(
-                        'Tugas Telah Diselesaikan',
-                        style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold),
-                      ),
+                      Text('Tugas Telah Diselesaikan',
+                          style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),

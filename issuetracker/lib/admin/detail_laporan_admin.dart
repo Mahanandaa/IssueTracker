@@ -19,6 +19,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   bool isSendingComment = false;
   Map<String, dynamic>? issue;
   List<Map<String, dynamic>> comments = [];
+  List<Map<String, dynamic>> spareParts = [];
 
   String get _uid => supabase.auth.currentUser?.id ?? '';
 
@@ -27,6 +28,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     super.initState();
     fetchIssueDetail();
     fetchComments();
+    fetchSpareParts();
   }
 
   @override
@@ -68,6 +70,23 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
       }
     } catch (e) {
       debugPrint('fetchComments error: $e');
+    }
+  }
+
+  Future<void> fetchSpareParts() async {
+    try {
+      final response = await supabase
+          .from('spare_parts')
+          .select('part_name, quantity, notes')
+          .eq('issue_id', widget.issueId)
+          .order('created_at', ascending: true);
+      if (mounted) {
+        setState(() {
+          spareParts = List<Map<String, dynamic>>.from(response);
+        });
+      }
+    } catch (e) {
+      debugPrint('fetchSpareParts error: $e');
     }
   }
 
@@ -125,14 +144,12 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
         content: const Text('Yakin ingin menolak laporan ini?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Batal'),
-          ),
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Batal')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Tolak',
-                style: TextStyle(color: Colors.red)),
-          ),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Tolak',
+                  style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -163,7 +180,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   String _formatTanggal(String? raw) {
     if (raw == null) return '';
     try {
-      return raw.substring(0,16).replaceAll('T', ' ');
+      return raw.substring(0, 16).replaceAll('T', ' ');
     } catch (_) {
       return raw;
     }
@@ -172,17 +189,20 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     if (issue == null) {
-      return const Scaffold(
-          body: Center(child: Text("Data tidak ditemukan")));
+      return const Scaffold(body: Center(child: Text("Data tidak ditemukan")));
     }
 
     final String currentStatus = issue?['status']?.toString() ?? '';
     final bool isRejected = currentStatus == 'Rejected';
-    final bool isAlreadyAssigned = currentStatus == 'Assigned' || currentStatus == 'In Progress' || currentStatus == 'Resolved';
+    final bool isAlreadyAssigned = currentStatus == 'Assigned' ||
+        currentStatus == 'In Progress' ||
+        currentStatus == 'Resolved';
+
+    final resolutionNotes = issue?['resolution_notes']?.toString() ?? '';
+    final hasResolution = resolutionNotes.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -194,38 +214,30 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Judul
             Text(issue?['title']?.toString() ?? '',
                 style: const TextStyle(
                     fontWeight: FontWeight.w600, fontSize: 24)),
             const SizedBox(height: 20),
 
             Row(children: [
-              _infoBox('Kategori',
-                  issue?['category']?.toString() ?? 'Not Found'),
+              _infoBox('Kategori', issue?['category']?.toString() ?? 'Not Found'),
               const SizedBox(width: 12),
-              _infoBox('Lokasi',
-                  issue?['location']?.toString() ?? 'Not Found'),
+              _infoBox('Lokasi', issue?['location']?.toString() ?? 'Not Found'),
             ]),
             const SizedBox(height: 14),
 
             Row(children: [
-              _infoBox(
-                  'Tanggal',
-                  _formatTanggal(issue?['created_at']
-                      ?.toString()
-                      .substring(0, 10))),
+              _infoBox('Tanggal',
+                  _formatTanggal(issue?['created_at']?.toString().substring(0, 10))),
               const SizedBox(width: 12),
-              _infoBox('Status', currentStatus.isNotEmpty
-                  ? currentStatus
-                  : 'Not Found'),
+              _infoBox('Status',
+                  currentStatus.isNotEmpty ? currentStatus : 'Not Found'),
             ]),
             const SizedBox(height: 20),
 
             // Deskripsi
             const Text('Deskripsi',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 20)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
             const SizedBox(height: 10),
             Container(
               width: double.infinity,
@@ -234,22 +246,22 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
               ),
-              child: Text(
-                  issue?['description']?.toString() ?? 'Not Found',
+              child: Text(issue?['description']?.toString() ?? 'Not Found',
                   style: const TextStyle(fontSize: 15)),
             ),
             const SizedBox(height: 20),
 
+            // Foto
             const Text('Foto Pengerjaan',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 18)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _fotoCard('Sebelum\n(Pelapor)', issue?['photo_url']?.toString()),
                 const SizedBox(width: 12),
-                _fotoCard('Sesudah\n(Teknisi)', issue?['completion_photo_url']?.toString()),
+                _fotoCard('Sesudah\n(Teknisi)',
+                    issue?['completion_photo_url']?.toString()),
               ],
             ),
             const SizedBox(height: 20),
@@ -258,11 +270,10 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             Row(
               children: [
                 const Text('Prioritas: ',
-                    style: TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 15)),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: {
                           'Urgent': Colors.red,
@@ -276,15 +287,32 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                   child: Text(
                     issue?['priority']?.toString() ?? '-',
                     style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600),
+                        color: Colors.white, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 20),
 
-            // FIX 7: Banner status jika sudah Rejected
+            // ── Langkah Perbaikan ──────────────────────────────────
+            if (hasResolution) ...[
+              const Text('Langkah Perbaikan',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+              const SizedBox(height: 8),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Text(resolutionNotes,
+                    style: const TextStyle(fontSize: 14)),
+              ),
+              const SizedBox(height: 20),
+            ],
+            // Banner rejected
             if (isRejected)
               Container(
                 padding: const EdgeInsets.all(14),
@@ -297,11 +325,9 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                   children: [
                     Icon(Icons.cancel_outlined, color: Colors.red),
                     SizedBox(width: 10),
-                    Text(
-                      'Laporan ini telah ditolak',
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.w600),
-                    ),
+                    Text('Laporan ini telah ditolak',
+                        style: TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
@@ -310,77 +336,69 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
 
             // Komentar
             const Text('Komentar',
-                style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 18)),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
             const SizedBox(height: 10),
 
             ...comments.map((c) {
-              
               final bool isMine = c['user_id']?.toString() == _uid;
-              final userMap =
-                  c['users'] as Map<String, dynamic>?;
+              final userMap = c['users'] as Map<String, dynamic>?;
               final namaUser = userMap?['name'] ?? 'Unknown';
-              final waktu =
-                  _formatTanggal(c['created_at']?.toString());
+              final waktu = _formatTanggal(c['created_at']?.toString());
 
               return Align(
-                alignment: isMine
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
+                alignment:
+                    isMine ? Alignment.centerRight : Alignment.centerLeft,
                 child: GestureDetector(
                   onLongPress: isMine
                       ? () => hapusKomentar(c['id'].toString())
                       : null,
                   child: Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  constraints: BoxConstraints(
-                    maxWidth:
-                        MediaQuery.of(context).size.width * 0.75,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isMine
-                        ? Colors.blue.shade100
-                        : Colors.grey.shade200,
-                    borderRadius: BorderRadius.only(
-                      topLeft: const Radius.circular(12),
-                      topRight: const Radius.circular(12),
-                      bottomLeft: isMine
-                          ? const Radius.circular(12)
-                          : Radius.zero,
-                      bottomRight: isMine
-                          ? Radius.zero
-                          : const Radius.circular(12),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.75),
+                    decoration: BoxDecoration(
+                      color: isMine
+                          ? Colors.blue.shade100
+                          : Colors.grey.shade200,
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(12),
+                        topRight: const Radius.circular(12),
+                        bottomLeft: isMine
+                            ? const Radius.circular(12)
+                            : Radius.zero,
+                        bottomRight: isMine
+                            ? Radius.zero
+                            : const Radius.circular(12),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: isMine
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      children: [
+                        Text(namaUser,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isMine
+                                  ? Colors.blue.shade800
+                                  : Colors.grey.shade700,
+                            )),
+                        const SizedBox(height: 4),
+                        Text(c['comment']?.toString() ?? '',
+                            style: const TextStyle(fontSize: 15)),
+                        const SizedBox(height: 4),
+                        Text(waktu,
+                            style: const TextStyle(
+                                fontSize: 11, color: Colors.grey)),
+                      ],
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: isMine
-                        ? CrossAxisAlignment.end
-                        : CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        namaUser,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isMine
-                              ? Colors.blue.shade800
-                              : Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(c['comment']?.toString() ?? '',
-                          style: const TextStyle(fontSize: 15)),
-                      const SizedBox(height: 4),
-                      Text(waktu,
-                          style: const TextStyle(
-                              fontSize: 11, color: Colors.grey)),
-                    ],
-                  ),
-                ),
                 ),
               );
             }),
+
             const SizedBox(height: 12),
             Row(
               children: [
@@ -399,7 +417,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
-                    ),
+                      ),
                     ),
                   ),
                 ),
@@ -408,8 +426,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     ? const SizedBox(
                         width: 44,
                         height: 44,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2))
+                        child: CircularProgressIndicator(strokeWidth: 2))
                     : Material(
                         color: Colors.blue,
                         shape: const CircleBorder(),
@@ -440,10 +457,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                             PanggilTeknisi(issueId: widget.issueId),
                       ),
                     );
-                    // Refresh detail setelah kembali dari panggil teknisi
-                    if (result == true) {
-                      fetchIssueDetail();
-                    }
+                    if (result == true) fetchIssueDetail();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
@@ -477,7 +491,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
               ),
             ],
 
-            // FIX 7: Tampilkan info jika sudah assigned
             if (isAlreadyAssigned)
               Container(
                 padding: const EdgeInsets.all(14),
@@ -493,8 +506,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     Text(
                       'Laporan sedang $currentStatus',
                       style: const TextStyle(
-                          color: Colors.blue,
-                          fontWeight: FontWeight.w600),
+                          color: Colors.blue, fontWeight: FontWeight.w600),
                     ),
                   ],
                 ),

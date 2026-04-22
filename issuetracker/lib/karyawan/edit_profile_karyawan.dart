@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -32,7 +33,6 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
     email = TextEditingController(text: widget.users['email']);
     nomor = TextEditingController(text: widget.users['phone']);
     password = TextEditingController();
-    // FIX 4: Load foto yang sudah ada
     _currentPhotoUrl = widget.users['photo_url'] as String?;
   }
 
@@ -76,7 +76,6 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
     }
   }
 
-  // FIX 4: Upload foto dan kembalikan URL publik
   Future<String?> _uploadPhoto(String userId) async {
     if (_newPhoto == null) return _currentPhotoUrl;
     final filename = 'avatar_$userId.jpg';
@@ -93,7 +92,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Gagal upload foto: $e')));
+            SnackBar(content: Text('Gagal upload foto')));
       }
       return _currentPhotoUrl;
     }
@@ -105,7 +104,6 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
 
     setState(() => _isLoading = true);
     try {
-      // FIX 4: Upload foto & dapatkan URL
       final photoUrl = await _uploadPhoto(user.id);
 
       await supabase.auth.updateUser(UserAttributes(
@@ -117,7 +115,6 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
         },
       ));
 
-      // FIX 4: Simpan photo_url ke database
         await supabase.from('users').update({
         'name': nama.text.trim(),
         'email': email.text.trim(),
@@ -141,10 +138,14 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
   }
 
   Widget _inputField(TextEditingController controller, String hint,
-      {bool obscure = false}) {
+      {bool obscure = false,
+      TextInputType keyboardType = TextInputType.text,
+      List<TextInputFormatter>? inputFormatters}) {
     return TextField(
       controller: controller,
       obscureText: obscure,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -169,7 +170,6 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
           children: [
             const SizedBox(height: 12),
 
-            // FIX 4: Avatar dengan tombol ganti foto
             Center(
               child: Stack(
                 children: [
@@ -228,7 +228,12 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
             const Text("No HP",
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            _inputField(nomor, "Masukan nomor baru"),
+            _inputField(
+              nomor,
+              "Masukan nomor baru",
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
 
             const SizedBox(height: 18),
             const Text("Password Baru",

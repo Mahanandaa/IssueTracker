@@ -331,7 +331,7 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                                         : issue['priority'] == 'Urgent'
                                             ? const Color.fromARGB(
                                                 255, 243, 77, 65)
-                                            : Colors.grey[700],
+                                            : Colors.grey[600],
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Column(

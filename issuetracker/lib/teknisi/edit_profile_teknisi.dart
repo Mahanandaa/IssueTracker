@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'setting_profile_teknisi.dart';
@@ -149,10 +150,14 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
   }
 
   Widget _inputField(TextEditingController controller, String hint,
-      {bool isPassword = false}) {
+      {bool isPassword = false,
+      TextInputType keyboardType = TextInputType.text,
+      List<TextInputFormatter>? inputFormatters}) {
     return TextField(
       controller: controller,
       obscureText: isPassword,
+      keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
@@ -237,7 +242,12 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
             const Text("No HP",
                 style: TextStyle(fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            _inputField(nomor, "Masukan nomor baru"),
+            _inputField(
+              nomor,
+              "Masukan nomor baru",
+              keyboardType: TextInputType.phone,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            ),
 
             const SizedBox(height: 18),
             const Text("Password Baru",

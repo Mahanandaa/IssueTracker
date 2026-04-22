@@ -63,6 +63,8 @@ class _NotifikasiKaryawanState extends State<NotifikasiKaryawan> {
     }
   }
 
+
+
   IconData _iconData(String? type) {
     switch (type) {
       case 'issue_resolved':
@@ -98,8 +100,7 @@ class _NotifikasiKaryawanState extends State<NotifikasiKaryawan> {
       ),
       body: SafeArea(
         child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : notifications.isEmpty
+            ? const Center(child: CircularProgressIndicator()): notifications.isEmpty
                 ? const Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
