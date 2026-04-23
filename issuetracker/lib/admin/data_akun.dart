@@ -37,7 +37,6 @@ class _DataAkunState extends State<DataAkun> {
       final karyawan = users.where((u) => u['role'] == 'karyawan').toList();
       final teknisi = users.where((u) => u['role'] == 'teknisi').toList();
 
-      // Hitung rating untuk setiap teknisi: total rating / jumlah tugas selesai
       final Map<String, double> ratings = {};
       for (final t in teknisi) {
         final uid = t['id'] as String;

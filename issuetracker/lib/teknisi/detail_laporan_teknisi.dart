@@ -636,8 +636,6 @@ class _DetailLaporanTeknisiState extends State<DetailLaporanTeknisi> {
                 ],
               ),
               const SizedBox(height: 24),
-
-              // Tombol aksi
               if (isAssignedToMe && status == 'Assigned')
                 Row(
                   children: [

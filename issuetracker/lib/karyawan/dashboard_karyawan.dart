@@ -233,7 +233,10 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
+      backgroundColor: Colors.blue,
+      icon: const Icon(Icons.add, color: Colors.white,),
+      label: const Text("Tambah Laporan", style: TextStyle(color: Colors.white),),
         onPressed: () async {
           await Navigator.push(
             context,
@@ -241,7 +244,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
           );
           fetchIssues();
         },
-        child: const Icon(Icons.add),
+        
       ),
       body: SafeArea(
         child: Column(

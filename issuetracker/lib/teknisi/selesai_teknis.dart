@@ -94,7 +94,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
         .update({'is_available': true}).eq('id', userId);
   }
 
-  // Ambil assigned_to SEBELUM update issue (karena setelah update mungkin null)
   Future<void> _kirimNotifikasi(String? assignedTo) async {
     try {
       final issue = await supabase
@@ -121,7 +120,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
         });
       }
 
-      // Gunakan assignedTo yang sudah diambil sebelumnya
       if (assignedTo != null) {
         notifList.add({
           'user_id': assignedTo,
@@ -150,7 +148,6 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
     }
   }
 
-  // Upload foto dan kembalikan URL
   Future<String?> _uploadFotoSesudah() async {
     if (imageAfter == null) return null;
 
@@ -349,16 +346,12 @@ class _SelesaiTeknisState extends State<SelesaiTeknis> {
 
                         final photoUrl = await _uploadFotoSesudah();
 
-                        // 2. Update issue dengan URL foto yang sudah ada
                         await _selesai(photoUrl);
 
-                        // 3. Update status teknisi
                         await _updateStatus();
 
-                        // 4. Kirim notifikasi dengan assignedTo yang sudah diambil
                         await _kirimNotifikasi(assignedTo);
 
-                        // 5. Tampilkan notif lokal
                         await _showLocalNotif(
                           title: 'Tugas Selesai!',
                           body: 'Pekerjaan berhasil diselesaikan',

@@ -88,7 +88,7 @@ class _DataAdminState extends State<DataAdmin> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(12),
-          child: Column(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
    GestureDetector(
@@ -147,14 +147,21 @@ GestureDetector(
      ],
     ),
   ),
-),          
+),
+
+
+
+                  
       GestureDetector(
                 onTap: () {
                   
                   Navigator.push(context, MaterialPageRoute(builder: (context) => KasusDitolak()));
                 },
-    child: Container(           
-   margin: const EdgeInsets.only(bottom: 12),
+                
+    child: Row(
+      children: [
+        Container(
+ margin: const EdgeInsets.only(bottom: 12),
   padding: const EdgeInsets.all(16),
   decoration: BoxDecoration(
            borderRadius: BorderRadius.circular(12),
@@ -175,8 +182,8 @@ GestureDetector(
                   ],
                 ),
               ),
-              ),
-            
+
+
              GestureDetector(
                 onTap: () {
                   
@@ -205,11 +212,18 @@ GestureDetector(
                 ),
               ),
               ),
+      ],
+    ),
+              ),
             
-            ],
+            
+            
+            ]
           ),
         ),
-      ),
+      )      
     );
+                 
+  
   }
 }

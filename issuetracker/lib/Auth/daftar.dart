@@ -126,8 +126,13 @@ class _DaftarState extends State<Daftar> {
 
                     const SizedBox(height: 14),
                     _buildLabel('Nomor Telepon'),
-                    _buildTextField(_nomorController, '08xxxxxxxxxx',
+
+                    _buildTextField(
+                     
+                      _nomorController, '08xxxxxxxxxx',
+                     
                         keyboardType: TextInputType.phone),
+                        
 
                     const SizedBox(height: 14),
                     _buildLabel('Password'),
@@ -200,21 +205,27 @@ class _DaftarState extends State<Daftar> {
       child: Text(text, style: const TextStyle(fontWeight: FontWeight.w500)),
     );
   }
+Widget _buildTextField(
+  TextEditingController controller,
+  String hint, {
+  TextInputType keyboardType = TextInputType.text,
+}) {
+  return TextFormField(
+    controller: controller,
+    keyboardType: keyboardType,
+    validator: (value) {
+      if (value == null || value.length < 13) {
+        return "Nomor Telepon Harus 13 angka";
+      }
+      return null;
+    },
+    decoration: InputDecoration(
+      hintText: hint,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+    ),
+  );
+}
 
-  Widget _buildTextField(
-    TextEditingController controller,
-    String hint, {
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
-  }
 
   Widget _buildPasswordField({
     required TextEditingController controller,
