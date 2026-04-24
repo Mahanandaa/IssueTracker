@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:issuetracker/Auth/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const kPrimary = Color(0xFF2563EB);
+const kBorder = Color(0xFFE5E7EB);
+const kText = Color(0xFF111827);
+const kError = Colors.red;
+
 class LupaPassword extends StatefulWidget {
   const LupaPassword({super.key});
 
@@ -11,92 +16,489 @@ class LupaPassword extends StatefulWidget {
 
 class _LupaPasswordState extends State<LupaPassword> {
   final _email = TextEditingController();
-  final _otp = TextEditingController();
-  final _newPass = TextEditingController();
-  final _confirmPass = TextEditingController();
-
-  bool _isLoading = false;
-  bool _isOtpSent = false;
-  bool _ob1 = true;
-  bool _ob2 = true;
-
   final supabase = Supabase.instance.client;
+  bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _email.dispose();
-    _otp.dispose();
-    _newPass.dispose();
-    _confirmPass.dispose();
-    super.dispose();
+  void _snack(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? kError : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
   }
 
-  void snack(String msg) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  Future<void> kirimOtp() async {
-    if (_email.text.isEmpty) {
-      snack('Email wajib diisi');
+  Future<void> _kirimOtp() async {
+    if (_email.text.trim().isEmpty) {
+      _snack('Email wajib diisi', error: true);
       return;
     }
 
     setState(() => _isLoading = true);
-
     try {
-      // Gunakan signInWithOtp agar {{ .Token }} muncul di email template Magic Link
       await supabase.auth.signInWithOtp(
         email: _email.text.trim(),
-        shouldCreateUser: false, // jangan buat user baru jika tidak terdaftar
+        shouldCreateUser: false,
       );
-      setState(() => _isOtpSent = true);
-      snack('Kode OTP dikirim ke email');
-    } catch (e) {
-      snack('Gagal kirim OTP: $e');
-    }
 
-    if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => _OtpVerifyPage(email: _email.text.trim()),
+          ),
+        );
+      }
+    } catch (e) {
+      _snack('Error: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  Future<void> verifikasiDanGanti() async {
-    if (_otp.text.isEmpty ||
-        _newPass.text.isEmpty ||
-        _confirmPass.text.isEmpty) {
-      snack('Lengkapi semua field');
-      return;
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blue[50],
+      appBar: AppBar(
+        title: const Text(
+          'Lupa Password',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.blue[900],
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.lock_reset,
+                size: 80,
+                color: Colors.blue[600],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Lupa Password?',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  color: Colors.blue[900],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Masukkan email Anda untuk reset password',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(24),
+                width: 362,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 24,
+                      offset: const Offset(0, 11),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Email',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _email,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        hintText: 'Masukkan email',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        contentPadding: const EdgeInsets.all(14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+                        ),
+                        prefixIcon: Icon(Icons.email_outlined, color: Colors.grey[500]),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Center(
+                      child: SizedBox(
+                        width: 220,
+                        height: 45,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: _isLoading ? null : _kirimOtp,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Kirim OTP',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blue[600],
+                        ),
+                        child: const Text(
+                          'Kembali ke Login',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
-    if (_newPass.text != _confirmPass.text) {
-      snack('Password tidak sama');
+class _OtpVerifyPage extends StatefulWidget {
+  final String email;
+  const _OtpVerifyPage({required this.email});
+
+  @override
+  State<_OtpVerifyPage> createState() => _OtpVerifyPageState();
+}
+
+class _OtpVerifyPageState extends State<_OtpVerifyPage> {
+  final _otp = TextEditingController();
+  final supabase = Supabase.instance.client;
+  bool _isLoading = false;
+  bool _isResending = false;
+
+  Future<void> _resendOtp() async {
+    
+    setState(() => _isResending = true);
+    
+    try {
+      await supabase.auth.signInWithOtp(
+        email: widget.email,
+        shouldCreateUser: false,
+      );
+      _snack('OTP telah dikirim ulang');
+    } catch (e) {
+      _snack('Gagal mengirim ulang OTP', error: true);
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
+  }
+
+  void _snack(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? kError : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Future<void> _verifikasiOtp() async {
+    if (_otp.text.isEmpty) {
+      _snack('OTP wajib diisi', error: true);
       return;
     }
 
     setState(() => _isLoading = true);
-
     try {
-      // Verifikasi OTP dengan type magiclink (sesuai signInWithOtp)
       final res = await supabase.auth.verifyOTP(
         type: OtpType.magiclink,
-        email: _email.text.trim(),
+        email: widget.email,
         token: _otp.text.trim(),
       );
 
       if (res.session == null) {
-        snack('OTP salah atau sudah expired');
-        if (mounted) setState(() => _isLoading = false);
+        _snack('OTP salah', error: true);
         return;
       }
 
-      // Update password setelah sesi aktif
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const _ResetPasswordPage()),
+        );
+      }
+    } catch (e) {
+      _snack('Error: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.blue[50],
+      appBar: AppBar(
+        title: const Text(
+          'Verifikasi OTP',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.blue[900],
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.verified_user,
+                size: 80,
+                color: Colors.blue[600],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Verifikasi Kode OTP',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  color: Colors.blue[900],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Kode verifikasi telah dikirim ke',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              Text(
+                widget.email,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.blue[600],
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(24),
+                width: 362,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 24,
+                      offset: const Offset(0, 11),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Kode OTP',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _otp,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        letterSpacing: 8,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '000000',
+                        hintStyle: TextStyle(
+                          color: Colors.grey[400],
+                          letterSpacing: 8,
+                        ),
+                        contentPadding: const EdgeInsets.all(14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: TextButton(
+                        onPressed: _isResending ? null : _resendOtp,
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.blue[600],
+                        ),
+                        child: _isResending
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                'Kirim Ulang OTP',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: SizedBox(
+                        width: 220,
+                        height: 45,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: _isLoading ? null : _verifikasiOtp,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Verifikasi',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ResetPasswordPage extends StatefulWidget {
+  const _ResetPasswordPage();
+
+  @override
+  State<_ResetPasswordPage> createState() => _ResetPasswordPageState();
+}
+
+class _ResetPasswordPageState extends State<_ResetPasswordPage> {
+  final _newPass = TextEditingController();
+  final _confirmPass = TextEditingController();
+  final supabase = Supabase.instance.client;
+  bool _isLoading = false;
+  bool _obscureNewPass = true;
+  bool _obscureConfirmPass = true;
+
+  void _snack(String msg, {bool error = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: error ? kError : Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
+  Future<void> _simpan() async {
+    if (_newPass.text.isEmpty || _confirmPass.text.isEmpty) {
+      _snack('Isi semua field', error: true);
+      return;
+    }
+
+    if (_newPass.text != _confirmPass.text) {
+      _snack('Password tidak cocok', error: true);
+      return;
+    }
+
+    if (_newPass.text.length < 6) {
+      _snack('Password minimal 6 karakter', error: true);
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
       await supabase.auth.updateUser(
-        UserAttributes(password: _newPass.text.trim()),
+        UserAttributes(password: _newPass.text),
       );
 
-      // Sign out agar user login ulang dengan password baru
       await supabase.auth.signOut();
-
-      snack('Password berhasil diubah, silakan login kembali');
 
       if (mounted) {
         Navigator.pushAndRemoveUntil(
@@ -106,149 +508,183 @@ class _LupaPasswordState extends State<LupaPassword> {
         );
       }
     } catch (e) {
-      snack('Gagal proses: $e');
+      _snack('Error: $e', error: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[100],
+      backgroundColor: Colors.blue[50],
+      appBar: AppBar(
+        title: const Text(
+          'Reset Password',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        foregroundColor: Colors.blue[900],
+      ),
       body: Center(
         child: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(22),
-            width: 362,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  'Reset Password',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.password,
+                size: 80,
+                color: Colors.blue[600],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Buat Password Baru',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                  color: Colors.blue[900],
                 ),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !_isOtpSent,
-                  decoration: InputDecoration(
-                    hintText: 'Email',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                  ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Buat password baru yang kuat dan aman',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
                 ),
-                const SizedBox(height: 16),
-                if (!_isOtpSent)
-                  SizedBox(
-                    width: 220,
-                    height: 44,
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.blue[600],
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(24),
+                width: 362,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.1),
+                      blurRadius: 24,
+                      offset: const Offset(0, 11),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Password Baru',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
                       ),
-                      onPressed: _isLoading ? null : kirimOtp,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2))
-                          : const Text(
-                              'Kirim OTP',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _newPass,
+                      obscureText: _obscureNewPass,
+                      decoration: InputDecoration(
+                        hintText: 'Masukkan password baru',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        contentPadding: const EdgeInsets.all(14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+                        ),
+                        prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[500]),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureNewPass ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey[500],
+                          ),
+                          onPressed: () => setState(() => _obscureNewPass = !_obscureNewPass),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Konfirmasi Password',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _confirmPass,
+                      obscureText: _obscureConfirmPass,
+                      decoration: InputDecoration(
+                        hintText: 'Konfirmasi password baru',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        contentPadding: const EdgeInsets.all(14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.blue[600]!, width: 2),
+                        ),
+                        prefixIcon: Icon(Icons.lock_outline, color: Colors.grey[500]),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscureConfirmPass ? Icons.visibility_off : Icons.visibility,
+                            color: Colors.grey[500],
+                          ),
+                          onPressed: () => setState(() => _obscureConfirmPass = !_obscureConfirmPass),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Center(
+                      child: SizedBox(
+                        width: 220,
+                        height: 45,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue[600],
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                    ),
-                  ),
-                if (_isOtpSent) ...[
-                  TextField(
-                    controller: _otp,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      hintText: 'Kode OTP dari email',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _newPass,
-                    obscureText: _ob1,
-                    decoration: InputDecoration(
-                      hintText: 'Password Baru',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                            _ob1 ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _ob1 = !_ob1),
+                            elevation: 0,
+                          ),
+                          onPressed: _isLoading ? null : _simpan,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Simpan Password',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: _confirmPass,
-                    obscureText: _ob2,
-                    decoration: InputDecoration(
-                      hintText: 'Konfirmasi Password',
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                            _ob2 ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _ob2 = !_ob2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () => setState(() {
-                              _isOtpSent = false;
-                              _otp.clear();
-                            }),
-                    child: Text(
-                      'Kirim ulang OTP',
-                      style: TextStyle(color: Colors.blue[400], fontSize: 13),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: 220,
-                    height: 44,
-                    child: TextButton(
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.blue[600],
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                      ),
-                      onPressed: _isLoading ? null : verifikasiDanGanti,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2))
-                          : const Text(
-                              'Simpan',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600),
-                            ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),

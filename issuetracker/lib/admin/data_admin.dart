@@ -15,14 +15,14 @@ class DataAdmin extends StatefulWidget {
 }
 
 class _DataAdminState extends State<DataAdmin> {
-  int _currentIndex = 0;
+  int _currentIndex = 2;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text("Dashboard"),
+        title: const Text("Data Admin "),
         backgroundColor: Colors.grey[200],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -88,142 +88,166 @@ class _DataAdminState extends State<DataAdmin> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(12),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Column(
             children: [
-   GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DataAkun()),
-    );
-  },
-  child: Container(
-    margin: const EdgeInsets.only(bottom: 12),
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      color: Colors.grey[100],
-      boxShadow: [
-        BoxShadow(
-          color: Color(0x19000000),
-          blurRadius: 3,
-          offset: Offset(0, 3),
-        ),
-      ],
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: const [
-        Text('Data Akun'),
-        Icon(Icons.send, color: Colors.blue),
-      ],
-    ),
-  ),
-),
-
-GestureDetector(
-  onTap: () {                 
-   Navigator.push(context, MaterialPageRoute(builder: (context) => TidakSelesai()));
-  },
-      child: Container(           
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(12),
-      color: Colors.grey[100], boxShadow: [
-      BoxShadow(
-        color: Color(0x19000000),
-        blurRadius: 3,
-        offset: Offset(0, 3),
-        ),
-     ],
-                ),
-     child: Row(
-     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-     children: const [
-     Text('Tidak Selesai'),
-     Icon(Icons.send, color: Colors.blue),             
-     ],
-    ),
-  ),
-),
 
 
-
-                  
-      GestureDetector(
-                onTap: () {
-                  
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => KasusDitolak()));
-                },
-                
-    child: Row(
-      children: [
-        Container(
- margin: const EdgeInsets.only(bottom: 12),
-  padding: const EdgeInsets.all(16),
-  decoration: BoxDecoration(
-           borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[100], boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x19000000),
-                                      blurRadius: 3,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('Kasus Ditolak'),
-                    Icon(Icons.send, color: Colors.blue),
-                    
-                  ],
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const DataAkun()),
+                        );
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12, right: 6),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[100],
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x19000000),
+                              blurRadius: 3,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                          
+                            Icon(Icons.people, size: 40, color: Colors.blue[600]),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Data Akun',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                           Icon(
+                            Icons.arrow_forward, color: Colors.blue, size: 20,)
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => TidakSelesai()));
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12, left: 6),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[100],
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x19000000),
+                              blurRadius: 3,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.timer_off, size: 40, color: Colors.orange[600]),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Tidak Selesai',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            const Icon(Icons.arrow_forward, color: Colors.orange, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
 
-             GestureDetector(
-                onTap: () {
-                  
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => LaporanKasus()));
-                },
-                child: Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  color: Colors.grey[100], boxShadow: [
-                                    BoxShadow(
-                                      color: Color(0x19000000),
-                                      blurRadius: 3,
-                                      offset: Offset(0, 3),
-                                    ),
-                                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text('Detail Laporan'),
-                    Icon(Icons.send, color: Colors.blue),
-                    
-                  ],
-                ),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => KasusDitolak()));
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12, right: 6),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[100],
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x19000000),
+                              blurRadius: 3,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.cancel, size: 40, color: Colors.red[600]),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Kasus Ditolak',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            const Icon(Icons.arrow_forward, color: Colors.red, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => LaporanKasus()));
+                      },
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 12, left: 6),
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.grey[100],
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0x19000000),
+                              blurRadius: 3,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(Icons.assessment, size: 40, color: Colors.blue[700]),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Detail Laporan',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 8),
+                            const Icon(Icons.arrow_forward, color: Colors.blue, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              ),
-      ],
-    ),
-              ),
-            
-            
-            
-            ]
+            ],
           ),
         ),
-      )      
+      ),
     );
-                 
-  
   }
 }

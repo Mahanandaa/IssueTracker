@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/panggil_teknisi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const kPrimary = Color(0xFF3B6FF0);
+const kPrimaryLight = Color(0xFFEEF2FF);
+const kSurface = Color(0xFFF8F9FC);
+const kBorder = Color(0xFFE2E8F0);
+const kText = Color(0xFF1A202C);
+const kSubtext = Color(0xFF718096);
+
 class DetailLaporanAdmin extends StatefulWidget {
   final String issueId;
-
   const DetailLaporanAdmin({super.key, required this.issueId});
 
   @override
@@ -94,16 +100,19 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     final konfirmasi = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hapus Komentar'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Hapus Komentar',
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Yakin ingin menghapus komentar ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
+              child: const Text('Batal', style: TextStyle(color: kSubtext))),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Hapus',
-                  style: TextStyle(color: Colors.red))),
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -115,7 +124,6 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
   Future<void> kirimKomentar() async {
     final text = commentController.text.trim();
     if (text.isEmpty) return;
-
     setState(() => isSendingComment = true);
     try {
       await supabase.from('comments').insert({
@@ -126,11 +134,7 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
       commentController.clear();
       await fetchComments();
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal kirim komentar: $e')),
-        );
-      }
+      if (mounted) _showSnack('Gagal kirim komentar: $e');
     } finally {
       if (mounted) setState(() => isSendingComment = false);
     }
@@ -140,45 +144,50 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Tolak Laporan'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text('Tolak Laporan',
+            style: TextStyle(fontWeight: FontWeight.w700)),
         content: const Text('Yakin ingin menolak laporan ini?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Batal')),
+              child: const Text('Batal', style: TextStyle(color: kSubtext))),
           TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Tolak',
-                  style: TextStyle(color: Colors.red))),
+                  style: TextStyle(
+                      color: Colors.red, fontWeight: FontWeight.w600))),
         ],
       ),
     );
-
     if (confirm != true) return;
-
     try {
       await supabase
           .from('issues')
           .update({'status': 'Rejected'}).eq('id', widget.issueId);
-
       if (mounted) {
         setState(() {
           issue = {...?issue, 'status': 'Rejected'};
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Laporan ditolak.')),
-        );
+        _showSnack('Laporan ditolak.');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-      }
+      if (mounted) _showSnack('Error: $e');
     }
   }
 
+  void _showSnack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   String _formatTanggal(String? raw) {
-    if (raw == null) return '';
+    if (raw == null) return '-';
     try {
       return raw.substring(0, 16).replaceAll('T', ' ');
     } catch (_) {
@@ -186,13 +195,43 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     }
   }
 
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'Resolved':
+        return const Color(0xFF38A169);
+      case 'Rejected':
+        return const Color(0xFFE53E3E);
+      case 'In Progress':
+        return kPrimary;
+      case 'Pending':
+        return const Color(0xFFD69E2E);
+      default:
+        return kSubtext;
+    }
+  }
+
+  Color _priorityColor(String? p) {
+    switch (p) {
+      case 'Urgent':
+        return const Color(0xFFC05621);
+      case 'High':
+        return const Color(0xFFE53E3E);
+      case 'Medium':
+        return const Color(0xFFD69E2E);
+      default:
+        return const Color(0xFF38A169);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+          body: Center(child: CircularProgressIndicator(color: kPrimary)));
     }
     if (issue == null) {
-      return const Scaffold(body: Center(child: Text("Data tidak ditemukan")));
+      return const Scaffold(
+          body: Center(child: Text("Data tidak ditemukan")));
     }
 
     final String currentStatus = issue?['status']?.toString() ?? '';
@@ -200,143 +239,264 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
     final bool isAlreadyAssigned = currentStatus == 'Assigned' ||
         currentStatus == 'In Progress' ||
         currentStatus == 'Resolved';
-
     final resolutionNotes = issue?['resolution_notes']?.toString() ?? '';
     final hasResolution = resolutionNotes.isNotEmpty;
+    final priority = issue?['priority']?.toString();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: kSurface,
       appBar: AppBar(
-        title: const Text("Detail Laporan"),
-        backgroundColor: Colors.grey[200],
+        backgroundColor: Colors.white,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: kText),
+        title: const Text("Detail Laporan",
+            style: TextStyle(
+                fontWeight: FontWeight.w700, color: kText, fontSize: 18)),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: kBorder),
+        ),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
-            Text(issue?['title']?.toString() ?? '',
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 24)),
-            const SizedBox(height: 20),
 
-            Row(children: [
-              _infoBox('Kategori', issue?['category']?.toString() ?? 'Not Found'),
-              const SizedBox(width: 12),
-              _infoBox('Lokasi', issue?['location']?.toString() ?? 'Not Found'),
-            ]),
-            const SizedBox(height: 14),
+            // ── Judul + status ────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: kBorder),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          issue?['title']?.toString() ?? '',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                              color: kText),
+                        ),
+                      ),
+                      // Badge prioritas
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _priorityColor(priority).withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          priority ?? '-',
+                          style: TextStyle(
+                              color: _priorityColor(priority),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  // Badge status
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _statusColor(currentStatus).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      currentStatus.isNotEmpty ? currentStatus : '-',
+                      style: TextStyle(
+                          color: _statusColor(currentStatus),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-            Row(children: [
-              _infoBox('Tanggal',
-                  _formatTanggal(issue?['created_at']?.toString().substring(0, 10))),
-              const SizedBox(width: 12),
-              _infoBox('Status',
-                  currentStatus.isNotEmpty ? currentStatus : 'Not Found'),
-            ]),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
-            // Deskripsi
-            const Text('Deskripsi',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20)),
-            const SizedBox(height: 10),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+              childAspectRatio: 2.4,
+              children: [
+                _infoTile(Icons.category_outlined, 'Kategori',
+                    issue?['category']?.toString() ?? '-'),
+                _infoTile(Icons.location_on_outlined, 'Lokasi',
+                    issue?['location']?.toString() ?? '-'),
+                _infoTile(Icons.calendar_today_outlined, 'Dibuat',
+                    _formatTanggal(issue?['created_at']?.toString().substring(0, 10))),
+                _infoTile(Icons.lock_clock_rounded, 'Deadline',
+                    issue?['deadline'] != null
+                        ? issue!['deadline'].toString().substring(0, 10)
+                        : '-'),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            _sectionTitle('Deskripsi'),
+            const SizedBox(height: 8),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: kBorder),
               ),
-              child: Text(issue?['description']?.toString() ?? 'Not Found',
-                  style: const TextStyle(fontSize: 15)),
+              child: Text(
+                issue?['description']?.toString() ?? '-',
+                style: const TextStyle(fontSize: 14, color: kText, height: 1.5),
+              ),
             ),
-            const SizedBox(height: 20),
 
-            // Foto
-            const Text('Foto Pengerjaan',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
+
+            // ── Foto ──────────────────────────────────────
+            _sectionTitle('Foto Pengerjaan'),
+            const SizedBox(height: 8),
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _fotoCard('Sebelum\n(Pelapor)', issue?['photo_url']?.toString()),
-                const SizedBox(width: 12),
+                _fotoCard('Sebelum\n(Pelapor)',
+                    issue?['photo_url']?.toString()),
+                const SizedBox(width: 10),
                 _fotoCard('Sesudah\n(Teknisi)',
                     issue?['completion_photo_url']?.toString()),
               ],
             ),
-            const SizedBox(height: 20),
 
-            // Prioritas
-            Row(
-              children: [
-                const Text('Prioritas: ',
-                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: {
-                          'Urgent': Colors.red,
-                          'High': Colors.deepOrange,
-                          'Medium': Colors.orange,
-                          'Low': Colors.green,
-                        }[issue?['priority']] ??
-                        Colors.grey,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    issue?['priority']?.toString() ?? '-',
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // ── Langkah Perbaikan ──────────────────────────────────
+            // ── Langkah perbaikan ─────────────────────────
             if (hasResolution) ...[
-              const Text('Langkah Perbaikan',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+              const SizedBox(height: 16),
+              _sectionTitle('Langkah Perbaikan'),
               const SizedBox(height: 8),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.blue[50],
+                  color: kPrimaryLight,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
+                  border: Border.all(color: kPrimary.withOpacity(0.3)),
                 ),
                 child: Text(resolutionNotes,
-                    style: const TextStyle(fontSize: 14)),
+                    style: const TextStyle(
+                        fontSize: 14, color: kText, height: 1.5)),
               ),
-              const SizedBox(height: 20),
             ],
-            // Banner rejected
+
+            // ── Spare parts ───────────────────────────────
+            if (spareParts.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _sectionTitle('Spare Part Digunakan'),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kBorder),
+                ),
+                child: Column(
+                  children: spareParts.map((part) {
+                    final isLast = part == spareParts.last;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        border: isLast
+                            ? null
+                            : const Border(
+                                bottom: BorderSide(color: kBorder)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.build_outlined,
+                              size: 16, color: kSubtext),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              part['part_name']?.toString() ?? '-',
+                              style: const TextStyle(
+                                  fontSize: 13, color: kText),
+                            ),
+                          ),
+                          Text(
+                            'x${part['quantity'] ?? 0}',
+                            style: const TextStyle(
+                                color: kPrimary,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 16),
+
+            // ── Banner rejected ───────────────────────────
             if (isRejected)
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: const Color(0xFFFFF5F5),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.red.shade200),
+                  border: Border.all(color: const Color(0xFFE53E3E).withOpacity(0.3)),
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.cancel_outlined, color: Colors.red),
+                    Icon(Icons.cancel_outlined, color: Color(0xFFE53E3E)),
                     SizedBox(width: 10),
                     Text('Laporan ini telah ditolak',
                         style: TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.w600)),
+                            color: Color(0xFFE53E3E),
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
               ),
 
-            if (isRejected) const SizedBox(height: 20),
+            // ── Banner assigned ───────────────────────────
+            if (isAlreadyAssigned && !isRejected)
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: kPrimaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: kPrimary.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: kPrimary),
+                    const SizedBox(width: 10),
+                    Text(
+                      'Laporan sedang $currentStatus',
+                      style: const TextStyle(
+                          color: kPrimary, fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
+              ),
 
-            // Komentar
-            const Text('Komentar',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+            const SizedBox(height: 20),
+
+            // ── Komentar ──────────────────────────────────
+            _sectionTitle('Komentar'),
             const SizedBox(height: 10),
 
             ...comments.map((c) {
@@ -356,11 +516,10 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
                     constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.75),
+                        maxWidth:
+                            MediaQuery.of(context).size.width * 0.75),
                     decoration: BoxDecoration(
-                      color: isMine
-                          ? Colors.blue.shade100
-                          : Colors.grey.shade200,
+                      color: isMine ? kPrimaryLight : Colors.white,
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(12),
                         topRight: const Radius.circular(12),
@@ -371,6 +530,10 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                             ? Radius.zero
                             : const Radius.circular(12),
                       ),
+                      border: Border.all(
+                          color: isMine
+                              ? kPrimary.withOpacity(0.2)
+                              : kBorder),
                     ),
                     child: Column(
                       crossAxisAlignment: isMine
@@ -379,19 +542,17 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                       children: [
                         Text(namaUser,
                             style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isMine
-                                  ? Colors.blue.shade800
-                                  : Colors.grey.shade700,
-                            )),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: isMine ? kPrimary : kSubtext)),
                         const SizedBox(height: 4),
                         Text(c['comment']?.toString() ?? '',
-                            style: const TextStyle(fontSize: 15)),
+                            style: const TextStyle(
+                                fontSize: 14, color: kText)),
                         const SizedBox(height: 4),
                         Text(waktu,
                             style: const TextStyle(
-                                fontSize: 11, color: Colors.grey)),
+                                fontSize: 11, color: kSubtext)),
                       ],
                     ),
                   ),
@@ -400,6 +561,8 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
             }),
 
             const SizedBox(height: 12),
+
+            // ── Input komentar ────────────────────────────
             Row(
               children: [
                 Expanded(
@@ -408,15 +571,27 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     maxLines: null,
                     textInputAction: TextInputAction.send,
                     onSubmitted: (_) => kirimKomentar(),
+                    style: const TextStyle(color: kText, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Tulis komentar...',
+                      hintStyle:
+                          const TextStyle(color: kSubtext, fontSize: 14),
                       filled: true,
-                      fillColor: Colors.grey.shade100,
+                      fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
+                        borderSide: const BorderSide(color: kBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: const BorderSide(color: kBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide:
+                            const BorderSide(color: kPrimary, width: 1.5),
                       ),
                     ),
                   ),
@@ -426,95 +601,120 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                     ? const SizedBox(
                         width: 44,
                         height: 44,
-                        child: CircularProgressIndicator(strokeWidth: 2))
+                        child: CircularProgressIndicator(
+                            color: kPrimary, strokeWidth: 2))
                     : Material(
-                        color: Colors.blue,
+                        color: kPrimary,
                         shape: const CircleBorder(),
                         child: InkWell(
                           onTap: kirimKomentar,
                           customBorder: const CircleBorder(),
                           child: const Padding(
                             padding: EdgeInsets.all(12),
-                            child: Icon(Icons.send,
+                            child: Icon(Icons.send_rounded,
                                 color: Colors.white, size: 20),
                           ),
                         ),
                       ),
               ],
             ),
-            const SizedBox(height: 30),
 
+            const SizedBox(height: 24),
+
+            // ── Tombol aksi admin ─────────────────────────
             if (!isRejected && !isAlreadyAssigned) ...[
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: ElevatedButton(
+                child: ElevatedButton.icon(
                   onPressed: () async {
                     final result = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
-                        builder: (_) =>
-                            PanggilTeknisi(issueId: widget.issueId),
-                      ),
+                          builder: (_) =>
+                              PanggilTeknisi(issueId: widget.issueId)),
                     );
                     if (result == true) fetchIssueDetail();
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: const Text('Panggil Teknisi',
+                  icon: const Icon(Icons.engineering_outlined,
+                      color: Colors.white, size: 18),
+                  label: const Text('Panggil Teknisi',
                       style: TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16)),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: kPrimary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 height: 50,
-                child: OutlinedButton(
+                child: OutlinedButton.icon(
                   onPressed: _tolakLaporan,
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.red),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: const Text('Tolak Laporan',
+                  icon: const Icon(Icons.cancel_outlined,
+                      color: Color(0xFFE53E3E), size: 18),
+                  label: const Text('Tolak Laporan',
                       style: TextStyle(
-                          color: Colors.red,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16)),
+                          color: Color(0xFFE53E3E),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFFE53E3E)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
                 ),
               ),
             ],
-
-            if (isAlreadyAssigned)
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: Colors.blue),
-                    const SizedBox(width: 10),
-                    Text(
-                      'Laporan sedang $currentStatus',
-                      style: const TextStyle(
-                          color: Colors.blue, fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _sectionTitle(String title) {
+    return Text(title,
+        style: const TextStyle(
+            fontWeight: FontWeight.w700, fontSize: 15, color: kText));
+  }
+
+  Widget _infoTile(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: kBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: kSubtext),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(label,
+                    style:
+                        const TextStyle(color: kSubtext, fontSize: 10)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(
+                        color: kText,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600),
+                    overflow: TextOverflow.ellipsis),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -524,16 +724,18 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade300),
+          border: Border.all(color: kBorder),
         ),
         child: Column(
           children: [
             Text(label,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 13)),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    color: kSubtext)),
             const SizedBox(height: 8),
             url != null && url.isNotEmpty
                 ? ClipRRect(
@@ -543,63 +745,30 @@ class _DetailLaporanAdminState extends State<DetailLaporanAdmin> {
                       height: 130,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 130,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                            color: Colors.grey[200],
-                            borderRadius: BorderRadius.circular(10)),
-                        child: const Text('Gagal memuat',
-                            style: TextStyle(
-                                color: Colors.grey, fontSize: 12)),
-                      ),
+                      errorBuilder: (_, __, ___) => _fotoPlaceholder(),
                     ),
                   )
-                : Container(
-                    height: 130,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        borderRadius: BorderRadius.circular(10)),
-                    child: const Text('Belum ada foto',
-                        style: TextStyle(
-                            color: Colors.grey,
-                            fontStyle: FontStyle.italic,
-                            fontSize: 12)),
-                  ),
+                : _fotoPlaceholder(),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoBox(String label, String value) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey,
-                    fontWeight: FontWeight.w500)),
-            const SizedBox(height: 4),
-            Text(value, style: const TextStyle(fontSize: 15)),
-          ],
-        ),
+  Widget _fotoPlaceholder() {
+    return Container(
+      height: 130,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+          color: kSurface, borderRadius: BorderRadius.circular(10)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.image_outlined, size: 28, color: Colors.grey.shade400),
+          const SizedBox(height: 4),
+          Text('Belum ada foto',
+              style: TextStyle(color: Colors.grey.shade400, fontSize: 11)),
+        ],
       ),
     );
   }
