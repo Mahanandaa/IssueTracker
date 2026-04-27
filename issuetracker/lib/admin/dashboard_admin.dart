@@ -24,6 +24,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   Map<String, int> categoryCount = {};
 
+  // FIX #3: currentIndex = 0 karena ini halaman Dashboard
   int _currentIndex = 0;
 
   @override
@@ -124,23 +125,40 @@ class _DashboardAdminState extends State<DashboardAdmin> {
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
         unselectedItemColor: Colors.grey,
+        // FIX #3: gunakan _currentIndex agar highlight aktif berfungsi
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() => _currentIndex = index);
-          if (index == 1) {
+          setState(() {
+            _currentIndex = index;
+          });
+
+          if (index == 0) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => KasusAdmin()),
+              MaterialPageRoute(
+                builder: (context) => const DashboardAdmin(),
+              ),
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => KasusAdmin(),
+              ),
             );
           } else if (index == 2) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => DataAdmin()),
+              MaterialPageRoute(
+                builder: (context) => const DataAdmin(),
+              ),
             );
           } else if (index == 3) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileAdmin()),
+              MaterialPageRoute(
+                builder: (context) => const ProfileAdmin(),
+              ),
             );
           }
         },
@@ -152,7 +170,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
           BottomNavigationBarItem(
               icon: Icon(Icons.storage), label: 'Data'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Setting'),
+              icon: Icon(Icons.settings), label: 'Pengaturan'),
         ],
       ),
       body: SingleChildScrollView(

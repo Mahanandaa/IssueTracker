@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:issuetracker/Auth/auth_gate.dart';
 
 class EditDataAkun extends StatefulWidget {
   final Map users;
@@ -88,33 +89,112 @@ class _EditDataAkunState extends State<EditDataAkun> {
 
     try {
       final photoUrl = await _uploadPhoto(user.id);
+      final newEmail = email.text.trim();
+      final emailChanged = newEmail != user.email;
+      final passwordChanged = password.text.isNotEmpty;
 
-      await supabase.auth.updateUser(UserAttributes(
-        email: email.text,
-        password: password.text.isEmpty ? null : password.text,
-        data: {
-          'name': nama.text,
-          'phone': nomor.text,
-        },
-      ));
-
-      await supabase.from('users').update({
+      // FIX #5: Bangun UserAttributes secara kondisional
+      Map<String, dynamic> userData = {
         'name': nama.text,
-        'email': email.text,
+        'phone': nomor.text,
+      };
+
+      UserAttributes authAttributes;
+
+      if (emailChanged && passwordChanged) {
+        authAttributes = UserAttributes(
+          email: newEmail,
+          password: password.text,
+          data: userData,
+        );
+      } else if (emailChanged) {
+        authAttributes = UserAttributes(
+          email: newEmail,
+          data: userData,
+        );
+      } else if (passwordChanged) {
+        authAttributes = UserAttributes(
+          password: password.text,
+          data: userData,
+        );
+      } else {
+        authAttributes = UserAttributes(
+          data: userData,
+        );
+      }
+
+      // Update di Supabase Auth
+      await supabase.auth.updateUser(authAttributes);
+
+      // Update tabel users
+      final updateData = {
+        'name': nama.text,
+        'email': newEmail,
         'phone': nomor.text,
         if (photoUrl != null) 'photo_url': photoUrl,
-      }).eq('id', user.id);
+      };
+      
+      await supabase.from('users').update(updateData).eq('id', user.id);
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile berhasil diupdate ✓')),
-        );
-        Navigator.pop(context);
+      // **PERBAIKAN UTAMA: Jika email berubah, logout dan minta login ulang**
+      if (emailChanged) {
+        // Sign out untuk clear session lama
+        await supabase.auth.signOut();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email berhasil diubah! Silakan login kembali dengan email baru.'),
+              duration: Duration(seconds: 3),
+            ),
+          );
+          
+          // Navigate ke login page dan clear semua history
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const AuthGate()),
+            (route) => false,
+          );
+        }
+      } else if (passwordChanged) {
+        // Jika hanya ganti password, tetap perlu login ulang
+        await supabase.auth.signOut();
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Password berhasil diubah! Silakan login kembali.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const AuthGate()),
+            (route) => false,
+          );
+        }
+      } else {
+        // Update profile biasa (nama, nomor, foto)
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile berhasil diupdate ✓')),
+          );
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        String errorMsg = e.toString();
+        // Handle error email sudah digunakan
+        if (errorMsg.contains('already been registered') || 
+            errorMsg.contains('already exists')) {
+          errorMsg = 'Email sudah digunakan oleh akun lain!';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $errorMsg')),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -202,12 +282,19 @@ class _EditDataAkunState extends State<EditDataAkun> {
 
             label('Email'),
             inputField(email, 'Masukan Email'),
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                'Perubahan email akan mengharuskan login ulang',
+                style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+              ),
+            ),
 
             label('Nomor Telepon'),
             inputField(nomor, 'Nomor Telepon'),
 
-            label('Password'),
-            inputField(password, 'Password', obscure: true),
+            label('Password (kosongkan jika tidak ingin mengubah)'),
+            inputField(password, 'Password baru', obscure: true),
 
             const SizedBox(height: 25),
 

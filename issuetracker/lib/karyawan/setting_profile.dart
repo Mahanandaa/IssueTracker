@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/Auth/auth_service.dart';
 import 'package:issuetracker/karyawan/edit_profile_karyawan.dart';
-import 'package:issuetracker/main.dart';
 import 'package:issuetracker/Auth/login.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 

@@ -102,24 +102,38 @@ class _ProfileAdminState extends State<ProfileAdmin> {
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() => _currentIndex = index);
-          if (index == 1) {
-            Navigator.pushReplacement(
+          setState(() {
+            _currentIndex = index;
+          });
+
+          if (index == 0) {
+            Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => KasusAdmin()),
+              MaterialPageRoute(
+                builder: (context) => const DashboardAdmin(),
+              ),
+            );
+          } else if (index == 1) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => KasusAdmin(),
+              ),
             );
           } else if (index == 2) {
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => DataAdmin()),
+              MaterialPageRoute(
+                builder: (context) => const DataAdmin(),
+              ),
             );
           } else if (index == 3) {
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const ProfileAdmin()),
+              MaterialPageRoute(
+                builder: (context) => const ProfileAdmin(),
+              ),
             );
-          } else {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardAdmin()));
           }
         },
         items: const [
@@ -130,15 +144,15 @@ class _ProfileAdminState extends State<ProfileAdmin> {
           BottomNavigationBarItem(
               icon: Icon(Icons.storage), label: 'Data'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Setting'),
+              icon: Icon(Icons.settings), label: 'Pengaturan'),
         ],
       ),
       backgroundColor: Colors.white,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            padding: const EdgeInsets.all(18),
+        Container(
+        padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(14),

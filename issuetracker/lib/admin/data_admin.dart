@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/admin/data_akun.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
-import 'package:issuetracker/admin/kasus_ditolak.dart';
 import 'package:issuetracker/admin/laporan_kasus.dart';
 import 'package:issuetracker/admin/profile_admin.dart';
 import 'package:issuetracker/admin/tidak_selesai.dart';
-
+import 'kasus_ditolak.dart';
 class DataAdmin extends StatefulWidget {
   const DataAdmin({super.key});
 

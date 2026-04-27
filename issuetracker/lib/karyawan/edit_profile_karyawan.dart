@@ -105,7 +105,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
           );
       return supabase.storage.from('images').getPublicUrl(path);
     } catch (e) {
-      if (mounted) _showSnack('Gagal upload foto');
+      if (mounted) _showSnack('Gagal upload foto, Coba Lagi');
       return _currentPhotoUrl;
     }
   }
@@ -139,7 +139,7 @@ class _EditProfileKaryawanState extends State<EditProfileKaryawan> {
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) _showSnack('Error: $e');
+      if (mounted) _showSnack('Gagal Perbaharui Profile, Coba Lagi');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

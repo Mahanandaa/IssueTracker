@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:issuetracker/Auth/auth_service.dart';
 import 'package:issuetracker/Auth/login.dart';
-import 'package:issuetracker/main.dart';
 import 'package:issuetracker/teknisi/edit_profile_teknisi.dart';
 import 'package:issuetracker/teknisi/history_teknisi.dart';
 import 'package:issuetracker/teknisi/statistic_teknisi.dart';
@@ -28,8 +27,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
   @override
   void initState() {
     super.initState();
-    getUserData()
-    ;
+    getUserData();
   }
 
   Future<void> getUserData() async {
@@ -47,7 +45,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         .select('rating')
         .eq('technician_id', user.id);
 
-    // Hitung jumlah tugas selesai untuk pembagi
     final resolvedCount = await supabase
         .from('issues')
         .select('id')
@@ -63,7 +60,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         final val = r['rating'];
         if (val != null) total += (val as num).toDouble();
       }
-      // Rumus: total rating / jumlah tugas selesai
       calculatedRating = total / jumlahSelesai;
     }
 
@@ -116,6 +112,33 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         context, MaterialPageRoute(builder: (_) => const Loginpage()));
   }
 
+  // FIX #2: helper untuk label role
+  String _getRoleLabel(String? role) {
+    switch (role) {
+      case 'admin':
+        return 'Admin';
+      case 'teknisi':
+        return 'Teknisi';
+      case 'karyawan':
+        return 'Karyawan';
+      default:
+        return role ?? '-';
+    }
+  }
+
+  Color _getRoleColor(String? role) {
+    switch (role) {
+      case 'admin':
+        return Colors.purple;
+      case 'teknisi':
+        return Colors.blue;
+      case 'karyawan':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
   int _currentIndex = 3;
 
   @override
@@ -133,6 +156,9 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
     final shadowColor = isDark
         ? Colors.black45
         : const Color.fromARGB(255, 200, 200, 200);
+
+    // FIX #2: ambil role dari userData
+    final role = userData?['role'] as String?;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -202,6 +228,26 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                 const SizedBox(height: 5),
                 Text(userData?['email'] ?? '',
                     style: TextStyle(color: textColor)),
+                const SizedBox(height: 10),
+
+                // FIX #2: tampilkan badge role
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: _getRoleColor(role).withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _getRoleColor(role)),
+                  ),
+                  child: Text(
+                    _getRoleLabel(role),
+                    style: TextStyle(
+                      color: _getRoleColor(role),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+
                 const SizedBox(height: 20),
               ],
             ),
@@ -298,7 +344,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           ),
           const SizedBox(height: 15),
 
-      
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

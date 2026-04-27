@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class KasusDitolak extends StatefulWidget {
-  const KasusDitolak({super.key});
+const KasusDitolak({super.key});
 
-  @override
-  State<KasusDitolak> createState() => _KasusDitolakState();
+@override
+State<KasusDitolak> createState() => _KasusDitolakState();
 }
 
 class _KasusDitolakState extends State<KasusDitolak> {
-  final supabase = Supabase.instance.client;
+final supabase = Supabase.instance.client;
 
   List<Map<String, dynamic>> issues = [];
 
-  @override
-  void initState() {
-    super.initState();
-    fetchIssues();
-  }
+@override
+void initState() {
+super.initState();
+fetchIssues();
+}
 
   Future<void> fetchIssues() async {
     final response = await supabase
@@ -96,10 +96,10 @@ class _KasusDitolakState extends State<KasusDitolak> {
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 5),
+                              horizontal: 10, vertical: 5),
                               decoration: BoxDecoration(
-                                color: priorityColor,
-                                borderRadius: BorderRadius.circular(20),
+                              color: priorityColor,
+                              borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
                                 priority,

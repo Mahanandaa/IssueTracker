@@ -60,7 +60,7 @@ class _LaporanKasusState extends State<LaporanKasus> {
   Widget buildCard(Map<String, dynamic> item) {
     final reporterData = item['reporter'] as Map<String, dynamic>?;
     final reporterName = reporterData?['name'] ?? item['reported_by'] ?? '-';
-
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
@@ -95,7 +95,8 @@ class _LaporanKasusState extends State<LaporanKasus> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[100],
+    
       appBar: AppBar(
         title: const Text("Laporan"),
         backgroundColor: Colors.grey[200],
