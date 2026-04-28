@@ -167,6 +167,34 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
+  Color _getCardColor(String? status) {
+    switch (status) {
+      case 'Resolved':
+        return Colors.green[700]!;
+      case 'Rejected':
+        return Colors.red[700]!;
+      case 'In Progress':
+        return primary;
+      case 'Pending':
+        return Colors.white;
+      default:
+        return Colors.white;
+    }
+  }
+
+  bool _isDarkCard(String? status) {
+    switch (status) {
+      case 'Resolved':
+      case 'Rejected':
+      case 'In Progress':
+        return true;
+      case 'Pending':
+        return false;
+      default:
+        return false;
+    }
+  }
+
   String _formatDeadline(dynamic raw) {
     if (raw == null) return 'Tidak ada deadline';
     try {
@@ -182,7 +210,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   }
 
   bool _isOverdue(dynamic raw, String? status) {
-    if (raw == null || status == 'Resolved') return false;
+    if (raw == null || status == 'Resolved' || status == 'Rejected') return false;
     try {
       return DateTime.parse(raw.toString()).toLocal().isBefore(DateTime.now());
     } catch (_) {
@@ -352,13 +380,13 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                   const SizedBox(width: 6),
                   _filterBtn('Pending', 'Pending'),
                   const SizedBox(width: 6),
-                   _filterBtn('In Progress', 'Progress'),
+                  _filterBtn('In Progress', 'In Progress'),
                   const SizedBox(width: 6),
-                   _filterBtn('Escalated', 'Escalated'),
+                  _filterBtn('Escalated', 'Escalated'),
                   const SizedBox(width: 6),
-                   _filterBtn('Resolved', 'Resolved'),
-                 const SizedBox(width: 6),
-                   _filterBtn('Rejected', 'Rejected'),
+                  _filterBtn('Resolved', 'Resolved'),
+                  const SizedBox(width: 6),
+                  _filterBtn('Rejected', 'Rejected'),
                 ],
               ),
             ),
@@ -376,139 +404,23 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                         final issue = issues[index];
                         final status = issue['status'];
                         final isResolved = status == 'Resolved';
+                        final isRejected = status == 'Rejected';
+                        final isPending = status == 'Pending';
                         final deadline = issue['deadline'];
                         final isOverdue = _isOverdue(deadline, status);
+                        
+                        final cardColor = _getCardColor(status);
+                        final useWhiteText = _isDarkCard(status);
+                        final textColor = useWhiteText ? Colors.white : Colors.black87;
+                        final subtitleColor = useWhiteText ? Colors.white70 : Colors.grey.shade600;
 
-                        // Jika status Resolved, tampilkan card seperti di teknisi
-                        if (isResolved) {
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(16),
-                            onTap: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => DetailLaporanKaryawan(
-                                      issueId: issue['id'].toString()),
-                                ),
-                              );
-                              fetchIssues();
-                            },
-                            child: Container(
-                              margin: const EdgeInsets.only(bottom: 16),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.green[700],
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Expanded(
-                                        child: Text(
-                                          issue['title'] ?? '',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.25),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: const Text(
-                                          '✓ Selesai',
-                                          style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    issue['location'] ?? '',
-                                    style: const TextStyle(
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  // Deadline untuk Resolved
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.access_time,
-                                        size: 14,
-                                        color: Colors.white70,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Deadline: ${_formatDeadline(deadline)}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white70,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    issue['created_at'] != null 
-                                        ? issue['created_at'].toString().substring(0, 10) 
-                                        : '', 
-                                    style: const TextStyle(
-                                      fontSize: 12, 
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: [
-                                      const Text(
-                                        "Lihat Detail",
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Icon(Icons.arrow_forward, color: Colors.white, size: 14),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        // Jika bukan Resolved, tampilkan card seperti semula dengan deadline
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(16),
+                        return GestureDetector(
                           onTap: () async {
                             await Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    DetailLaporanKaryawan(
-                                        issueId:
-                                            issue['id'].toString()),
+                                builder: (_) => DetailLaporanKaryawan(
+                                    issueId: issue['id'].toString()),
                               ),
                             );
                             fetchIssues();
@@ -517,139 +429,210 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                             margin: const EdgeInsets.only(bottom: 16),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: cardColor,
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
+                                  color: Colors.black.withOpacity(0.05),
                                   blurRadius: 10,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
                             child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // ROW TITLE & STATUS BADGE
                                 Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
                                         issue['title'] ?? '',
-                                        style: const TextStyle(
-                                          fontWeight:
-                                              FontWeight.w600,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                    ),
-                                    Container(
-                                      padding:
-                                          const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: _statusColor(status)
-                                            .withOpacity(0.1),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        status ?? '',
                                         style: TextStyle(
-                                          color:
-                                              _statusColor(status),
-                                          fontWeight:
-                                              FontWeight.w600,
-                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 16,
+                                          color: textColor,
                                         ),
                                       ),
                                     ),
+                                    if (isResolved)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.25),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: const [
+                                            Icon(Icons.check_circle,
+                                                color: Colors.white, size: 12),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              'Selesai',
+                                              style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                    else if (isRejected)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withOpacity(0.25),
+                                          borderRadius: BorderRadius.circular(20),
+                                        ),
+                                        child: const Text(
+                                          'Ditolak',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: useWhiteText
+                                              ? Colors.white.withOpacity(0.25)
+                                              : _statusColor(status).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          status ?? '',
+                                          style: TextStyle(
+                                            color: useWhiteText
+                                                ? Colors.white
+                                                : _statusColor(status),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
-                                const SizedBox(height: 8),
+                                
+                                const SizedBox(height: 6),
+                                
+                                // LOKASI
                                 Text(
                                   issue['location'] ?? '',
                                   style: TextStyle(
-                                      color:
-                                          Colors.grey.shade600),
+                                    fontSize: 12,
+                                    color: subtitleColor,
+                                  ),
                                 ),
-                                const SizedBox(height: 8),
-                                // Deadline untuk non-Resolved
+                                
+                                const SizedBox(height: 6),
+                                
+                                // DEADLINE
                                 Row(
                                   children: [
                                     Icon(
                                       Icons.access_time,
                                       size: 14,
-                                      color: isOverdue ? Colors.red : Colors.grey.shade600,
+                                      color: isOverdue && !isResolved && !isRejected
+                                          ? (useWhiteText ? Colors.yellow : Colors.red)
+                                          : subtitleColor,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
                                       'Deadline: ${_formatDeadline(deadline)}',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color: isOverdue ? Colors.red : Colors.grey.shade600,
-                                        fontWeight: isOverdue ? FontWeight.bold : FontWeight.normal,
+                                        color: isOverdue && !isResolved && !isRejected
+                                            ? (useWhiteText ? Colors.yellow : Colors.red)
+                                            : subtitleColor,
+                                        fontWeight: isOverdue && !isResolved && !isRejected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
                                       ),
                                     ),
-                                    if (isOverdue) ...[
+                                    if (isOverdue && !isResolved && !isRejected) ...[
                                       const SizedBox(width: 4),
-                                      const Text(
+                                      Text(
                                         '(Terlambat)',
                                         style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.red,
+                                          color: useWhiteText ? Colors.yellow : Colors.red,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                     ]
                                   ],
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  issue['created_at'] != null 
-                                      ? issue['created_at'].toString().substring(0, 10) 
-                                      : '', 
-                                  style: const TextStyle(
-                                    fontSize: 12, 
-                                    color: Colors.grey,
-                                  ),
+                                
+                                const SizedBox(height: 6),
+                                
+                                // ROW TANGGAL & ACTION BUTTONS
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    // Tanggal
+                                    Text(
+                                      issue['created_at'] != null 
+                                          ? issue['created_at'].toString().substring(0, 10) 
+                                          : '', 
+                                      style: TextStyle(
+                                        fontSize: 12, 
+                                        color: subtitleColor,
+                                      ),
+                                    ),
+                                    // Action Buttons atau Lihat Detail
+                                    if (isPending)
+                                      Row(
+                                        children: [
+                                          InkWell(
+                                            onTap: () async {
+                                              await Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (_) => EditLaporan(issue: issue),
+                                                ),
+                                              );
+                                              fetchIssues();
+                                            },
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              child: const Icon(Icons.edit, color: Colors.orange, size: 18),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          InkWell(
+                                            onTap: () => confirmDelete(issue['id']),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(4),
+                                              child: const Icon(Icons.delete, color: Colors.red, size: 18),
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    else
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Lihat Detail",
+                                            style: TextStyle(
+                                              color: textColor,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Icon(Icons.arrow_forward, color: textColor, size: 14),
+                                        ],
+                                      ),
+                                  ],
                                 ),
-                                if (status == 'Pending') ...[
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.end,
-                                    children: [
-                                      IconButton(
-                                        onPressed: () =>
-                                            confirmDelete(
-                                                issue['id']),
-                                        icon: const Icon(
-                                            Icons.delete,
-                                            color: Colors.red),
-                                      ),
-                                      IconButton(
-                                        onPressed: () async {
-                                          await Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                                builder: (_) =>
-                                                    EditLaporan(
-                                                        issue:
-                                                            issue)),
-                                          );
-                                          fetchIssues();
-                                        },
-                                        icon: const Icon(
-                                            Icons.edit,
-                                            color:
-                                                Colors.orange),
-                                      ),
-                                    ],
-                                  )
-                                ],
                               ],
                             ),
                           ),

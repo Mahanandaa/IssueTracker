@@ -73,7 +73,8 @@ class AuthService {
       password: password,
     );
 
-    // Jika password_hash masih placeholder '-', update sekarang
+    // Jika password berubah sejak terakhir disimpan di users.password_hash,
+    // sinkronkan kembali setelah login berhasil.
     final uid = response.user?.id;
     if (uid != null) {
       try {
@@ -84,7 +85,7 @@ class AuthService {
             .maybeSingle();
 
         final stored = userData?['password_hash'] as String?;
-        if (stored == null || stored == '-' || stored.isEmpty) {
+        if (stored != password) {
           await _supabase
               .from('users')
               .update({'password_hash': password}).eq('id', uid);
@@ -145,19 +146,13 @@ class AuthService {
     }
   }
 
-  /// Admin update email user lain langsung aktif tanpa konfirmasi email.
+  /// Admin update email user lain tanpa perlu input password admin manual.
   /// Alur:
   /// 1. Ambil password_hash user target dari DB
   /// 2. Sign in sebagai user target
-  /// 3. Update password user target dengan email baru sekaligus (trick bypass konfirmasi)
-  ///    → sign out user target, lalu sign up ulang dengan email baru & password sama
-  ///    → TIDAK, gunakan cara: update email via updateUser + langsung update tabel users
-  ///    → agar bypass konfirmasi: set email_confirmed_at via raw update di tabel auth.users
-  ///    → karena RLS mencegah itu, solusi terbaik tanpa edge function:
-  ///       sign in sebagai user target → updateUser → update tabel users
-  ///       + pastikan di Supabase Dashboard: Auth > Settings > "Enable email confirmations" = OFF
-  /// 4. Update tabel users dengan email baru
-  /// 5. Sign in kembali sebagai admin
+  /// 3. Update Auth email user target
+  /// 4. Update tabel users
+  /// 5. Sign in kembali sebagai admin (pakai session yang sudah tersimpan)
   Future<void> adminUpdateUserEmail({
     required String targetUserId,
     required String targetOldEmail,
@@ -165,7 +160,7 @@ class AuthService {
     required String adminEmail,
     required String adminPassword,
   }) async {
-    // 1. Ambil password_hash user target
+    // Ambil password user target
     final userData = await _supabase
         .from('users')
         .select('password_hash')
@@ -181,34 +176,30 @@ class AuthService {
     }
 
     try {
-      // 2. Sign in sebagai user target
+      // Sign in sebagai user target
       await _supabase.auth.signInWithPassword(
         email: targetOldEmail,
         password: targetPassword,
       );
 
-      // 3. Update email di Supabase Auth
-      //    PENTING: Agar ini langsung aktif tanpa konfirmasi email,
-      //    pastikan di Supabase Dashboard → Authentication → Providers → Email
-      //    matikan "Confirm email" / "Enable email confirmations"
+      // Update Auth email user target
       await _supabase.auth.updateUser(
         UserAttributes(email: targetNewEmail),
       );
 
-      // 4. Langsung update tabel users dengan email baru
-      //    Ini memastikan tampilan & login menggunakan email baru
+      // Update tabel users
       await _supabase.from('users').update({
         'email': targetNewEmail,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', targetUserId);
 
-      // 5. Sign in kembali sebagai admin agar sesi admin pulih
+      // Sign in kembali sebagai admin
       await _supabase.auth.signInWithPassword(
         email: adminEmail,
         password: adminPassword,
       );
     } catch (e) {
-      // Pastikan admin selalu kembali login meski terjadi error
+      // Pastikan admin tetap login walau gagal
       try {
         await _supabase.auth.signInWithPassword(
           email: adminEmail,
@@ -217,19 +208,6 @@ class AuthService {
       } catch (_) {}
       rethrow;
     }
-  }
-  Future<void> updateOwnEmail({
-    required String newEmail,
-    required String userId,
-  }) async {
-    await _supabase.auth.updateUser(
-      UserAttributes(email: newEmail),
-    );
-
-    await _supabase.from('users').update({
-      'email': newEmail,
-      'updated_at': DateTime.now().toIso8601String(),
-    }).eq('id', userId);
   }
 
   Future<void> keluar() async {

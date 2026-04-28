@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -18,6 +20,26 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
   late TextEditingController email;
   late TextEditingController nomor;
   late TextEditingController password;
+
+  static const _supabaseUrl    = 'https://ivzuhuebueotbjpfunxp.supabase.co';
+  static const _serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2enVodWVidWVvdGJqcGZ1bnhwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTM1ODM1MCwiZXhwIjoyMDg2OTM0MzUwfQ.mWZvQjMTEkjzDTuUrEko8zoXR4gQVno80yronMxqV4s';
+
+  Future<void> _adminUpdateEmail(String userId, String newEmail) async {
+    final uri = Uri.parse('$_supabaseUrl/auth/v1/admin/users/$userId');
+    final res = await http.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': _serviceRoleKey,
+        'Authorization': 'Bearer $_serviceRoleKey',
+      },
+      body: jsonEncode({'email': newEmail, 'email_confirm': true}),
+    );
+    if (res.statusCode != 200) {
+      final body = jsonDecode(res.body);
+      throw Exception(body['msg'] ?? body['message'] ?? 'Gagal update email');
+    }
+  }
 
   @override
   void initState() {
@@ -51,28 +73,39 @@ class _EditAdminProfileState extends State<EditAdminProfile> {
     final user = supabase.auth.currentUser;
     if (user == null) return;
 
-    await supabase.auth.updateUser(
-      UserAttributes(
-        email: email.text,
-        password: password.text.isEmpty ? null : password.text,
-        data: {
-          'name': nama.text,
-          'phone': nomor.text,
-        },
-      ),
-    );
+    try {
+      final newEmail = email.text.trim();
+      final emailChanged = newEmail != (user.email ?? '');
+      final passwordChanged = password.text.isNotEmpty;
 
-    await supabase.from('users').update({
-      'name': nama.text,
-      'email': email.text,
-      'phone': nomor.text,
-    }).eq('id', user.id);
+      if (emailChanged) {
+        await _adminUpdateEmail(user.id, newEmail);
+      }
 
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Profile berhasil diupdate ✓')),
-      );
-      Navigator.pop(context);
+      if (passwordChanged) {
+        await supabase.auth.updateUser(UserAttributes(password: password.text));
+      }
+
+      await supabase.from('users').update({
+        'name': nama.text.trim(),
+        'email': newEmail,
+        'phone': nomor.text.trim(),
+        if (passwordChanged) 'password_hash': password.text,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', user.id);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile berhasil diupdate ✓')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e')),
+        );
+      }
     }
   }
 

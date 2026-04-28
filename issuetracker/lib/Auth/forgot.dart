@@ -493,10 +493,18 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
     }
 
     setState(() => _isLoading = true);
+    final uid = supabase.auth.currentUser?.id;
     try {
       await supabase.auth.updateUser(
         UserAttributes(password: _newPass.text),
       );
+
+      if (uid != null) {
+        await supabase.from('users').update({
+          'password_hash': _newPass.text,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', uid);
+      }
 
       await supabase.auth.signOut();
 

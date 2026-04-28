@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,7 +24,8 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
   late TextEditingController nomor;
   late TextEditingController password;
 
-  // FIX 4: Variabel untuk foto profil baru
+
+
   File? _newPhoto;
   String? _currentPhotoUrl;
   final ImagePicker _picker = ImagePicker();
@@ -47,7 +50,24 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
     super.dispose();
   }
 
-  // FIX 4: Pilih foto dari galeri atau kamera
+
+  Future<void> _adminUpdateEmail(String userId, String newEmail) async {
+    final uri = Uri.parse('https://ivzuhuebueotbjpfunxp.supabase.co/auth/v1/admin/users/$userId');
+    final res = await http.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2enVodWVidWVvdGJqcGZ1bnhwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTM1ODM1MCwiZXhwIjoyMDg2OTM0MzUwfQ.mWZvQjMTEkjzDTuUrEko8zoXR4gQVno80yronMxqV4s',
+        'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2enVodWVidWVvdGJqcGZ1bnhwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTM1ODM1MCwiZXhwIjoyMDg2OTM0MzUwfQ.mWZvQjMTEkjzDTuUrEko8zoXR4gQVno80yronMxqV4s',
+      },
+      body: jsonEncode({'email': newEmail, 'email_confirm': true}),
+    );
+    if (res.statusCode != 200) {
+      final body = jsonDecode(res.body);
+      throw Exception(body['msg'] ?? body['message'] ?? 'Gagal update email');
+    }
+  }
+
   Future<void> _pickPhoto() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
@@ -114,35 +134,37 @@ class _EditProfileTeknisiState extends State<EditProfileTeknisi> {
 
     try {
       final photoUrl = await _uploadPhoto(user.id);
+      final newEmail = email.text.trim();
+      final emailChanged = newEmail != (user.email ?? '');
+      final passwordChanged = password.text.isNotEmpty;
 
-      await supabase.auth.updateUser(
-        UserAttributes(
-          email: email.text,
-          password: password.text.isEmpty ? null : password.text,
-          data: {
-            'name': nama.text,
-            'phone': nomor.text,
-          },
-        ),
-      );
+      if (emailChanged) {
+        await _adminUpdateEmail(user.id, newEmail);
+      }
+
+      if (passwordChanged) {
+        await supabase.auth.updateUser(UserAttributes(password: password.text));
+      }
 
       await supabase.from('users').update({
-        'name': nama.text,
-        'email': email.text,
-        'phone': nomor.text,
+        'name': nama.text.trim(),
+        'email': newEmail,
+        'phone': nomor.text.trim(),
         if (photoUrl != null) 'photo_url': photoUrl,
+        if (passwordChanged) 'password_hash': password.text,
+        'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', user.id);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Profil berhasil diperbarui")),
+          const SnackBar(content: Text("Profil berhasil diperbarui ✓")),
         );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Error: $e")));
+            .showSnackBar(SnackBar(content: Text("Gagal: $e")));
       }
     } finally {
       if (mounted) setState(() => _isUploading = false);

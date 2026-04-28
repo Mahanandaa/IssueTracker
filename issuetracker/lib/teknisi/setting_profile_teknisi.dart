@@ -92,7 +92,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           final hours = avgMin / 60;
           final minutes = avgMin % 60;
           durationStr =
-              minutes > 0 ? '$hours Jam $minutes Mnt' : '$hours Jam';
+              minutes > 0 ? '${hours.toStringAsFixed(0)} Jam $minutes Mnt' : '${hours.toStringAsFixed(0)} Jam';
         }
       }
     }
@@ -112,7 +112,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         context, MaterialPageRoute(builder: (_) => const Loginpage()));
   }
 
-  // FIX #2: helper untuk label role
+  // Helper untuk label role
   String _getRoleLabel(String? role) {
     switch (role) {
       case 'admin':
@@ -126,6 +126,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
     }
   }
 
+  // Helper untuk warna role
   Color _getRoleColor(String? role) {
     switch (role) {
       case 'admin':
@@ -157,7 +158,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
         ? Colors.black45
         : const Color.fromARGB(255, 200, 200, 200);
 
-    // FIX #2: ambil role dari userData
     final role = userData?['role'] as String?;
 
     return Scaffold(
@@ -218,19 +218,24 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                       : null,
                 ),
                 const SizedBox(height: 15),
+                // Nama User
                 Text(
-                  userData?['name'] ?? '',
+                  userData?['name'] ?? 'Tidak ada nama',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       color: textColor),
                 ),
                 const SizedBox(height: 5),
-                Text(userData?['email'] ?? '',
+                // Email User
+                Text(userData?['email'] ?? 'Tidak ada email',
+                    style: TextStyle(color: textColor)),
+                const SizedBox(height: 5),
+                // Nomor Telepon
+                Text(userData?['phone'] ?? 'Tidak ada nomor telepon',
                     style: TextStyle(color: textColor)),
                 const SizedBox(height: 10),
-
-                // FIX #2: tampilkan badge role
+                // Badge Role
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                   decoration: BoxDecoration(
@@ -247,7 +252,6 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 20),
               ],
             ),
@@ -345,8 +349,7 @@ class _SettingProfileTeknisiState extends State<SettingProfileTeknisi> {
           const SizedBox(height: 15),
 
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(12),

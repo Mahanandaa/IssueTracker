@@ -24,7 +24,6 @@ class _DashboardAdminState extends State<DashboardAdmin> {
 
   Map<String, int> categoryCount = {};
 
-  // FIX #3: currentIndex = 0 karena ini halaman Dashboard
   int _currentIndex = 0;
 
   @override
@@ -184,7 +183,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                  children: [
                   Text('Selamat Datang', style: TextStyle(
-                  fontWeight: FontWeight.w600, fontSize: 25
+                  fontWeight: FontWeight.w600, fontSize: 25, color: Color.fromARGB(221, 51, 51, 51)
                   ),
                   ),
                 IconButton(onPressed: () {
@@ -220,7 +219,7 @@ class _DashboardAdminState extends State<DashboardAdmin> {
            const SizedBox(height: 20),
            const Text(
               'Data Kasus Kategori',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20, color: Color.fromARGB(221, 51, 51, 51)),
             ),
             const SizedBox(height: 12),
             Container(
@@ -288,10 +287,11 @@ class _DashboardAdminState extends State<DashboardAdmin> {
             const SizedBox(height: 12),
             const Text(
               'Data Kasus Status',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20, color: Color.fromARGB(221, 51, 51, 51)),
             ),
             const SizedBox(height: 12),
             Row(
+              
               children: [
                 Expanded(
                   flex: 2,

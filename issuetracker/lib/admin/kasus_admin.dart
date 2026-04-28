@@ -96,7 +96,6 @@ class _KasusAdminState extends State<KasusAdmin> {
   }
 
   bool _isOverdue(dynamic raw, String? status) {
-
     if (status == 'Resolved' || status == 'Rejected') return false;
     if (raw == null) return false;
     
@@ -122,6 +121,48 @@ class _KasusAdminState extends State<KasusAdmin> {
       default:
         return Colors.grey;
     }
+  }
+
+  // Fungsi untuk mendapatkan warna card berdasarkan status dan priority
+  Color _getCardColor(Map<String, dynamic> issue) {
+    final status = issue['status']?.toString();
+    final isResolved = status == 'Resolved';
+    final isRejected = status == 'Rejected';
+    final priority = issue['priority']?.toString();
+    
+    // Status Resolved -> hijau
+    if (isResolved) {
+      return Colors.green[700]!;
+    }
+    
+    // Status Rejected -> merah
+    if (isRejected) {
+      return Colors.red[700]!;
+    }
+    
+    // Untuk status Pending/In Progress/Assigned
+    // Priority Urgent -> merah (darurat)
+    if (priority == 'Urgent') {
+      return const Color.fromARGB(255, 243, 77, 65);
+    }
+    
+    // Priority High/Medium/Low -> PUTIH
+    return Colors.white;
+  }
+
+  // Apakah card menggunakan teks putih (gelap) atau hitam (terang)
+  bool _isDarkCard(Map<String, dynamic> issue) {
+    final status = issue['status']?.toString();
+    final isResolved = status == 'Resolved';
+    final isRejected = status == 'Rejected';
+    final priority = issue['priority']?.toString();
+    
+    // Resolved/Rejected/Urgent -> teks putih
+    if (isResolved || isRejected) return true;
+    if (priority == 'Urgent') return true;
+    
+    // High/Medium/Low dengan status Pending/In Progress -> teks hitam
+    return false;
   }
 
   Widget _priorityBtn(String label, String val, Color color) {
@@ -283,35 +324,20 @@ class _KasusAdminState extends State<KasusAdmin> {
                           itemBuilder: (context, index) {
                             final issue = filteredIssues[index];
                             final status = issue['status']?.toString();
+                            final priority = issue['priority']?.toString();
                             final isResolved = status == 'Resolved';
                             final isRejected = status == 'Rejected';
+                            final isUrgent = priority == 'Urgent';
                             final deadline = issue['deadline'];
-                            
                             final isOverdue = _isOverdue(deadline, status);
-
-                            Color cardColor;
-                            if (isResolved) {
-                              cardColor = Colors.green[700]!;
-                            } else if (isRejected) {
-                              cardColor = Colors.red[700]!;
-                            } else {
-                              switch (issue['priority']) {
-                                case 'Urgent':
-                                  cardColor = const Color.fromARGB(255, 243, 77, 65);
-                                  break;
-                                case 'High':
-                                  cardColor = Colors.deepOrange;
-                                  break;
-                                case 'Medium':
-                                  cardColor = Colors.orange;
-                                  break;
-                                case 'Low':
-                                  cardColor = Colors.green;
-                                  break;
-                                default:
-                                  cardColor = Colors.grey[600]!;
-                              }
-                            }
+                            
+                            // Tentukan warna card
+                            final cardColor = _getCardColor(issue);
+                            final useWhiteText = _isDarkCard(issue);
+                            
+                            // Warna teks untuk card
+                            final textColor = useWhiteText ? Colors.white : Colors.black87;
+                            final subtitleColor = useWhiteText ? Colors.white70 : Colors.grey.shade600;
 
                             return GestureDetector(
                               onTap: () async {
@@ -342,132 +368,173 @@ class _KasusAdminState extends State<KasusAdmin> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // Row Title & Status/Priority Badge
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Expanded(
                                           child: Text(
                                             issue['title'] ?? '',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontWeight: FontWeight.w600,
                                               fontSize: 16,
-                                              color: Colors.white,
+                                              color: textColor,
                                             ),
                                           ),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.25),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              if (isResolved)
-                                                const Icon(Icons.check_circle, 
-                                                  color: Colors.white, 
-                                                  size: 12,
+                                        if (isResolved)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.25),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: const [
+                                                Icon(Icons.check_circle,
+                                                    color: Colors.white, size: 12),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  'Selesai',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
                                                 ),
-                                              if (isResolved)
-                                                const SizedBox(width: 4),
-                                              Text(
-                                                isResolved ? 'Selesai' : (status ?? '-'),
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else if (isRejected)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withOpacity(0.25),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: const Text(
+                                              'Ditolak',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
                                               ),
-                                            ],
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: useWhiteText 
+                                                  ? Colors.white.withOpacity(0.25)
+                                                  : _statusColor(status).withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Text(
+                                              priority ?? '',
+                                              style: TextStyle(
+                                                color: useWhiteText 
+                                                    ? Colors.white 
+                                                    : _statusColor(status),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
                                           ),
-                                        ),
                                       ],
                                     ),
+                                    
                                     const SizedBox(height: 8),
+                                    
+                                    // Status untuk non-Resolved/Rejected
                                     if (!isResolved && !isRejected) ...[
                                       Text(
-                                        "Prioritas: ${issue['priority'] ?? ''}",
-                                        style: const TextStyle(
+                                        "Status: ${status ?? '-'}",
+                                        style: TextStyle(
                                           fontSize: 12,
-                                          color: Colors.white70,
-                                          fontWeight: FontWeight.w500,
+                                          color: subtitleColor,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                     ],
+                                    
+                                    // Lokasi
                                     Text(
-                                      "Lokasi : ${issue['location'] ?? ''}",
-                                      style: const TextStyle(
+                                      issue['location'] ?? '',
+                                      style: TextStyle(
                                         fontSize: 12,
-                                        color: Colors.white70,
+                                        color: subtitleColor,
                                       ),
                                     ),
+                                    
                                     const SizedBox(height: 8),
+                                    
+                                    // Deadline
                                     Row(
                                       children: [
                                         Icon(
                                           Icons.access_time,
                                           size: 14,
-                                          color: isOverdue 
-                                              ? Colors.white70 
-                                            
-                                                  : Colors.white70,
+                                          color: isOverdue && !isResolved && !isRejected
+                                              ? (useWhiteText ? Colors.yellow : Colors.red)
+                                              : subtitleColor,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Deadline: ${_formatDeadline(deadline)}',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: isOverdue 
-                                                ? Colors.white70
-                                                
-                                                    : Colors.white70,
-                                            fontWeight: (isOverdue) 
-                                                ? FontWeight.bold 
+                                            color: isOverdue && !isResolved && !isRejected
+                                                ? (useWhiteText ? Colors.yellow : Colors.red)
+                                                : subtitleColor,
+                                            fontWeight: isOverdue && !isResolved && !isRejected
+                                                ? FontWeight.bold
                                                 : FontWeight.normal,
                                           ),
                                         ),
-                                        if (isOverdue) ...[
+                                        if (isOverdue && !isResolved && !isRejected) ...[
                                           const SizedBox(width: 4),
-                                          const Text(
+                                          Text(
                                             '(TERLAMBAT!)',
                                             style: TextStyle(
                                               fontSize: 10,
-                                              color: Color.fromARGB(255, 255, 255, 255),
+                                              color: useWhiteText ? Colors.yellow : Colors.red,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ]
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
-                                    Row(
+                                  const SizedBox(height: 8),                                  
+                                   Row(
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           issue['created_at'] != null
                                               ? 'Dibuat: ${issue['created_at'].toString().substring(0, 10)}'
                                               : '',
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 11,
-                                            color: Colors.white70,
+                                            color: subtitleColor,
                                           ),
                                         ),
-                                        const Row(
+                                        Row(
                                           children: [
                                             Text(
                                               "Lihat Detail",
                                               style: TextStyle(
-                                                color: Colors.white,
+                                                color: textColor,
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            SizedBox(width: 4),
+                                            const SizedBox(width: 4),
                                             Icon(Icons.arrow_forward,
-                                                color: Colors.white, size: 14),
+                                                color: textColor, size: 14),
                                           ],
                                         ),
                                       ],

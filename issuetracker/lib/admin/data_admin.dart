@@ -6,6 +6,7 @@ import 'package:issuetracker/admin/laporan_kasus.dart';
 import 'package:issuetracker/admin/profile_admin.dart';
 import 'package:issuetracker/admin/tidak_selesai.dart';
 import 'kasus_ditolak.dart';
+
 class DataAdmin extends StatefulWidget {
   const DataAdmin({super.key});
 
@@ -15,21 +16,33 @@ class DataAdmin extends StatefulWidget {
 
 class _DataAdminState extends State<DataAdmin> {
   int _currentIndex = 2;
+  final Color primary = const Color(0xFF2563EB);
+  final Color bg = const Color(0xFFF8FAFC);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bg,
       appBar: AppBar(
-        title: const Text("Data Admin "),
-        backgroundColor: Colors.grey[200],
+        title: const Text(
+          "Data",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 22,
+            color: Colors.black87,
+          ),
+        ),
+        backgroundColor: bg,
+        elevation: 0,
+        centerTitle: false,
       ),
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.grey[200],
-        selectedItemColor: Colors.blue,
+        backgroundColor: Colors.white,
+        selectedItemColor: primary,
         unselectedItemColor: Colors.grey,
         currentIndex: _currentIndex,
+        elevation: 8,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
@@ -54,28 +67,28 @@ class _DataAdminState extends State<DataAdmin> {
           });
 
           if (index == 0) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const DashboardAdmin(),
               ),
             );
           } else if (index == 1) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(
-                builder: (context) => KasusAdmin(),
+                builder: (context) => const KasusAdmin(),
               ),
             );
           } else if (index == 2) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const DataAdmin(),
               ),
             );
           } else if (index == 3) {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const ProfileAdmin(),
@@ -86,11 +99,78 @@ class _DataAdminState extends State<DataAdmin> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(20),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
-
+              // Header dengan gradient
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [primary, primary.withOpacity(0.8)],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.storage_rounded,
+                        color: Colors.white,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Data Management',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Kelola data akun dan laporan',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Title section
+              const Text(
+                'Menu Data',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              
+              const SizedBox(height: 16),
+              
+              // Row 1 - Data Akun & Tidak Selesai
               Row(
                 children: [
                   Expanded(
@@ -102,31 +182,69 @@ class _DataAdminState extends State<DataAdmin> {
                         );
                       },
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12, right: 6),
+                        margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey[100],
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0x19000000),
-                              blurRadius: 3,
-                              offset: const Offset(0, 3),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                          
-                            Icon(Icons.people, size: 40, color: Colors.blue[600]),
-                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2563EB).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Icon(
+                                Icons.people,
+                                size: 40,
+                                color: const Color(0xFF2563EB),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             const Text(
                               'Data Akun',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                           Icon(
-                            Icons.arrow_forward, color: Colors.blue, size: 20,)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2563EB).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Lihat',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF2563EB),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 12,
+                                    color: const Color(0xFF2563EB),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -135,32 +253,75 @@ class _DataAdminState extends State<DataAdmin> {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => TidakSelesai()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const TidakSelesai()),
+                        );
                       },
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12, left: 6),
+                        margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey[100],
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0x19000000),
-                              blurRadius: 3,
-                              offset: const Offset(0, 3),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.timer_off, size: 40, color: Colors.orange[600]),
-                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Icon(
+                                Icons.timer_off,
+                                size: 40,
+                                color: const Color(0xFFF59E0B),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             const Text(
                               'Tidak Selesai',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                            const Icon(Icons.arrow_forward, color: Colors.orange, size: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF59E0B).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Lihat',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFFF59E0B),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 12,
+                                    color: const Color(0xFFF59E0B),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -168,40 +329,84 @@ class _DataAdminState extends State<DataAdmin> {
                   ),
                 ],
               ),
-
-
-
+              
+              const SizedBox(height: 16),
+              
+              // Row 2 - Kasus Ditolak & Detail Laporan
               Row(
                 children: [
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => KasusDitolak()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const KasusDitolak()),
+                        );
                       },
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12, right: 6),
+                        margin: const EdgeInsets.only(right: 8),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey[100],
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0x19000000),
-                              blurRadius: 3,
-                              offset: const Offset(0, 3),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.cancel, size: 40, color: Colors.red[600]),
-                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Icon(
+                                Icons.cancel,
+                                size: 40,
+                                color: const Color(0xFFEF4444),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             const Text(
                               'Kasus Ditolak',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                            const Icon(Icons.arrow_forward, color: Colors.red, size: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Lihat',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFFEF4444),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 12,
+                                    color: const Color(0xFFEF4444),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -210,32 +415,75 @@ class _DataAdminState extends State<DataAdmin> {
                   Expanded(
                     child: GestureDetector(
                       onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => LaporanKasus()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LaporanKasus()),
+                        );
                       },
                       child: Container(
-                        margin: const EdgeInsets.only(bottom: 12, left: 6),
+                        margin: const EdgeInsets.only(left: 8),
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          color: Colors.grey[100],
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0x19000000),
-                              blurRadius: 3,
-                              offset: const Offset(0, 3),
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.assessment, size: 40, color: Colors.blue[700]),
-                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Icon(
+                                Icons.assessment,
+                                size: 40,
+                                color: const Color(0xFF8B5CF6),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
                             const Text(
                               'Detail Laporan',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
                             ),
                             const SizedBox(height: 8),
-                            const Icon(Icons.arrow_forward, color: Colors.blue, size: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Lihat',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF8B5CF6),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 12,
+                                    color: const Color(0xFF8B5CF6),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
                       ),

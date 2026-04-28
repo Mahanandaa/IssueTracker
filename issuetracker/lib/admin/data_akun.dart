@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:issuetracker/admin/dashboard_admin.dart';
 import 'package:issuetracker/admin/kasus_admin.dart';
 import 'package:issuetracker/admin/profile_admin.dart';
@@ -21,9 +23,9 @@ class _DataAkunState extends State<DataAkun> {
   List<Map<String, dynamic>> teknisiList = [];
   Map<String, double> teknisiRatings = {};
 
-  // Simpan password admin saat halaman ini dibuild
-  // (diambil dari shared state / login session)
-  String _adminPassword = '';
+
+static const _supabaseUrl = 'https://ivzuhuebueotbjpfunxp.supabase.co';
+  static const _serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2enVodWVidWVvdGJqcGZ1bnhwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTM1ODM1MCwiZXhwIjoyMDg2OTM0MzUwfQ.mWZvQjMTEkjzDTuUrEko8zoXR4gQVno80yronMxqV4s';
 
   bool isLoading = true;
   int _currentIndex = 2;
@@ -32,67 +34,22 @@ class _DataAkunState extends State<DataAkun> {
   void initState() {
     super.initState();
     fetchUsers();
-    _promptAdminPassword();
   }
 
-  /// Minta password admin sekali saja saat halaman dibuka
-  Future<void> _promptAdminPassword() async {
-    final ctrl = TextEditingController();
-    bool obscure = true;
-
-    final result = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSt) => AlertDialog(
-          title: const Text('Verifikasi Admin'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Masukkan password Anda untuk dapat mengelola akun.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: ctrl,
-                obscureText: obscure,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: 'Password admin',
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                        obscure ? Icons.visibility_off : Icons.visibility),
-                    onPressed: () => setSt(() => obscure = !obscure),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, null),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, ctrl.text.trim()),
-              style:
-                  ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-              child: const Text('Masuk',
-                  style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
-      ),
+  Future<void> _adminUpdateEmail(String userId, String newEmail) async {
+    final uri = Uri.parse('$_supabaseUrl/auth/v1/admin/users/$userId');
+    final res = await http.put(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': _serviceRoleKey,
+        'Authorization': 'Bearer $_serviceRoleKey',
+      },
+      body: jsonEncode({'email': newEmail, 'email_confirm': true}),
     );
-
-    if (result != null && result.isNotEmpty) {
-      setState(() => _adminPassword = result);
-    } else {
-      // Jika admin tidak memasukkan password, kembali ke halaman sebelumnya
-      if (mounted) Navigator.pop(context);
+    if (res.statusCode != 200) {
+      final body = jsonDecode(res.body);
+      throw Exception(body['msg'] ?? body['message'] ?? 'Gagal update email');
     }
   }
 
@@ -224,70 +181,24 @@ class _DataAkunState extends State<DataAkun> {
                   onPressed: isSaving
                       ? null
                       : () async {
-                          final newName = nameCtrl.text.trim();
-                          final newPhone = phoneCtrl.text.trim();
-                          final newEmail = emailCtrl.text.trim();
-                          final oldEmail = user['email'] as String;
-                          final emailChanged = newEmail != oldEmail;
-
-                          // Validasi input
-                          if (newName.isEmpty ||
-                              newEmail.isEmpty ||
-                              newPhone.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Semua field wajib diisi')),
-                            );
-                            return;
-                          }
-
-                          // Validasi format email sederhana
-                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                              .hasMatch(newEmail)) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Format email tidak valid')),
-                            );
-                            return;
-                          }
-
                           setSheetState(() => isSaving = true);
 
+                          final newEmail = emailCtrl.text.trim();
+                          final emailChanged = newEmail != (user['email'] as String);
+
                           try {
-                            if (!emailChanged) {
-                              // ── Hanya nama & nomor berubah ──────────────
-                              await supabase.from('users').update({
-                                'name': newName,
-                                'phone': newPhone,
-                                'updated_at':
-                                    DateTime.now().toIso8601String(),
-                              }).eq('id', user['id']);
-                            } else {
-                              // ── Email berubah: update Supabase Auth + tabel users ──
-                              // SYARAT: Di Supabase Dashboard → Authentication →
-                              // Providers → Email → matikan "Confirm email"
-                              // agar email baru langsung aktif tanpa verifikasi.
-                              final adminEmail =
-                                  supabase.auth.currentUser?.email ?? '';
-
-                              // Update nama & nomor + email sekaligus di tabel users
-                              await supabase.from('users').update({
-                                'name': newName,
-                                'phone': newPhone,
-                              }).eq('id', user['id']);
-
-                              // Update Auth email user target via sign in sebagai
-                              // user target → updateUser → kembali sign in admin
-                              await authService.adminUpdateUserEmail(
-                                targetUserId: user['id'],
-                                targetOldEmail: oldEmail,
-                                targetNewEmail: newEmail,
-                                adminEmail: adminEmail,
-                                adminPassword: _adminPassword,
-                              );
-                              // Catatan: adminUpdateUserEmail sudah update
-                              // tabel users.email & updated_at di dalamnya
+                            if (emailChanged) {
+                              // Update email di Auth via Admin REST API
+                              await _adminUpdateEmail(user['id'], newEmail);
                             }
+
+                            // Update tabel users
+                            await supabase.from('users').update({
+                              'name': nameCtrl.text.trim(),
+                              'phone': phoneCtrl.text.trim(),
+                              'email': newEmail,
+                              'updated_at': DateTime.now().toIso8601String(),
+                            }).eq('id', user['id']);
 
                             if (mounted) Navigator.pop(sheetContext);
                             await fetchUsers();
@@ -296,40 +207,16 @@ class _DataAkunState extends State<DataAkun> {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(emailChanged
-                                      ? 'Email berhasil diubah ke $newEmail ✓\n'
-                                          'User dapat login dengan email baru.'
+                                      ? 'Email berhasil diubah ke $newEmail ✓'
                                       : 'Akun berhasil diupdate ✓'),
-                                  duration: const Duration(seconds: 3),
                                 ),
                               );
                             }
                           } catch (e) {
                             setSheetState(() => isSaving = false);
                             if (mounted) {
-                              String msg = e.toString();
-                              if (msg.contains('password_not_stored')) {
-                                msg =
-                                    'Gagal: User belum pernah login setelah update terbaru.\n'
-                                    'Minta user login ulang terlebih dahulu.';
-                              } else if (msg.contains('Invalid login') ||
-                                  msg.contains('invalid_credentials')) {
-                                msg =
-                                    'Gagal: Password user di database tidak cocok.\n'
-                                    'Minta user login ulang agar password tersinkron.';
-                              } else if (msg.contains('already registered') ||
-                                  msg.contains('already been registered')) {
-                                msg =
-                                    'Gagal: Email $newEmail sudah digunakan akun lain.';
-                              } else if (msg
-                                  .contains('email_address_not_authorized')) {
-                                msg =
-                                    'Gagal: Email tidak diizinkan. Periksa pengaturan Supabase.';
-                              }
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(msg),
-                                  duration: const Duration(seconds: 4),
-                                ),
+                                SnackBar(content: Text('Gagal: $e')),
                               );
                             }
                           }
