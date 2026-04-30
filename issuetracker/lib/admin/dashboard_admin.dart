@@ -292,7 +292,22 @@ class _DashboardAdminState extends State<DashboardAdmin> {
             const SizedBox(height: 12),
             Row(
               
+              
               children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  )
+                  ,
+                ),
                 Expanded(
                   flex: 2,
                   child: Container(

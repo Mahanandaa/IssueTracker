@@ -19,13 +19,12 @@ class ProfileAdmin extends StatefulWidget {
 class _ProfileAdminState extends State<ProfileAdmin> {
   final authService = AuthService();
   final supabase = Supabase.instance.client;
-  int _currentIndex = 0;
+  int _currentIndex = 3;
 
   Map<String, dynamic>? data;
   bool isLoading = true;
 
   File? _newPhoto;
-  bool _isUploadingPhoto = false;
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -61,8 +60,6 @@ class _ProfileAdminState extends State<ProfileAdmin> {
     }
   }
 
- 
-
   void logout() async {
     await authService.keluar();
     if (!mounted) return;
@@ -70,6 +67,32 @@ class _ProfileAdminState extends State<ProfileAdmin> {
       context,
       MaterialPageRoute(builder: (_) => const Loginpage()),
     );
+  }
+
+  String _formatRole(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return 'Admin';
+      case 'karyawan':
+        return 'Karyawan';
+      case 'teknisi':
+        return 'Teknisi';
+      default:
+        return role ?? '-';
+    }
+  }
+
+  Color _roleColor(String? role) {
+    switch (role?.toLowerCase()) {
+      case 'admin':
+        return Colors.blue;
+      case 'karyawan':
+        return Colors.green;
+      case 'teknisi':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
   }
 
   @override
@@ -82,11 +105,13 @@ class _ProfileAdminState extends State<ProfileAdmin> {
         isDark ? Colors.black45 : const Color.fromARGB(255, 200, 200, 200);
 
     final photoUrl = data?['photo_url'];
+    final role = data?['role'] as String?;
 
     final ImageProvider? avatarImage = _newPhoto != null
         ? FileImage(_newPhoto!)
         : (photoUrl is String && photoUrl.isNotEmpty
-            ? NetworkImage(photoUrl) : null);
+            ? NetworkImage(photoUrl)
+            : null);
 
     if (isLoading) {
       return const Scaffold(
@@ -95,7 +120,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
     }
 
     return Scaffold(
-       bottomNavigationBar: BottomNavigationBar(
+      bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.grey[200],
         selectedItemColor: Colors.blue,
@@ -128,12 +153,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
               ),
             );
           } else if (index == 3) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const ProfileAdmin(),
-              ),
-            );
+            // Sudah di halaman ini
           }
         },
         items: const [
@@ -151,8 +171,8 @@ class _ProfileAdminState extends State<ProfileAdmin> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-        Container(
-        padding: const EdgeInsets.all(18),
+          Container(
+            padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
               color: cardColor,
               borderRadius: BorderRadius.circular(14),
@@ -160,35 +180,72 @@ class _ProfileAdminState extends State<ProfileAdmin> {
             ),
             child: Column(
               children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage: avatarImage,
-                      child: avatarImage == null
-                          ? const Icon(Icons.person, size: 40)
-                          : null,
-                    ),
-                 
-                  ],
+                // Avatar
+                CircleAvatar(
+                  radius: 40,
+                  backgroundImage: avatarImage,
+                  child: avatarImage == null
+                      ? const Icon(Icons.person, size: 40)
+                      : null,
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: 12),
+
+                // Nama
                 Text(
                   data?['name'] ?? '',
                   style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: textColor),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: textColor,
+                  ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  data?['email'] ?? '',
-                  style: TextStyle(color: textColor),
+                const SizedBox(height: 6),
+
+                // Badge Role
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _roleColor(role).withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: _roleColor(role), width: 1),
+                  ),
+                  child: Text(
+                    _formatRole(role),
+                    style: TextStyle(
+                      color: _roleColor(role),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 5),
-                Text(
-                  data?['phone'] ?? '',
-                  style: TextStyle(color: textColor),
+                const SizedBox(height: 8),
+
+                // Email
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.email_outlined, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(
+                      data?['email'] ?? '',
+                      style: TextStyle(color: textColor),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+
+                // Telepon
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.phone_outlined, size: 16, color: Colors.grey[600]),
+                    const SizedBox(width: 6),
+                    Text(
+                      data?['phone'] ?? '',
+                      style: TextStyle(color: textColor),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -196,6 +253,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
 
           const SizedBox(height: 20),
 
+          // Tombol Edit Profile
           GestureDetector(
             onTap: () async {
               await Navigator.push(
@@ -232,7 +290,7 @@ class _ProfileAdminState extends State<ProfileAdmin> {
 
           const SizedBox(height: 15),
 
-
+          // Tombol Keluar
           Container(
             padding:
                 const EdgeInsets.symmetric(horizontal: 20, vertical: 18),

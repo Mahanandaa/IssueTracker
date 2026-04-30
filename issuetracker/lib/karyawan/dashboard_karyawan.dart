@@ -22,10 +22,19 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   final searchBar = TextEditingController();
   DateTime? selectedDate;
   bool _isLoading = false;
-  String? selectedStatus;
+
+  String? _selectedCategory;
 
   final Color primary = const Color(0xFF2563EB);
   final Color bg = const Color(0xFFF8FAFC);
+
+  final List<String> _categories = [
+    'Infrastruktur',
+    'Kelistrikan',
+    'Kebersihan',
+    'Keamanan',
+    'Lainnya',
+  ];
 
   @override
   void initState() {
@@ -35,16 +44,19 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
 
   Future<void> fetchIssues() async {
     if (_uid.isEmpty) return;
+    setState(() => _isLoading = true);
     try {
       final response =
           await supabase.from('issues').select().eq('reported_by', _uid);
       if (mounted) {
         setState(() {
           issues = List<Map<String, dynamic>>.from(response);
+          _isLoading = false;
         });
       }
     } catch (e) {
       debugPrint('fetchIssues error: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -102,23 +114,10 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
-  Future<void> fetchByStatus(String status) async {
-    final response = await supabase
-        .from('issues')
-        .select()
-        .eq('reported_by', _uid)
-        .eq('status', status);
-
-    setState(() {
-      issues = List<Map<String, dynamic>>.from(response);
-    });
-  }
-
   Future<void> fenchData([String? searchTerm]) async {
     setState(() => _isLoading = true);
     try {
-      var query =
-          supabase.from('issues').select().eq('reported_by', _uid);
+      var query = supabase.from('issues').select().eq('reported_by', _uid);
 
       if (searchTerm != null && searchTerm.isNotEmpty) {
         query = supabase
@@ -129,7 +128,6 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       }
 
       final data = await query;
-
       setState(() {
         issues = List<Map<String, dynamic>>.from(data);
       });
@@ -152,48 +150,63 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
     }
   }
 
-  Color _statusColor(String? status) {
+
+  Color _statusBadgeBg(String? status) {
     switch (status) {
-      case 'Resolved':
-        return Colors.green;
-      case 'Rejected':
-        return Colors.red;
-      case 'In Progress':
-        return primary;
-      case 'Pending':
-        return Colors.orange;
-      default:
-        return Colors.grey;
+      case 'Resolved':    return Colors.green;
+      case 'Rejected':    return Colors.red.shade600;
+      case 'In Progress': return primary;
+      case 'Pending':     return Colors.orange;
+      case 'Assigned':    return Colors.purple;
+      default:            return Colors.grey;
     }
   }
 
-  Color _getCardColor(String? status) {
+  String _statusLabel(String? status) {
     switch (status) {
-      case 'Resolved':
-        return Colors.green[700]!;
-      case 'Rejected':
-        return Colors.red[700]!;
-      case 'In Progress':
-        return primary;
-      case 'Pending':
-        return Colors.white;
-      default:
-        return Colors.white;
+      case 'Resolved':    return 'Selesai';
+      case 'Rejected':    return 'Ditolak';
+      case 'In Progress': return 'Dikerjakan';
+      case 'Pending':     return 'Menunggu';
+      case 'Assigned':    return 'Ditugaskan';
+      default:            return status ?? '-';
     }
   }
 
-  bool _isDarkCard(String? status) {
+  IconData _statusIcon(String? status) {
     switch (status) {
-      case 'Resolved':
-      case 'Rejected':
-      case 'In Progress':
-        return true;
-      case 'Pending':
-        return false;
-      default:
-        return false;
+      case 'Resolved':    return Icons.check_circle;
+      case 'Rejected':    return Icons.cancel;
+      case 'In Progress': return Icons.build_circle;
+      case 'Pending':     return Icons.hourglass_top;
+      case 'Assigned':    return Icons.assignment_ind;
+      default:            return Icons.info_outline;
     }
   }
+
+  // ── PRIORITY helpers ────────────────────────────────────────────────────
+
+  Color _priorityColor(String? priority) {
+    switch (priority) {
+      case 'Urgent': return Colors.red;
+      case 'High':   return Colors.orange.shade700;
+      case 'Medium': return Colors.orange;
+      case 'Low':    return Colors.orange.shade300;
+      default:       return Colors.grey;
+    }
+  }
+
+  String _priorityLabel(String? priority) {
+    switch (priority) {
+      case 'Urgent': return 'Darurat';
+      case 'High':   return 'Tinggi';
+      case 'Medium': return 'Menengah';
+      case 'Low':    return 'Rendah';
+      default:       return priority ?? '-';
+    }
+  }
+
+  // ── Deadline helpers ────────────────────────────────────────────────────
 
   String _formatDeadline(dynamic raw) {
     if (raw == null) return 'Tidak ada deadline';
@@ -210,60 +223,117 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
   }
 
   bool _isOverdue(dynamic raw, String? status) {
-    if (raw == null || status == 'Resolved' || status == 'Rejected') return false;
+    if (raw == null ||
+        status == 'Resolved' ||
+        status == 'Rejected') return false;
     try {
-      return DateTime.parse(raw.toString()).toLocal().isBefore(DateTime.now());
+      return DateTime.parse(raw.toString())
+          .toLocal()
+          .isBefore(DateTime.now());
     } catch (_) {
       return false;
     }
   }
 
-  Widget _filterBtn(String label, String? value) {
-    final isActive = selectedStatus == value;
-
-    return Expanded(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () {
-          setState(() => selectedStatus = value);
-
-          if (value == null) {
-            fetchIssues();
-          } else {
-            fetchByStatus(value);
-          }
-        },
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: isActive ? primary : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade200),
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: isActive ? Colors.white : Colors.black87,
-              ),
-            ),
-          ),
-        ),
+  void _showCategoryFilter() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
+      builder: (_) {
+        return StatefulBuilder(builder: (ctx, setSheet) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Filter by Kategori',
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Semua'),
+                      selected: _selectedCategory == null,
+                      selectedColor: primary,
+                      labelStyle: TextStyle(
+                        color: _selectedCategory == null
+                            ? Colors.white
+                            : Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      onSelected: (_) {
+                        setState(() => _selectedCategory = null);
+                        setSheet(() {});
+                        Navigator.pop(context);
+                        fetchIssues();
+                      },
+                    ),
+                    ..._categories.map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return ChoiceChip(
+                        label: Text(cat),
+                        selected: isSelected,
+                        selectedColor: primary,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.blue,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        onSelected: (_) {
+                          setState(() => _selectedCategory = cat);
+                          setSheet(() {});
+                          Navigator.pop(context);
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Filter by category jika dipilih
+    final displayIssues = _selectedCategory == null
+        ? issues
+        : issues
+            .where((i) => i['category'] == _selectedCategory)
+            .toList();
+
+    final hasFilter = _selectedCategory != null;
+
     return Scaffold(
       backgroundColor: bg,
 
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primary,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text("Tambah", style: TextStyle(color: Colors.white)),
+        label:
+            const Text("Tambah", style: TextStyle(color: Colors.white)),
         onPressed: () async {
           await Navigator.push(
             context,
@@ -276,16 +346,15 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
       body: SafeArea(
         child: Column(
           children: [
-            // HEADER
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
                     'Dashboard',
-                    style:
-                        TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 22),
                   ),
                   Row(
                     children: [
@@ -319,11 +388,13 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               ),
             ),
 
-            // SEARCH + DATE
+            // ── SEARCH + FILTER CATEGORY ICON + DATE ────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               child: Row(
                 children: [
+                  // Search bar
                   Expanded(
                     child: Container(
                       height: 48,
@@ -332,8 +403,7 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(14),
-                        border:
-                            Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
                       child: TextField(
                         controller: searchBar,
@@ -352,13 +422,55 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
+
+                  GestureDetector(
+                    onTap: _showCategoryFilter,
+                    child: Container(
+                      height: 48,
+                      width: 48,
+                      decoration: BoxDecoration(
+                        color: hasFilter ? primary : Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: hasFilter
+                              ? primary
+                              : Colors.grey.shade200,
+                        ),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.filter_list,
+                            color: hasFilter
+                                ? Colors.white
+                                : Colors.blue.shade700
+                          ),
+                          if (hasFilter)
+                            Positioned(
+                              top: 8, right: 8,
+                              child: Container(
+                                width: 8, height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
                   Container(
+                    height: 48,
+                    width: 48,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: Colors.grey.shade200),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: IconButton(
                       icon: Icon(Icons.date_range, color: primary),
@@ -369,279 +481,366 @@ class _DashboardKaryawanState extends State<DashboardKaryawan> {
               ),
             ),
 
-            const SizedBox(height: 16),
-
-            // FILTER
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  _filterBtn('All', null),
-                  const SizedBox(width: 6),
-                  _filterBtn('Pending', 'Pending'),
-                  const SizedBox(width: 6),
-                  _filterBtn('In Progress', 'In Progress'),
-                  const SizedBox(width: 6),
-                  _filterBtn('Escalated', 'Escalated'),
-                  const SizedBox(width: 6),
-                  _filterBtn('Resolved', 'Resolved'),
-                  const SizedBox(width: 6),
-                  _filterBtn('Rejected', 'Rejected'),
-                ],
+            if (hasFilter)
+              Padding(
+                padding: const EdgeInsets.only(left: 20, bottom: 8),
+                child: Row(
+                  children: [
+                    const Text('Kategori: ',
+                        style:
+                            TextStyle(fontSize: 12, color: Colors.grey)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: primary),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _selectedCategory!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() => _selectedCategory = null);
+                              fetchIssues();
+                            },
+                            child: Icon(Icons.close, size: 14,
+                                color: primary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
 
-            const SizedBox(height: 16),
-
-            // LIST
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: issues.length,
-                      itemBuilder: (context, index) {
-                        final issue = issues[index];
-                        final status = issue['status'];
-                        final isResolved = status == 'Resolved';
-                        final isRejected = status == 'Rejected';
-                        final isPending = status == 'Pending';
-                        final deadline = issue['deadline'];
-                        final isOverdue = _isOverdue(deadline, status);
-                        
-                        final cardColor = _getCardColor(status);
-                        final useWhiteText = _isDarkCard(status);
-                        final textColor = useWhiteText ? Colors.white : Colors.black87;
-                        final subtitleColor = useWhiteText ? Colors.white70 : Colors.grey.shade600;
+                  : displayIssues.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'Tidak Ada Laporan',
+                            style: TextStyle(
+                                fontStyle: FontStyle.italic,
+                                fontSize: 20,
+                                color: Colors.grey),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding:
+                              const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                          itemCount: displayIssues.length,
+                          itemBuilder: (context, index) {
+                            final issue = displayIssues[index];
+                            final status = issue['status']?.toString();
+                            final priority =
+                                issue['priority']?.toString();
+                            final isResolved = status == 'Resolved';
+                            final isRejected = status == 'Rejected';
+                            final isPending = status == 'Pending';
+                            final deadline = issue['deadline'];
+                            final isOverdue =
+                                _isOverdue(deadline, status);
 
-                        return GestureDetector(
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DetailLaporanKaryawan(
-                                    issueId: issue['id'].toString()),
+                            return GestureDetector(
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        DetailLaporanKaryawan(
+                                            issueId: issue['id']
+                                                .toString()),
+                                  ),
+                                );
+                                fetchIssues();
+                              },
+                              child: Container(
+                                margin:
+                                    const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  // ── CARD SELALU PUTIH ──
+                                  color: Colors.white,
+                                  borderRadius:
+                                      BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black
+                                          .withOpacity(0.06),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    // ── JUDUL & STATUS BADGE ───────
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            issue['title'] ?? '',
+                                            style: const TextStyle(
+                                              fontWeight:
+                                                  FontWeight.w700,
+                                              fontSize: 15,
+                                              color: Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _buildStatusBadge(status),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 8),
+
+                                    // ── PRIORITY BADGE ─────────────
+                                    Container(
+                                      padding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: _priorityColor(priority)
+                                            .withOpacity(0.12),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color:
+                                              _priorityColor(priority),
+                                          width: 0.8,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        _priorityLabel(priority),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color:
+                                              _priorityColor(priority),
+                                        ),
+                                      ),
+                                    ),
+
+                                    const SizedBox(height: 8),
+
+                                    // ── KATEGORI (jika ada) ────────
+                                    if (issue['category'] != null) ...[
+                                      Row(
+                                        children: [
+                                          Icon(Icons.category_outlined,
+                                              size: 13,
+                                              color:
+                                                  Colors.grey.shade500),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            issue['category'],
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors
+                                                    .grey.shade600),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                    ],
+
+                                    // ── LOKASI ─────────────────────
+                                    Row(
+                                      children: [
+                                        Icon(Icons.location_on_outlined,
+                                            size: 13,
+                                            color:
+                                                Colors.grey.shade500),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            issue['location'] ?? '',
+                                            style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors
+                                                    .grey.shade600),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 6),
+
+                                    // ── DEADLINE ───────────────────
+                                    Row(
+                                      children: [
+                                        Icon(Icons.access_time,
+                                            size: 13,
+                                            color: isOverdue
+                                                ? Colors.red
+                                                : Colors.grey.shade500),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Deadline: ${_formatDeadline(deadline)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: isOverdue
+                                                ? Colors.red
+                                                : Colors.grey.shade600,
+                                            fontWeight: isOverdue
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                          ),
+                                        ),
+                                        if (isOverdue &&
+                                            !isResolved &&
+                                            !isRejected) ...[
+                                          const SizedBox(width: 4),
+                                          const Text(
+                                            '(Terlambat)',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.red,
+                                              fontWeight:
+                                                  FontWeight.bold,
+                                            ),
+                                          ),
+                                        ]
+                                      ],
+                                    ),
+
+                                    const SizedBox(height: 8),
+
+                                    // ── FOOTER ─────────────────────
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment
+                                              .spaceBetween,
+                                      children: [
+                                        Text(
+                                          issue['created_at'] != null
+                                              ? issue['created_at']
+                                                  .toString()
+                                                  .substring(0, 10)
+                                              : '',
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color:
+                                                  Colors.grey.shade500),
+                                        ),
+                                        if (isPending)
+                                          Row(
+                                            children: [
+                                              InkWell(
+                                                onTap: () async {
+                                                  await Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          EditLaporan(
+                                                              issue:
+                                                                  issue),
+                                                    ),
+                                                  );
+                                                  fetchIssues();
+                                                },
+                                                child: const Padding(
+                                                  padding:
+                                                      EdgeInsets.all(4),
+                                                  child: Icon(
+                                                      Icons.edit,
+                                                      color:
+                                                          Colors.orange,
+                                                      size: 18),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              InkWell(
+                                                onTap: () =>
+                                                    confirmDelete(
+                                                        issue['id']),
+                                                child: const Padding(
+                                                  padding:
+                                                      EdgeInsets.all(4),
+                                                  child: Icon(
+                                                      Icons.delete,
+                                                      color: Colors.red,
+                                                      size: 18),
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        else
+                                          Row(
+                                            children: [
+                                              Text(
+                                                "Lihat Detail",
+                                                style: TextStyle(
+                                                  color: primary,
+                                                  fontSize: 12,
+                                                  fontWeight:
+                                                      FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(Icons.arrow_forward,
+                                                  color: primary,
+                                                  size: 14),
+                                            ],
+                                          ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
-                            fetchIssues();
                           },
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: cardColor,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.05),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // ROW TITLE & STATUS BADGE
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        issue['title'] ?? '',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16,
-                                          color: textColor,
-                                        ),
-                                      ),
-                                    ),
-                                    if (isResolved)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.25),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: const [
-                                            Icon(Icons.check_circle,
-                                                color: Colors.white, size: 12),
-                                            SizedBox(width: 4),
-                                            Text(
-                                              'Selesai',
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    else if (isRejected)
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 8, vertical: 3),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withOpacity(0.25),
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: const Text(
-                                          'Ditolak',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      )
-                                    else
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 10, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: useWhiteText
-                                              ? Colors.white.withOpacity(0.25)
-                                              : _statusColor(status).withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          status ?? '',
-                                          style: TextStyle(
-                                            color: useWhiteText
-                                                ? Colors.white
-                                                : _statusColor(status),
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 6),
-                                
-                                // LOKASI
-                                Text(
-                                  issue['location'] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: subtitleColor,
-                                  ),
-                                ),
-                                
-                                const SizedBox(height: 6),
-                                
-                                // DEADLINE
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 14,
-                                      color: isOverdue && !isResolved && !isRejected
-                                          ? (useWhiteText ? Colors.yellow : Colors.red)
-                                          : subtitleColor,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Deadline: ${_formatDeadline(deadline)}',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isOverdue && !isResolved && !isRejected
-                                            ? (useWhiteText ? Colors.yellow : Colors.red)
-                                            : subtitleColor,
-                                        fontWeight: isOverdue && !isResolved && !isRejected
-                                            ? FontWeight.bold
-                                            : FontWeight.normal,
-                                      ),
-                                    ),
-                                    if (isOverdue && !isResolved && !isRejected) ...[
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '(Terlambat)',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: useWhiteText ? Colors.yellow : Colors.red,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ]
-                                  ],
-                                ),
-                                
-                                const SizedBox(height: 6),
-                                
-                                // ROW TANGGAL & ACTION BUTTONS
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // Tanggal
-                                    Text(
-                                      issue['created_at'] != null 
-                                          ? issue['created_at'].toString().substring(0, 10) 
-                                          : '', 
-                                      style: TextStyle(
-                                        fontSize: 12, 
-                                        color: subtitleColor,
-                                      ),
-                                    ),
-                                    // Action Buttons atau Lihat Detail
-                                    if (isPending)
-                                      Row(
-                                        children: [
-                                          InkWell(
-                                            onTap: () async {
-                                              await Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (_) => EditLaporan(issue: issue),
-                                                ),
-                                              );
-                                              fetchIssues();
-                                            },
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              child: const Icon(Icons.edit, color: Colors.orange, size: 18),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          InkWell(
-                                            onTap: () => confirmDelete(issue['id']),
-                                            child: Container(
-                                              padding: const EdgeInsets.all(4),
-                                              child: const Icon(Icons.delete, color: Colors.red, size: 18),
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    else
-                                      Row(
-                                        children: [
-                                          Text(
-                                            "Lihat Detail",
-                                            style: TextStyle(
-                                              color: textColor,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Icon(Icons.arrow_forward, color: textColor, size: 14),
-                                        ],
-                                      ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            )
+                        ),
+            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String? status) {
+    final bg = _statusBadgeBg(status);
+    final icon = _statusIcon(status);
+    final label = _statusLabel(status);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 12),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }

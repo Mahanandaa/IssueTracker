@@ -4,7 +4,6 @@ import 'package:issuetracker/teknisi/history_teknisi.dart';
 import 'package:issuetracker/teknisi/notifikasi_teknisi.dart';
 import 'package:issuetracker/teknisi/setting_profile_teknisi.dart';
 import 'package:issuetracker/teknisi/statistic_teknisi.dart';
-import 'package:path/path.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DashboardTeknisi extends StatefulWidget {
@@ -18,13 +17,24 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
   int _currentIndex = 0;
 
   final supabase = Supabase.instance.client;
-  final SearchBar = TextEditingController();
-  String? selectedStatus = "All";
+  final _searchController = TextEditingController();
+
+  String? _selectedCategory;
 
   List<Map<String, dynamic>> issues = [];
   bool _isLoading = false;
 
   String get _uid => supabase.auth.currentUser?.id ?? '';
+
+  final Color primary = const Color(0xFF2563EB);
+
+  final List<String> _categories = [
+    'Infrastruktur',
+    'Kelistrikan',
+    'Kebersihan',
+    'Keamanan',
+    'Lainnya',
+  ];
 
   @override
   void initState() {
@@ -58,8 +68,8 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
   Future<void> fenchData([String? searchTerm]) async {
     if (_uid.isEmpty) return;
     setState(() => _isLoading = true);
-   
-      var response = await supabase
+    try {
+      final response = await supabase
           .from('issues')
           .select()
           .eq('assigned_to', _uid)
@@ -73,11 +83,12 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
           _isLoading = false;
         });
       }
-    
-
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
- 
- String _formatDeadline(dynamic raw) {
+  }
+
+  String _formatDeadline(dynamic raw) {
     if (raw == null) return 'Tidak ada';
     try {
       final dt = DateTime.parse(raw.toString()).toLocal();
@@ -94,21 +105,165 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
   bool _isOverdue(dynamic raw, String? status) {
     if (raw == null || status == 'Resolved') return false;
     try {
-      return DateTime.parse(raw.toString()).toLocal().isBefore(DateTime.now());
+      return DateTime.parse(raw.toString())
+          .toLocal()
+          .isBefore(DateTime.now());
     } catch (_) {
       return false;
     }
   }
 
+
+  Color _statusBadgeBg(String? status) {
+    switch (status) {
+      case 'Resolved':    return Colors.green;
+      case 'Rejected':    return Colors.red.shade600;
+      case 'In Progress': return primary;
+      case 'Pending':     return Colors.orange;
+      case 'Assigned':    return Colors.purple;
+      default:            return Colors.grey;
+    }
+  }
+
+  String _statusLabel(String? status) {
+    switch (status) {
+      case 'Resolved':    return 'Selesai';
+      case 'Rejected':    return 'Ditolak';
+      case 'In Progress': return 'Dikerjakan';
+      case 'Pending':     return 'Menunggu';
+      case 'Assigned':    return 'Ditugaskan';
+      default:            return status ?? '-';
+    }
+  }
+
+  IconData _statusIcon(String? status) {
+    switch (status) {
+      case 'Resolved':    return Icons.check_circle;
+      case 'Rejected':    return Icons.cancel;
+      case 'In Progress': return Icons.build_circle;
+      case 'Pending':     return Icons.hourglass_top;
+      case 'Assigned':    return Icons.assignment_ind;
+      default:            return Icons.info_outline;
+    }
+  }
+
+  // ── PRIORITY helpers ────────────────────────────────────────────────────
+
+  Color _priorityColor(String? priority) {
+    switch (priority) {
+      case 'Urgent': return Colors.red;
+      case 'High':   return Colors.orange.shade700;
+      case 'Medium': return Colors.orange;
+      case 'Low':    return Colors.orange.shade300;
+      default:       return Colors.grey;
+    }
+  }
+
+  String _priorityLabel(String? priority) {
+    switch (priority) {
+      case 'Urgent': return 'Darurat';
+      case 'High':   return 'Tinggi';
+      case 'Medium': return 'Menengah';
+      case 'Low':    return 'Rendah';
+      default:       return priority ?? '-';
+    }
+  }
+
+  // ── Filter Category Bottom Sheet ────────────────────────────────────────
+
+  void _showCategoryFilter() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return StatefulBuilder(builder: (ctx, setSheet) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'Filter by Kategori',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      label: const Text('Semua'),
+                      selected: _selectedCategory == null,
+                      selectedColor: primary,
+                      labelStyle: TextStyle(
+                        color: _selectedCategory == null
+                            ? Colors.white
+                            : Colors.black87,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      onSelected: (_) {
+                        setState(() => _selectedCategory = null);
+                        setSheet(() {});
+                        Navigator.pop(context);
+                        fetchIssues();
+                      },
+                    ),
+                    ..._categories.map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return ChoiceChip(
+                        label: Text(cat),
+                        selected: isSelected,
+                        selectedColor: primary,
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? Colors.white
+                              : Colors.black87,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        onSelected: (_) {
+                          setState(() => _selectedCategory = cat);
+                          setSheet(() {});
+                          Navigator.pop(context);
+                        },
+                      );
+                    }),
+                  ],
+                ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> filteredIssues =
-        selectedStatus == null || selectedStatus == 'All'
-            ? issues
-            : issues.where((e) => e['priority'] == selectedStatus).toList();
+    // Filter by category
+    final displayIssues = _selectedCategory == null
+        ? issues
+        : issues
+            .where((i) => i['category'] == _selectedCategory)
+            .toList();
+
+    final hasFilter = _selectedCategory != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xfff4f4f4),
+      backgroundColor: const Color(0xFFF8FAFC),
 
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
@@ -127,20 +282,28 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
               icon: Icon(Icons.settings), label: 'Settings'),
         ],
         onTap: (index) {
+          setState(() => _currentIndex = index);
           if (index == 0) {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const DashboardTeknisi()));
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const DashboardTeknisi()));
           } else if (index == 1) {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const HistoryTeknisi()));
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const HistoryTeknisi()));
           } else if (index == 2) {
-            Navigator.pushReplacement(context,
-                MaterialPageRoute(builder: (context) => const Statistic()));
+            Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const Statistic()));
           } else if (index == 3) {
             Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const SettingProfileTeknisi()));
+                    builder: (context) =>
+                        const SettingProfileTeknisi()));
           }
         },
       ),
@@ -148,148 +311,160 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── HEADER ─────────────────────────────────────────────
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Selamat Datang', style: TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 20
+                  const Text(
+                    'Selamat Datang',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 20),
                   ),
+                  IconButton(
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => NotifikasiTeknisi()));
+                    },
+                    icon: const Icon(Icons.notifications, size: 28),
                   ),
-                IconButton(onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => NotifikasiTeknisi()));
-                }, icon:const Icon( Icons.notifications,  size: 28,)
-                )
                 ],
               ),
-               
-                const SizedBox(height: 14),
 
-                Container(
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: const Color(0xffe6e6e6),
-                    borderRadius: BorderRadius.circular(25),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: TextField(
-                    controller: SearchBar,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: "Cari Tugas...",
-                      prefixIcon: Icon(Icons.search),
+              const SizedBox(height: 14),
+
+              // ── SEARCH + FILTER CATEGORY ICON ──────────────────────
+              Row(
+                children: [
+                  // Search bar
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE6E6E6),
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: "Cari Tugas...",
+                          prefixIcon: Icon(Icons.search),
+                        ),
+                        onChanged: (value) {
+                          if (value.isEmpty) {
+                            fetchIssues();
+                          } else {
+                            fenchData(value);
+                          }
+                        },
+                      ),
                     ),
-                    onChanged: (value) {
-                      if (value.isEmpty) {
-                        fetchIssues();
-                      } else {
-                        fenchData(value);
-                      }
-                    },
                   ),
-                ),
+                  const SizedBox(width: 10),
 
-                const SizedBox(height: 18),
+                  GestureDetector(
+                    onTap: _showCategoryFilter,
+                    child: Container(
+                      height: 48,
+                      width: 48,
+                      decoration: BoxDecoration(
+                        color:
+                            hasFilter ? primary : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Icon(
+                            Icons.filter_list,
+                            color: hasFilter
+                                ? Colors.white
+                                : Colors.grey.shade700,
+                          ),
+                          if (hasFilter)
+                            Positioned(
+                              top: 8, right: 8,
+                              child: Container(
+                                width: 8, height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
+              // ── ACTIVE FILTER CHIP ─────────────────────────────────
+              if (hasFilter) ...[
+                const SizedBox(height: 10),
                 Row(
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedStatus = 'All'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedStatus == 'All'
-                                ? Colors.blue
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Center(child: Text("All")),
-                        ),
+                    const Text('Kategori: ',
+                        style: TextStyle(
+                            fontSize: 12, color: Colors.grey)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: primary),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedStatus = 'Low'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedStatus == 'Low'
-                                ? Colors.green
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _selectedCategory!,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: primary,
+                            ),
                           ),
-                          child: const Center(child: Text("Rendah")),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedStatus = 'Medium'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedStatus == 'Medium'
-                                ? Colors.orange
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
+                          const SizedBox(width: 4),
+                          GestureDetector(
+                            onTap: () {
+                              setState(
+                                  () => _selectedCategory = null);
+                              fetchIssues();
+                            },
+                            child: Icon(Icons.close,
+                                size: 14, color: primary),
                           ),
-                          child: const Center(child: Text("Menengah")),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedStatus = 'High'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedStatus == 'High'
-                                ? Colors.deepOrange
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Center(child: Text("Tinggi")),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => selectedStatus = 'Urgent'),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: selectedStatus == 'Urgent'
-                                ? Colors.red
-                                : Colors.grey[200],
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Center(child: Text("Darurat")),
-                        ),
+                        ],
                       ),
                     ),
                   ],
                 ),
+              ],
 
-                const SizedBox(height: 12),
+              const SizedBox(height: 18),
 
-                const Text(
-                  "Tugas Terbaru",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
+              const Text(
+                "Tugas Terbaru",
+                style: TextStyle(
+                    fontSize: 16, fontWeight: FontWeight.w600),
+              ),
 
-                const SizedBox(height: 12),
+              const SizedBox(height: 12),
 
-                _isLoading
+              // ── LIST ───────────────────────────────────────────────
+              Expanded(
+                child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
-                    : filteredIssues.isEmpty
+                    : displayIssues.isEmpty
                         ? const Center(
                             child: Text(
                               'Tidak Ada Laporan',
@@ -301,115 +476,142 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                             ),
                           )
                         : ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: filteredIssues.length,
+                            itemCount: displayIssues.length,
                             itemBuilder: (context, index) {
-                              final issue = filteredIssues[index];
+                              final issue = displayIssues[index];
+                              final status =
+                                  issue['status']?.toString();
+                              final priority =
+                                  issue['priority']?.toString();
                               final isResolved =
-                                  issue['status'] == 'Resolved';
+                                  status == 'Resolved';
+                              final isRejected =
+                                  status == 'Rejected';
                               final overdue = _isOverdue(
-                                  issue['deadline'], issue['status']);
+                                  issue['deadline'], status);
 
                               return GestureDetector(
                                 onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => DetailLaporanTeknisi(
-                                        issueId: issue['id'].toString(),
+                                      builder: (_) =>
+                                          DetailLaporanTeknisi(
+                                        issueId: issue['id']
+                                            .toString(),
                                       ),
                                     ),
                                   ).then((_) => fetchIssues());
                                 },
                                 child: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin: const EdgeInsets.only(
+                                      bottom: 12),
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: isResolved
-                                        ? Colors.green[700]
-                                        : issue['priority'] == 'Urgent'
-                                            ? const Color.fromARGB(
-                                                255, 243, 77, 65)
-                                            : Colors.grey[600],
-                                    borderRadius: BorderRadius.circular(12),
+                                    // ── CARD SELALU PUTIH ──
+                                    color: Colors.white,
+                                    borderRadius:
+                                        BorderRadius.circular(12),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black
+                                            .withOpacity(0.06),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
+                                      // ── JUDUL & STATUS BADGE ──
                                       Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Expanded(
                                             child: Text(
                                               issue['title'] ?? '',
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
+                                                fontWeight:
+                                                    FontWeight.bold,
+                                                fontSize: 14,
+                                                color: Colors.black87,
                                               ),
                                             ),
                                           ),
-                                          if (isResolved)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white
-                                                    .withOpacity(0.25),
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                              ),
-                                              child: const Text(
-                                                '✓ Selesai',
-                                                style: TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 11,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                              ),
-                                            )
-                                          else
-                                            Text(
-                                              issue['priority'] ?? '',
-                                              style: TextStyle(
-                                                color: issue['priority'] ==
-                                                        'Urgent'
-                                                    ? Colors.white
-                                                    : issue['priority'] ==
-                                                            'Medium'
-                                                        ? Colors.orange
-                                                        : Colors.green,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
+                                          const SizedBox(width: 8),
+                                          _buildStatusBadge(status),
                                         ],
                                       ),
 
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: 8),
 
-                                      Text(
-                                        "Lokasi : ${issue['location'] ?? 'Location Not Found'}",
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.white,
+                                      // ── PRIORITY BADGE ─────────
+                                      Container(
+                                        padding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: _priorityColor(
+                                                  priority)
+                                              .withOpacity(0.12),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: _priorityColor(
+                                                priority),
+                                            width: 0.8,
+                                          ),
                                         ),
+                                        child: Text(
+                                          _priorityLabel(priority),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            color: _priorityColor(
+                                                priority),
+                                          ),
+                                        ),
+                                      ),
+
+                                      const SizedBox(height: 8),
+
+                                      // ── LOKASI ─────────────────
+                                      Row(
+                                        children: [
+                                          Icon(
+                                              Icons.location_on_outlined,
+                                              size: 13,
+                                              color:
+                                                  Colors.grey.shade500),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              "Lokasi: ${issue['location'] ?? 'Tidak diketahui'}",
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors
+                                                    .grey.shade600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
 
                                       const SizedBox(height: 4),
 
-                                      // No. 1: tampilkan deadline di card
+                                      // ── DEADLINE ───────────────
                                       Row(
                                         children: [
                                           Icon(
                                             Icons.access_time,
                                             size: 12,
                                             color: overdue
-                                                ? Colors.yellow
-                                                : Colors.white70,
+                                                ? Colors.red
+                                                : Colors.grey.shade500,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
@@ -417,8 +619,8 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                                             style: TextStyle(
                                               fontSize: 11,
                                               color: overdue
-                                                  ? Colors.yellow
-                                                  : Colors.white70,
+                                                  ? Colors.red
+                                                  : Colors.grey.shade600,
                                               fontWeight: overdue
                                                   ? FontWeight.bold
                                                   : FontWeight.normal,
@@ -429,20 +631,23 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                                             const Text(
                                               '(Terlambat)',
                                               style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Colors.yellow,
-                                                  fontWeight:
-                                                      FontWeight.bold),
+                                                fontSize: 10,
+                                                color: Colors.red,
+                                                fontWeight:
+                                                    FontWeight.bold,
+                                              ),
                                             ),
                                           ]
                                         ],
                                       ),
 
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
 
+                                      // ── FOOTER ─────────────────
                                       Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
+                                            MainAxisAlignment
+                                                .spaceBetween,
                                         children: [
                                           Text(
                                             issue['created_at'] != null
@@ -450,18 +655,28 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                                                     .toString()
                                                     .substring(0, 10)
                                                 : '',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontSize: 11,
-                                              color: Colors.white,
+                                              color:
+                                                  Colors.grey.shade500,
                                             ),
                                           ),
-                                          const Text(
-                                            "Lihat Detail",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                            ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                "Lihat Detail",
+                                                style: TextStyle(
+                                                  color: primary,
+                                                  fontSize: 11,
+                                                  fontWeight:
+                                                      FontWeight.bold,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(Icons.arrow_forward,
+                                                  color: primary,
+                                                  size: 12),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -471,10 +686,40 @@ class _DashboardTeknisiState extends State<DashboardTeknisi> {
                               );
                             },
                           ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String? status) {
+    final bg = _statusBadgeBg(status);
+    final icon = _statusIcon(status);
+    final label = _statusLabel(status);
+
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 12),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
       ),
     );
   }
